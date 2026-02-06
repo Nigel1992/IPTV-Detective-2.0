@@ -1017,7 +1017,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
             const table = document.getElementById('providersTable');
             const tbody = document.getElementById('providersTableBody');
-            const rows = Array.from(tbody.getElementsByTagName('tr')).filter(row => !row.classList.contains('table-light'));
+            // Only consider main provider rows (they have IDs like "prov-<id>") so detail/link rows are excluded
+            const rows = Array.from(tbody.querySelectorAll('tr')).filter(row => row.id && row.id.startsWith('prov-'));
 
             // Filter rows
             let visibleRows = rows.filter(row => {
