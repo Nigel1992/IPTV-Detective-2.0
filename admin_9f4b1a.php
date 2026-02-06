@@ -1039,125 +1039,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             // Only consider main provider rows (they have IDs like "prov-<id>") so detail/link rows are excluded
             const rows = Array.from(tbody.querySelectorAll('tr')).filter(row => row.id && row.id.startsWith('prov-'));
 
-            // Filter rows
-            let visibleRows = rows.filter(row => {
-                const name = row.dataset.name || '';
-                const status = row.dataset.status || '';
+            // Build provider/detail pairs so each provider stays attached to its following link/detail row
+            const children = Array.from(tbody.children);
+            const pairs = [];
+            for (let i = 0; i < children.length; i++) {
+                const r = children[i];
+                if (r.id && r.id.startsWith('prov-')) {
+                    let detail = null;
+                    const nxt = children[i+1];
+                    if (nxt && (!nxt.id || !nxt.id.startsWith('prov-')) && nxt.querySelector && nxt.querySelector('a')) {
+                        detail = nxt;
+                        i++; // skip detail in the main loop
+                    }
+                    pairs.push({ row: r, detail: detail });
+                }
+            }
 
-                const matchesSearch = name.includes(searchTerm);
-                const matchesStatus = !statusFilter || status === statusFilter;
-
-                return matchesSearch && matchesStatus;
-            });
-
-            // Sort rows according to selected sort field and direction
-            if (sortBy) {
+            // Sort pair array according to selected sort
+            if (sortBy && pairs.length) {
                 const parts = sortBy.split(/\s+/);
                 const field = parts[0] || 'created_at';
                 const dir = (parts[1] || 'DESC').toUpperCase();
 
-                const parsePriceFromRow = (row) => {
-                    const txt = (row.cells[2] && row.cells[2].textContent) ? row.cells[2].textContent : '';
+                const getPrice = (r) => {
+                    const txt = (r.cells[2] && r.cells[2].textContent) ? r.cells[2].textContent : '';
                     const m = txt.match(/[-\d.,]+/);
-                    if (!m) return 0;
-                    return parseFloat(m[0].replace(/,/g, '')) || 0;
+                    return m ? (parseFloat(m[0].replace(/,/g, '')) || 0) : 0;
                 };
-
-                const parseDateFromRow = (row) => {
-                    const txt = (row.cells[5] && row.cells[5].textContent) ? row.cells[5].textContent.trim() : '';
+                const getDate = (r) => {
+                    const txt = (r.cells[5] && r.cells[5].textContent) ? r.cells[5].textContent.trim() : '';
                     const t = Date.parse(txt);
                     return isNaN(t) ? 0 : t;
                 };
 
-                visibleRows.sort((a, b) => {
-                    let aVal, bVal;
+                pairs.sort((a, b) => {
                     if (field === 'name') {
-                        aVal = a.dataset.name || (a.cells[1] && a.cells[1].textContent.toLowerCase()) || '';
-                        bVal = b.dataset.name || (b.cells[1] && b.cells[1].textContent.toLowerCase()) || '';
-                        return dir === 'ASC' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                        const A = a.row.dataset.name || (a.row.cells[1] && a.row.cells[1].textContent.toLowerCase()) || '';
+                        const B = b.row.dataset.name || (b.row.cells[1] && b.row.cells[1].textContent.toLowerCase()) || '';
+                        return dir === 'ASC' ? A.localeCompare(B) : B.localeCompare(A);
                     }
                     if (field === 'price') {
-                        aVal = parsePriceFromRow(a);
-                        bVal = parsePriceFromRow(b);
-                        return dir === 'ASC' ? (aVal - bVal) : (bVal - aVal);
+                        const A = getPrice(a.row);
+                        const B = getPrice(b.row);
+                        return dir === 'ASC' ? (A - B) : (B - A);
                     }
-                    // default to created_at
-                    aVal = parseDateFromRow(a);
-                    bVal = parseDateFromRow(b);
-                    return dir === 'ASC' ? (aVal - bVal) : (bVal - aVal);
+                    const A = getDate(a.row);
+                    const B = getDate(b.row);
+                    return dir === 'ASC' ? (A - B) : (B - A);
                 });
             }
 
-            // Reorder table DOM so provider rows appear in sorted order, keeping their linked detail rows paired.
-            try {
-                // Map provider id -> its detail/link row (if any)
-                const providerRows = Array.from(tbody.querySelectorAll('tr[id^="prov-"]'));
-                const detailMap = new Map();
-                providerRows.forEach(r => {
-                    const next = r.nextElementSibling;
-                    if (next && (!next.id || !next.id.startsWith('prov-'))) {
-                        detailMap.set(r.id, next);
-                    }
-                });
-
-                // Build new full ordering: visible (sorted) first, then the remaining providers in their current order
-                const remaining = providerRows.filter(r => !visibleRows.includes(r));
-                const newOrder = visibleRows.concat(remaining);
-
-                // Create fragment with providers and their associated detail rows in order
-                const frag = document.createDocumentFragment();
-                newOrder.forEach(r => {
-                    frag.appendChild(r);
-                    const det = detailMap.get(r.id);
-                    if (det) frag.appendChild(det);
-                });
-
-                // Replace provider rows area by inserting the fragment before the first provider or at tbody start
-                const firstProvider = providerRows[0] || tbody.firstChild;
-                if (firstProvider) {
-                    tbody.insertBefore(frag, firstProvider);
-                    // Remove old duplicates: providerRows that still exist after insertion will be moved; ensure no leftover duplicates
-                    providerRows.forEach(r => {
-                        if (r.parentNode === tbody && r !== firstProvider && newOrder.indexOf(r) === -1) {
-                            // should not happen, but keep safe
-                            tbody.removeChild(r);
-                        }
-                    });
-                } else {
-                    // fallback: append to tbody
-                    tbody.appendChild(frag);
-                }
-            } catch (e) {
-                console.error('Failed to reorder rows for sorting', e);
-            }
-
-            // Hide all rows first
-            rows.forEach(row => {
-                row.style.display = 'none';
-                // Also hide the link row that follows (if it looks like the link/detail row)
-                const nextRow = row.nextElementSibling;
-                if (nextRow && nextRow.cells && nextRow.cells.length > 1 && nextRow.cells[1].getAttribute && nextRow.cells[1].getAttribute('colspan')) {
-                    nextRow.style.display = 'none';
-                } else if (nextRow && nextRow.querySelector && nextRow.querySelector('a')) {
-                    // fallback: if it contains a link, treat it as the detail row
-                    nextRow.style.display = 'none';
-                }
+            // Rebuild tbody with pairs in the new order (this moves nodes in the DOM)
+            const frag = document.createDocumentFragment();
+            pairs.forEach(p => {
+                frag.appendChild(p.row);
+                if (p.detail) frag.appendChild(p.detail);
             });
+            // Clear and append
+            while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+            tbody.appendChild(frag);
 
-            // Show filtered and sorted rows
-            visibleRows.forEach(row => {
-                row.style.display = '';
-                // Also show the link row that follows (if it looks like the link/detail row)
-                const nextRow = row.nextElementSibling;
-                if (nextRow && nextRow.cells && nextRow.cells.length > 1 && nextRow.cells[1].getAttribute && nextRow.cells[1].getAttribute('colspan')) {
-                    nextRow.style.display = '';
-                } else if (nextRow && nextRow.querySelector && nextRow.querySelector('a')) {
-                    nextRow.style.display = '';
+            // Apply filtering (show/hide) and count visible
+            let shown = 0;
+            pairs.forEach(p => {
+                const row = p.row;
+                const detail = p.detail;
+                const name = row.dataset.name || '';
+                const status = row.dataset.status || '';
+                const matchesSearch = name.includes(searchTerm);
+                const matchesStatus = !statusFilter || status === statusFilter;
+                if (matchesSearch && matchesStatus) {
+                    row.style.display = '';
+                    if (detail) detail.style.display = '';
+                    shown++;
+                } else {
+                    row.style.display = 'none';
+                    if (detail) detail.style.display = 'none';
                 }
             });
 
             // Update count
-            document.getElementById('providerCount').textContent = visibleRows.length + ' shown';
+            document.getElementById('providerCount').textContent = shown + ' shown';
         }
 
         // Refresh data function
