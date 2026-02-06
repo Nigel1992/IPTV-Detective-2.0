@@ -85,6 +85,13 @@
 
     /* Stats grid: square stat cards */
     .stats-grid{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;align-items:center}
+
+    /* heading with glow */
+    .stats-heading{margin-bottom:0.35rem;text-align:center}
+    .stats-heading strong{display:inline-block;font-family:'Orbitron',sans-serif;font-weight:700;color:var(--accent);font-size:2.4rem;letter-spacing:1.6px;text-shadow:0 0 10px rgba(0,194,255,0.12),0 0 28px rgba(124,246,255,0.03);padding:0.2rem 0}
+    @keyframes glowPulse{from{filter:brightness(1);text-shadow:0 0 8px rgba(0,194,255,0.12),0 0 20px rgba(124,246,255,0.03);transform:translateY(0)}to{filter:brightness(1.1);text-shadow:0 0 18px rgba(0,194,255,0.18),0 0 38px rgba(124,246,255,0.06);transform:translateY(-3px)}}
+    .stats-heading strong{animation:glowPulse 2.2s ease-in-out infinite alternate}
+
     .stat-card{width:160px;height:160px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.35rem;padding:0.8rem;box-shadow:0 8px 22px rgba(0,0,0,0.35);transition:transform .12s ease, box-shadow .12s ease}
     .stat-card:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(0,0,0,0.5)}
 
@@ -103,6 +110,7 @@
     .stat-card .stat-label{font-size:0.9rem;color:#cfeefb;opacity:0.95;text-align:center}
     .stat-card .btn{margin-top:0.35rem}
     @media (max-width:576px){
+      .stats-heading strong{font-size:1.6rem}
       .stat-card{width:120px;height:120px}
       .stat-card .stat-count{font-size:22px}
     }
@@ -1186,7 +1194,7 @@
   </div>
 
   <div class="container mb-3 d-flex flex-column align-items-center">
-    <div class="mb-2"><strong>Stats</strong></div>
+    <div class="mb-2 stats-heading"><strong>Stats</strong></div>
     <div class="stats-grid" role="region" aria-label="Site stats">
       <div class="stat-card providers" id="card-providers">
         <div class="stat-count" id="submissionsCount">—</div>
