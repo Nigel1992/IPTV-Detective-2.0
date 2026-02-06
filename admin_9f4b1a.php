@@ -692,6 +692,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         });
         <?php if (isset($action_msg) && (strpos($action_msg, 'updated') !== false || strpos($action_msg, 'deleted') !== false)): ?>
         setActiveTab('providers-tab');
+        // show providers pane
+        document.getElementById('mainDashboard').style.display = 'none';
+        document.getElementById('matchedGroupsPane').style.display = 'none';
+        document.getElementById('providersPane').style.display = '';
         <?php endif; ?>
     </script>
 </body>
