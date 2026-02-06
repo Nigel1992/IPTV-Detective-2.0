@@ -525,6 +525,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             color:#d6eef5;
             box-shadow: 0 0 0 0.2rem rgba(0, 217, 255, 0.25);
         }
+        /* Make native select dropdown options and Bootstrap dropdowns match dark theme */
+        .form-select option,
+        .form-select optgroup {
+            background: var(--dark-bg);
+            color: #d6eef5;
+        }
+        /* Boostrap dropdown menus (e.g., .dropdown-menu) */
+        .dropdown-menu {
+            background: rgba(11,18,32,0.95);
+            border: 1px solid var(--border-color);
+            color: #d6eef5;
+        }
+        .dropdown-item {
+            color: #d6eef5;
+        }
+        .dropdown-item:hover, .dropdown-item:focus {
+            background: rgba(0,217,255,0.08);
+            color: #032935;
+        }
         /* Alert improvements */
         .alert{
             border-radius:8px;
