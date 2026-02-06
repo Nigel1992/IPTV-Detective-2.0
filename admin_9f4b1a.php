@@ -767,14 +767,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                     $stmt = $pdo->prepare('SELECT name, created_at FROM providers ORDER BY created_at DESC LIMIT 8');
                                     $stmt->execute();
                                     $count = 0;
-                                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC) && $count < 8) {
-                                        $timeAgo = time() - strtotime($row['created_at']);
-                                        $timeStr = $timeAgo < 3600 ? round($timeAgo/60) . 'm ago' : 
-                                                  ($timeAgo < 86400 ? round($timeAgo/3600) . 'h ago' : 
-                                                  round($timeAgo/86400) . 'd ago');
+                                    while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) && $count < 8) {
+                                        $timeStr = 'N/A';
+                                        if (!empty($row['created_at'])) {
+                                            $ts = strtotime($row['created_at']);
+                                            if ($ts !== false && $ts > 0) {
+                                                $timeAgo = time() - $ts;
+                                                $timeStr = $timeAgo < 3600 ? round($timeAgo/60) . 'm ago' : 
+                                                          ($timeAgo < 86400 ? round($timeAgo/3600) . 'h ago' : 
+                                                          round($timeAgo/86400) . 'd ago');
+                                            }
+                                        }
                                         echo '<div class="list-group-item px-0 d-flex justify-content-between align-items-center">';
-                                        echo '<div><i class="bi bi-plus-circle text-success me-2"></i><strong>' . htmlspecialchars($row['name']) . '</strong></div>';
-                                        echo '<small class="text-muted">' . $timeStr . '</small>';
+                                        echo '<div><i class="bi bi-plus-circle text-success me-2"></i><strong>' . htmlspecialchars($row['name'] ?? '') . '</strong></div>';
+                                        echo '<small class="text-muted">' . htmlspecialchars($timeStr) . '</small>';
                                         echo '</div>';
                                         $count++;
                                     }
