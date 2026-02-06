@@ -67,6 +67,18 @@
     .match-body a{color:var(--accent);text-decoration:underline}
     .visit-inline{margin-left:0.5rem;color:var(--accent);font-weight:600;text-decoration:underline}
     .site-version{opacity:0.85;color:#9fbfd0;font-size:0.9rem;margin-top:0.5rem}
+
+    /* Compact submissions card */
+    .submissions-card-sm{display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;border-radius:8px;background:var(--glass);border:1px solid rgba(255,255,255,0.03)}
+    .submissions-card-sm .icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 6px 14px rgba(0,0,0,0.22);}
+    .submissions-card-sm .numbers{line-height:1}
+    .submissions-card-sm .count{font-size:16px;font-weight:700;color:var(--accent)}
+    .submissions-card-sm .label{font-size:0.78rem;color:#cfeefb;opacity:0.9}
+    .submissions-card-sm .btn{padding:.35rem .55rem;font-size:0.78rem}
+    @media (max-width:480px){
+      .submissions-card-sm .label{display:none}
+      .submissions-card-sm .icon{width:32px;height:32px;font-size:13px}
+    }
   </style>
 </head>
 <body class="bg-dark text-light">
@@ -114,17 +126,15 @@
               <input class="form-control" name="price" type="number" step="0.01" min="0.01" required>
               <div class="invalid-feedback">Please enter a price (minimum $0.01).</div>
             </div>
-            <!-- Submissions card moved here -->
+            <!-- Compact submissions card moved here -->
             <div class="col-12">
-              <div id="submissionsCard" class="card shadow-sm p-3 mt-3">
-                <div class="d-flex align-items-center gap-3">
-                  <div style="width:56px;height:56px;border-radius:10px;background:linear-gradient(90deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#032935;font-weight:700;font-size:18px;box-shadow:0 8px 18px rgba(0,0,0,0.22);">📊</div>
-                  <div>
-                    <div style="font-size:18px;font-weight:700;color:var(--accent);" id="submissionsCount">—</div>
-                    <div class="small text-muted">Public submissions <span id="submissionsTotal" style="opacity:0.9">(total: —)</span></div>
-                  </div>
+              <div id="submissionsCard" class="submissions-card-sm mt-3" role="region" aria-label="Submissions summary">
+                <div class="icon" style="background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#032935">📊</div>
+                <div class="numbers">
+                  <div class="count" id="submissionsCount">—</div>
+                  <div class="label">Public <small id="submissionsTotal">(total: —)</small></div>
                 </div>
-                <div class="small text-muted mt-2">Your submission helps improve matching and spot resellers — <a href="#subs" class="fw-bold text-decoration-underline" onclick="document.getElementById('subs-tab').click();return false;">Contribute a submission →</a></div>
+                <a href="#subs" class="btn btn-sm btn-outline-light ms-auto" onclick="document.getElementById('subs-tab').click();return false;">Contribute</a>
               </div>
             </div>
             <div class="col-md-6">
