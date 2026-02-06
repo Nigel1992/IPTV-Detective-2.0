@@ -888,7 +888,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 echo '</tr>';
                                 // Link row
                                 if (!empty($r['link'])) {
-                                    echo '<tr class="table-light"><td></td><td colspan="6"><small><i class="bi bi-link-45deg me-1"></i><a href="' . htmlspecialchars($r['link']) . '" target="_blank" rel="noopener noreferrer">' . htmlspecialchars($r['link']) . '</a></small></td></tr>';
+                                    echo '<tr><td></td><td colspan="6"><small><i class="bi bi-link-45deg me-1"></i><a href="' . htmlspecialchars($r['link']) . '" target="_blank" rel="noopener noreferrer">' . htmlspecialchars($r['link']) . '</a></small></td></tr>';
                                 }
                             }
                             ?>
