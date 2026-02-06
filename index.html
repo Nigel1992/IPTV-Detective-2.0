@@ -69,12 +69,15 @@
     .site-version{opacity:0.85;color:#9fbfd0;font-size:0.9rem;margin-top:0.5rem}
 
     /* Compact submissions card */
-    .submissions-card-sm{display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;border-radius:8px;background:var(--glass);border:1px solid rgba(255,255,255,0.03)}
+    .submissions-card-sm{display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;border-radius:8px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);max-width:220px;width:100%}
     .submissions-card-sm .icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 6px 14px rgba(0,0,0,0.22);}
     .submissions-card-sm .numbers{line-height:1}
     .submissions-card-sm .count{font-size:16px;font-weight:700;color:var(--accent)}
     .submissions-card-sm .label{font-size:0.78rem;color:#cfeefb;opacity:0.9}
     .submissions-card-sm .btn{padding:.35rem .55rem;font-size:0.78rem}
+    @media (max-width:768px){
+      .submissions-card-sm{max-width:100%;width:100%}
+    }
     @media (max-width:480px){
       .submissions-card-sm .label{display:none}
       .submissions-card-sm .icon{width:32px;height:32px;font-size:13px}
@@ -127,8 +130,8 @@
               <div class="invalid-feedback">Please enter a price (minimum $0.01).</div>
             </div>
             <!-- Compact submissions card moved here -->
-            <div class="col-12">
-              <div id="submissionsCard" class="submissions-card-sm mt-3" role="region" aria-label="Submissions summary">
+            <div class="col-md-4 col-12 d-flex justify-content-md-end">
+              <div id="submissionsCard" class="submissions-card-sm mt-3" role="region" aria-label="Submissions summary" style="max-width:220px;width:100%;">
                 <div class="icon" style="background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#032935">📊</div>
                 <div class="numbers">
                   <div class="count" id="submissionsCount">—</div>
