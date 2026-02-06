@@ -436,32 +436,115 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         echo '<tr id="' . $rowId . '">';
                         echo '<td>' . htmlspecialchars($r['id']) . '</td>';
                         $name = htmlspecialchars($r['name'] ?? '');
-                        if (!empty($r['link'])) {
-                            $link = htmlspecialchars($r['link']);
-                            echo '<td><a href="' . $link . '" target="_blank" rel="noopener noreferrer">' . $name . '</a></td>';
-                        } else {
-                            echo '<td>' . $name . '</td>';
-                        }
+                        echo '<td>' . $name . '</td>';
                         echo '<td>' . htmlspecialchars(isset($r['price']) ? number_format($r['price'],2) : '') . '</td>';
                         echo '<td>' . htmlspecialchars($r['channels'] ?? '') . '</td>';
                         echo '<td>' . htmlspecialchars($r['groups'] ?? '') . '</td>';
                         echo '<td>' . htmlspecialchars($r['created_at'] ?? '') . '</td>';
-                        echo '<td><form method="post" onsubmit="return confirm(\'Delete this provider?\');">'
-                             . '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'] ?? '') . '">'
-                             . '<input type="hidden" name="action" value="delete">'
-                             . '<input type="hidden" name="id" value="' . htmlspecialchars($r['id']) . '">'
+                        echo '<td>';
+                        echo '<button class="btn btn-sm btn-info me-1" onclick="openEditModal(' . htmlspecialchars($r['id']) . ', \'" . addslashes($name) . "\', \'" . addslashes($r['link'] ?? '') . "\', \'" . addslashes($r['price'] ?? '') . "\', \'" . addslashes($r['channels'] ?? '') . "\', \'" . addslashes($r['groups'] ?? '') . "\')">Edit</button>';
+                        echo '<form method="post" style="display:inline" onsubmit="return confirm(\'Delete this provider?\');">'
+                             . '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'] ?? '') . '"'
+                             . '<input type="hidden" name="action" value="delete"'
+                             . '<input type="hidden" name="id" value="' . htmlspecialchars($r['id']) . '"'
                              . '<button class="btn btn-sm btn-danger">Delete</button>'
-                             . '</form></td>';
+                             . '</form>';
+                        echo '</td>';
                         echo '</tr>';
+                        // Link row
+                        if (!empty($r['link'])) {
+                            echo '<tr><td></td><td colspan="6"><strong>Link:</strong> <a href="' . htmlspecialchars($r['link']) . '" target="_blank" rel="noopener noreferrer">' . htmlspecialchars($r['link']) . '</a></td></tr>';
+                        }
                     }
                     ?>
                     </tbody>
                 </table>
+                                                <!-- Edit Modal -->
+                                                <div class="modal fade" id="editProviderModal" tabindex="-1" aria-labelledby="editProviderModalLabel" aria-hidden="true">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <form method="post" id="editProviderForm">
+                                                                <div class="modal-header">
+                                                                    <h5 class="modal-title" id="editProviderModalLabel">Edit Provider</h5>
+                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                </div>
+                                                                <div class="modal-body">
+                                                                    <input type="hidden" name="action" value="edit">
+                                                                    <input type="hidden" name="id" id="editProviderId">
+                                                                    <div class="mb-3">
+                                                                        <label for="editProviderName" class="form-label">Name</label>
+                                                                        <input type="text" class="form-control" name="name" id="editProviderName" required>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label for="editProviderLink" class="form-label">Link</label>
+                                                                        <input type="text" class="form-control" name="link" id="editProviderLink">
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label for="editProviderPrice" class="form-label">Price</label>
+                                                                        <input type="text" class="form-control" name="price" id="editProviderPrice">
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label for="editProviderChannels" class="form-label">Channels</label>
+                                                                        <input type="text" class="form-control" name="channels" id="editProviderChannels">
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label for="editProviderGroups" class="form-label">Groups</label>
+                                                                        <input type="text" class="form-control" name="groups" id="editProviderGroups">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
                 </div>
             </div>
         </div>
     </div>
     <script>
+                // Modal edit logic
+                function openEditModal(id, name, link, price, channels, groups) {
+                    document.getElementById('editProviderId').value = id;
+                    document.getElementById('editProviderName').value = name;
+                    document.getElementById('editProviderLink').value = link;
+                    document.getElementById('editProviderPrice').value = price;
+                    document.getElementById('editProviderChannels').value = channels;
+                    document.getElementById('editProviderGroups').value = groups;
+                    var modal = new bootstrap.Modal(document.getElementById('editProviderModal'));
+                    modal.show();
+                }
+                document.getElementById('editProviderForm').addEventListener('submit', function(e){
+                    // Optionally add client-side validation here
+                });
+        // Handle edit action
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit' && !empty($_POST['id'])) {
+            $editId = intval($_POST['id']);
+            $fields = [
+                'name' => $_POST['name'] ?? '',
+                'link' => $_POST['link'] ?? '',
+                'price' => $_POST['price'] ?? '',
+                'channels' => $_POST['channels'] ?? '',
+                'groups' => $_POST['groups'] ?? ''
+            ];
+            $set = [];
+            $params = [];
+            foreach ($fields as $k => $v) {
+                $set[] = "$k = ?";
+                $params[] = $v;
+            }
+            $params[] = $editId;
+            $sql = "UPDATE providers SET " . implode(',', $set) . " WHERE id = ?";
+            try {
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                $action_msg = 'Provider ' . $editId . ' updated.';
+            } catch (Exception $e) {
+                $action_err = 'Edit failed: ' . $e->getMessage();
+            }
+        }
         const ctx = document.getElementById('statusChart').getContext('2d');
         new Chart(ctx, {
             type: 'pie',
