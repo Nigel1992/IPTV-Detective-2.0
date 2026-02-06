@@ -414,14 +414,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             content: "";
             display: inline-block;
             width: 1px;
-            height: 18px;
+            height: 22px;
             background: rgba(255,255,255,0.06);
             margin: 0 10px;
             vertical-align: middle;
+            /* small nudge to vertically center inside nav items */
+            transform: translateY(0.2rem);
         }
+        /* Ensure nav items and links align on a single baseline */
+        .navbar .navbar-nav {
+            display: flex;
+            align-items: center;
+        }
+        .navbar .navbar-nav .nav-item{ display:flex; align-items:center; }
+        .navbar .navbar-nav .nav-link{
+            display:flex;
+            align-items:center;
+            gap: .5rem;
+            padding: .55rem .65rem;
+            line-height:1;
+            height: 40px; /* consistent tap target */
+        }
+        .navbar-brand{ align-items:center; height:40px; display:flex; }
         /* Hide separators on small screens */
         @media (max-width: 576px) {
             .navbar .navbar-nav .nav-item + .nav-item::before { display: none; }
+            .navbar .navbar-nav .nav-link{ height:auto; padding:.45rem .5rem; }
         }
         .container{
             max-width:1280px;
