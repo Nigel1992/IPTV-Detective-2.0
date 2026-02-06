@@ -27,4 +27,20 @@ body { padding-bottom: 40px; }
 @keyframes neonPulse{0%{transform:translateY(0) scale(1); box-shadow:0 6px 18px rgba(0,194,255,0.02)}50%{transform:translateY(-3px) scale(1.06); box-shadow:0 26px 56px rgba(0,194,255,0.18)}100%{transform:translateY(0) scale(1); box-shadow:0 6px 18px rgba(0,194,255,0.02)}}
 .btn-action.pulse{animation:neonPulse 2.2s ease-in-out infinite}
 
+/* Ensure provider link row matches the table row background */
+#providersTable tbody tr.table-light td a {
+	background-color: transparent !important;
+	color: inherit !important;
+	text-decoration: underline;
+}
+
+/* Make the link area fill the cell so its background doesn't show different */
+#providersTable tbody tr.table-light td small a {
+	display: inline-block;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 0;
+	background: transparent !important;
+}
+
 
