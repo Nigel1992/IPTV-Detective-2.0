@@ -75,20 +75,8 @@
     <div class="text-center mb-4 hero">
       <h1 class="display-5 fw-bold mb-1"><span class="logo"><i class="bi bi-broadcast"></i> IPTV Detective</span></h1>
       <div class="lead">Find the cheapest provider offering the exact same IPTV package — detect resells and compare prices.</div>
-      <div class="mt-3 d-flex justify-content-center gap-3 align-items-center flex-wrap">
+      <div class="mt-3">
         <button class="btn btn-outline-light btn-lg" id="howItWorksBtn" title="How this site works" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="bi bi-info-circle"></i> How it works</button>
-        <!-- Submissions card -->
-        <div id="submissionsCard" class="card p-3 shadow-sm d-flex align-items-center" style="min-width:240px;max-width:360px;">
-          <div style="display:flex;align-items:center;gap:12px;width:100%;">
-            <div style="width:64px;height:64px;border-radius:12px;background:linear-gradient(90deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#032935;font-weight:700;font-size:20px;box-shadow:0 8px 24px rgba(0,0,0,0.28);">📊</div>
-            <div style="flex:1;min-width:120px;">
-              <div style="font-size:20px;font-weight:700;color:var(--accent);" id="submissionsCount">—</div>
-              <div class="small text-muted">Public submissions</div>
-              <div class="small text-muted" id="submissionsTotal" style="opacity:0.9">(total: —)</div>
-            </div>
-          </div>
-          <div class="small text-muted mt-2">Your submission helps improve matching and spot resellers — <a href="#subs" class="fw-bold text-decoration-underline" onclick="document.getElementById('subs-tab').click();return false;">Contribute a submission →</a></div>
-        </div>
       </div>
     </div>
     <div id="verifyAlert" class="alert alert-warning" style="display:none">
@@ -125,6 +113,19 @@
               <label class="form-label">Price per Year (USD/EUR/GBP/CAD/AUD)</label>
               <input class="form-control" name="price" type="number" step="0.01" min="0.01" required>
               <div class="invalid-feedback">Please enter a price (minimum $0.01).</div>
+            </div>
+            <!-- Submissions card moved here -->
+            <div class="col-12">
+              <div id="submissionsCard" class="card shadow-sm p-3 mt-3">
+                <div class="d-flex align-items-center gap-3">
+                  <div style="width:56px;height:56px;border-radius:10px;background:linear-gradient(90deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#032935;font-weight:700;font-size:18px;box-shadow:0 8px 18px rgba(0,0,0,0.22);">📊</div>
+                  <div>
+                    <div style="font-size:18px;font-weight:700;color:var(--accent);" id="submissionsCount">—</div>
+                    <div class="small text-muted">Public submissions <span id="submissionsTotal" style="opacity:0.9">(total: —)</span></div>
+                  </div>
+                </div>
+                <div class="small text-muted mt-2">Your submission helps improve matching and spot resellers — <a href="#subs" class="fw-bold text-decoration-underline" onclick="document.getElementById('subs-tab').click();return false;">Contribute a submission →</a></div>
+              </div>
             </div>
             <div class="col-md-6">
               <label class="form-label">Select .m3u File</label>
