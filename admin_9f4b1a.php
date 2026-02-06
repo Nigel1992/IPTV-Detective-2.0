@@ -690,6 +690,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 }, 250);
             }
         });
+        <?php if (isset($action_msg) && (strpos($action_msg, 'updated') !== false || strpos($action_msg, 'deleted') !== false)): ?>
+        setActiveTab('providers-tab');
+        <?php endif; ?>
     </script>
 </body>
 </html>
