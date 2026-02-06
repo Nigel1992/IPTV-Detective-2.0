@@ -348,6 +348,8 @@ try {
         $sim_store = round($similarity, 2);
 
         // Candidate columns and their values (only these will be considered for insertion)
+        // Always include created_at using Europe/Amsterdam timezone to keep consistent timestamps
+        $created = (new DateTime('now', new DateTimeZone('Europe/Amsterdam')))->format('Y-m-d H:i:s');
         $colMap = [
             'name' => $name,
             'link' => $safe_link,
@@ -360,6 +362,7 @@ try {
             'extra_attrs' => $extra_attrs,
             'channels' => intval($channel_count),
             'groups' => intval($group_count),
+            'created_at' => $created,
             'matched' => intval($matched),
             'match_name' => $match_name,
             'match_price' => $match_price,

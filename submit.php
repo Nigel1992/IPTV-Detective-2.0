@@ -68,9 +68,11 @@ try {
         'id_pattern' => $id_pattern,
         'notes' => $notes
     ]);
+    // Use Europe/Amsterdam timezone for created_at
+    $created = (new DateTime('now', new DateTimeZone('Europe/Amsterdam')))->format('Y-m-d H:i:s');
 
-    $stmt = $pdo->prepare('INSERT INTO providers (name, link, price, `hash`, md5, channel_fingerprint, groups, channels, extra_attrs, submission_count) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, 1)');
-    $stmt->execute([$name, $website, $price, $fingerprint_hash, $fingerprint_hash, $fingerprint_string, $group_count, $extra_attrs]);
+    $stmt = $pdo->prepare('INSERT INTO providers (name, link, price, `hash`, md5, channel_fingerprint, groups, channels, created_at, extra_attrs, submission_count) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 1)');
+    $stmt->execute([$name, $website, $price, $fingerprint_hash, $fingerprint_hash, $fingerprint_string, $group_count, $created, $extra_attrs]);
     $provider_id = $pdo->lastInsertId();
 
     // Insert submission
