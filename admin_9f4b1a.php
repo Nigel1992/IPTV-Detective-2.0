@@ -265,6 +265,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $unmatched_providers = max(0, $total_providers - $matched_providers);
 }
 
+// Handle edit action
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit' && !empty($_POST['id'])) {
+    $editId = intval($_POST['id']);
+    $fields = [
+        'name' => $_POST['name'] ?? '',
+        'link' => $_POST['link'] ?? '',
+        'price' => $_POST['price'] ?? '',
+        'channels' => $_POST['channels'] ?? '',
+        'groups' => $_POST['groups'] ?? ''
+    ];
+    $set = [];
+    $params = [];
+    foreach ($fields as $k => $v) {
+        $set[] = "$k = ?";
+        $params[] = $v;
+    }
+    $params[] = $editId;
+    $sql = "UPDATE providers SET " . implode(',', $set) . " WHERE id = ?";
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $action_msg = 'Provider ' . $editId . ' updated.';
+    } catch (Exception $e) {
+        $action_err = 'Edit failed: ' . $e->getMessage();
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -277,6 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <!-- Nice system font stack -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         :root{--accent:#00d9ff;--muted:#9fb9c9}
         body{font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#0b1220; color:#d6eef5}
@@ -442,7 +470,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         echo '<td>' . htmlspecialchars($r['groups'] ?? '') . '</td>';
                         echo '<td>' . htmlspecialchars($r['created_at'] ?? '') . '</td>';
                         echo '<td>';
-                        echo '<button class="btn btn-sm btn-info me-1" onclick="openEditModal(' . htmlspecialchars($r['id']) . ', \'" . addslashes($name) . "\', \'" . addslashes($r['link'] ?? '') . "\', \'" . addslashes($r['price'] ?? '') . "\', \'" . addslashes($r['channels'] ?? '') . "\', \'" . addslashes($r['groups'] ?? '') . "\')">Edit</button>';
+                        echo '<button class="btn btn-sm btn-info me-1" onclick="openEditModal(' . htmlspecialchars($r['id']) . ', \'' . addslashes($name) . '\', \'' . addslashes($r['link'] ?? '') . '\', \'' . addslashes($r['price'] ?? '') . '\', \'' . addslashes($r['channels'] ?? '') . '\', \'' . addslashes($r['groups'] ?? '') . '\')">Edit</button>';
                         echo '<form method="post" style="display:inline" onsubmit="return confirm(\'Delete this provider?\');">'
                              . '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'] ?? '') . '"'
                              . '<input type="hidden" name="action" value="delete"'
@@ -519,32 +547,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 document.getElementById('editProviderForm').addEventListener('submit', function(e){
                     // Optionally add client-side validation here
                 });
-        // Handle edit action
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit' && !empty($_POST['id'])) {
-            $editId = intval($_POST['id']);
-            $fields = [
-                'name' => $_POST['name'] ?? '',
-                'link' => $_POST['link'] ?? '',
-                'price' => $_POST['price'] ?? '',
-                'channels' => $_POST['channels'] ?? '',
-                'groups' => $_POST['groups'] ?? ''
-            ];
-            $set = [];
-            $params = [];
-            foreach ($fields as $k => $v) {
-                $set[] = "$k = ?";
-                $params[] = $v;
-            }
-            $params[] = $editId;
-            $sql = "UPDATE providers SET " . implode(',', $set) . " WHERE id = ?";
-            try {
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute($params);
-                $action_msg = 'Provider ' . $editId . ' updated.';
-            } catch (Exception $e) {
-                $action_err = 'Edit failed: ' . $e->getMessage();
-            }
-        }
         const ctx = document.getElementById('statusChart').getContext('2d');
         new Chart(ctx, {
             type: 'pie',
