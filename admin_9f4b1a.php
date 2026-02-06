@@ -1088,23 +1088,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 });
             }
 
-            // Reorder table DOM so the visibleRows appear in the sorted order
-            if (visibleRows.length) {
-                try {
-                    const frag = document.createDocumentFragment();
-                    visibleRows.forEach(row => {
-                        frag.appendChild(row);
-                        const nextRow = row.nextElementSibling;
-                        // if the following row is a detail/link row (no id or not a provider row), move it with the main row
-                        if (nextRow && (!nextRow.id || !nextRow.id.startsWith('prov-'))) {
-                            frag.appendChild(nextRow);
+            // Reorder table DOM so provider rows appear in sorted order, keeping their linked detail rows paired.
+            try {
+                // Map provider id -> its detail/link row (if any)
+                const providerRows = Array.from(tbody.querySelectorAll('tr[id^="prov-"]'));
+                const detailMap = new Map();
+                providerRows.forEach(r => {
+                    const next = r.nextElementSibling;
+                    if (next && (!next.id || !next.id.startsWith('prov-'))) {
+                        detailMap.set(r.id, next);
+                    }
+                });
+
+                // Build new full ordering: visible (sorted) first, then the remaining providers in their current order
+                const remaining = providerRows.filter(r => !visibleRows.includes(r));
+                const newOrder = visibleRows.concat(remaining);
+
+                // Create fragment with providers and their associated detail rows in order
+                const frag = document.createDocumentFragment();
+                newOrder.forEach(r => {
+                    frag.appendChild(r);
+                    const det = detailMap.get(r.id);
+                    if (det) frag.appendChild(det);
+                });
+
+                // Replace provider rows area by inserting the fragment before the first provider or at tbody start
+                const firstProvider = providerRows[0] || tbody.firstChild;
+                if (firstProvider) {
+                    tbody.insertBefore(frag, firstProvider);
+                    // Remove old duplicates: providerRows that still exist after insertion will be moved; ensure no leftover duplicates
+                    providerRows.forEach(r => {
+                        if (r.parentNode === tbody && r !== firstProvider && newOrder.indexOf(r) === -1) {
+                            // should not happen, but keep safe
+                            tbody.removeChild(r);
                         }
                     });
-                    // insert at top so sorted rows show first
-                    tbody.insertBefore(frag, tbody.firstChild);
-                } catch (e) {
-                    console.error('Failed to reorder rows for sorting', e);
+                } else {
+                    // fallback: append to tbody
+                    tbody.appendChild(frag);
                 }
+            } catch (e) {
+                console.error('Failed to reorder rows for sorting', e);
             }
 
             // Hide all rows first
