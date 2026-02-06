@@ -409,6 +409,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             backdrop-filter: blur(10px);
             background: rgba(33,37,41,0.95);
         }
+        /* Navbar link separators */
+        .navbar .navbar-nav .nav-item + .nav-item::before {
+            content: "";
+            display: inline-block;
+            width: 1px;
+            height: 18px;
+            background: rgba(255,255,255,0.06);
+            margin: 0 10px;
+            vertical-align: middle;
+        }
+        /* Hide separators on small screens */
+        @media (max-width: 576px) {
+            .navbar .navbar-nav .nav-item + .nav-item::before { display: none; }
+        }
         .container{
             max-width:1280px;
         }
