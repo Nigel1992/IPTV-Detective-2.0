@@ -302,401 +302,956 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <!-- Dark Bootswatch theme for a professional dark UI -->
     <link href="https://cdn.jsdelivr.net/npm/bootswatch@5/dist/darkly/bootstrap.min.css" rel="stylesheet">
     <!-- Nice system font stack -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="static/style.css" rel="stylesheet">
     <style>
-        :root{--accent:#00d9ff;--muted:#9fb9c9}
-        body{font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#0b1220; color:#d6eef5}
-        .navbar-brand{display:flex;align-items:center;gap:.6rem;font-weight:700}
-        .navbar-brand img{height:30px;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,0.6)}
-        .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));border:1px solid rgba(255,255,255,0.03)}
-        .card-header{background:transparent;border-bottom:1px solid rgba(255,255,255,0.02);font-weight:600}
-        .table thead th{color:#bfefff}
-        .table td, .table th{vertical-align:middle}
-        .list-group-item{background:transparent;border:1px solid rgba(255,255,255,0.02)}
-        .btn-primary{background:linear-gradient(90deg,var(--accent),#7cf6ff);border:none;color:#032935}
-        .navbar{box-shadow:0 8px 40px rgba(0,0,0,0.6)}
-        .container{max-width:1180px}
-        .logo-mark{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#00c2ff,#7cf6ff);display:inline-block}
-        a{color:var(--accent)}
-        a:hover{text-decoration:underline}
-        /* make chart bg transparent */
-        #statusChart{background:transparent}
+        :root{
+            --accent:#00d9ff;
+            --accent-hover:#7cf6ff;
+            --muted:#9fb9c9;
+            --success:#28a745;
+            --warning:#ffc107;
+            --danger:#dc3545;
+            --info:#17a2b8;
+            --dark-bg:#0b1220;
+            --card-bg:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+            --border-color:rgba(255,255,255,0.03);
+        }
+        body{
+            font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            background: var(--dark-bg);
+            color:#d6eef5;
+            min-height: 100vh;
+        }
+        .navbar-brand{
+            display:flex;
+            align-items:center;
+            gap:.6rem;
+            font-weight:700;
+            font-size:1.25rem;
+        }
+        .navbar-brand img{
+            height:30px;
+            border-radius:6px;
+            box-shadow:0 6px 18px rgba(0,0,0,0.6);
+        }
+        .card{
+            background: var(--card-bg);
+            border:1px solid var(--border-color);
+            border-radius:12px;
+            box-shadow:0 8px 32px rgba(0,0,0,0.12);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card:hover{
+            transform: translateY(-2px);
+            box-shadow:0 12px 40px rgba(0,0,0,0.18);
+        }
+        .card-header{
+            background:transparent;
+            border-bottom:1px solid var(--border-color);
+            font-weight:600;
+            padding:1rem 1.25rem;
+            border-radius:12px 12px 0 0 !important;
+        }
+        .card-body{
+            padding:1.25rem;
+        }
+        .table thead th{
+            color:#bfefff;
+            font-weight:600;
+            border-bottom:2px solid var(--border-color);
+            padding:0.75rem;
+        }
+        .table td, .table th{
+            vertical-align:middle;
+            padding:0.75rem;
+        }
+        .table tbody tr{
+            transition: background-color 0.2s ease;
+        }
+        .table tbody tr:hover{
+            background-color: rgba(255,255,255,0.02);
+        }
+        .list-group-item{
+            background:transparent;
+            border:1px solid var(--border-color);
+            color:#d6eef5;
+        }
+        .btn-primary{
+            background:linear-gradient(90deg,var(--accent),var(--accent-hover));
+            border:none;
+            color:#032935;
+            font-weight:600;
+            padding:0.5rem 1rem;
+            border-radius:8px;
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover{
+            transform: translateY(-1px);
+            box-shadow:0 6px 20px rgba(0,217,255,0.3);
+        }
+        .btn-outline-light{
+            border-color: var(--border-color);
+            color: #d6eef5;
+            transition: all 0.2s ease;
+        }
+        .btn-outline-light:hover{
+            background-color: rgba(255,255,255,0.1);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .navbar{
+            box-shadow:0 8px 40px rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            background: rgba(33,37,41,0.95);
+        }
+        .container{
+            max-width:1280px;
+        }
+        .logo-mark{
+            width:36px;
+            height:36px;
+            border-radius:8px;
+            background:linear-gradient(135deg,#00c2ff,#7cf6ff);
+            display:inline-block;
+            position:relative;
+        }
+        .logo-mark::after{
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            width: 24px;
+            height: 24px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E") no-repeat center;
+            background-size: contain;
+        }
+        a{
+            color:var(--accent);
+            transition: color 0.2s ease;
+        }
+        a:hover{
+            color:var(--accent-hover);
+            text-decoration:underline;
+        }
+        /* Chart styling */
+        #statusChart{
+            background:transparent;
+        }
+        /* Stats cards */
+        .stats-card{
+            background: var(--card-bg);
+            border:1px solid var(--border-color);
+            border-radius:12px;
+            padding:1.5rem;
+            text-align:center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .stats-card:hover{
+            transform: translateY(-4px);
+            box-shadow:0 12px 40px rgba(0,0,0,0.2);
+        }
+        .stats-number{
+            font-size:2.5rem;
+            font-weight:700;
+            margin:0.5rem 0;
+        }
+        .stats-label{
+            font-size:0.9rem;
+            color:var(--muted);
+            font-weight:500;
+            text-transform:uppercase;
+            letter-spacing:0.5px;
+        }
+        /* Navigation tabs */
+        .nav-pills .nav-link{
+            border-radius:8px;
+            margin-right:0.5rem;
+            padding:0.5rem 1rem;
+            transition: all 0.2s ease;
+        }
+        .nav-pills .nav-link.active{
+            background: var(--accent);
+            color:#032935;
+            font-weight:600;
+        }
+        .nav-pills .nav-link:not(.active){
+            color:#d6eef5;
+            border:1px solid var(--border-color);
+        }
+        .nav-pills .nav-link:not(.active):hover{
+            background: rgba(255,255,255,0.05);
+            border-color: var(--accent);
+        }
+        /* Loading animation */
+        .loading-spinner{
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            border-top-color: var(--accent);
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        /* Modal improvements */
+        .modal-content{
+            background: var(--dark-bg);
+            border:1px solid var(--border-color);
+            border-radius:12px;
+        }
+        .modal-header{
+            border-bottom:1px solid var(--border-color);
+        }
+        .modal-footer{
+            border-top:1px solid var(--border-color);
+        }
+        /* Form controls */
+        .form-control, .form-select{
+            background: rgba(255,255,255,0.05);
+            border:1px solid var(--border-color);
+            color:#d6eef5;
+            border-radius:8px;
+        }
+        .form-control:focus, .form-select:focus{
+            background: rgba(255,255,255,0.08);
+            border-color: var(--accent);
+            color:#d6eef5;
+            box-shadow: 0 0 0 0.2rem rgba(0, 217, 255, 0.25);
+        }
+        /* Alert improvements */
+        .alert{
+            border-radius:8px;
+            border:1px solid transparent;
+        }
+        .alert-success{
+            background: rgba(40, 167, 69, 0.1);
+            border-color: rgba(40, 167, 69, 0.2);
+            color: #d4edda;
+        }
+        .alert-danger{
+            background: rgba(220, 53, 69, 0.1);
+            border-color: rgba(220, 53, 69, 0.2);
+            color: #f5c6cb;
+        }
+        /* Badge styling */
+        .badge{
+            font-size:0.75rem;
+            padding:0.25rem 0.5rem;
+            border-radius:6px;
+        }
+        /* Responsive improvements */
+        @media (max-width: 768px) {
+            .navbar-brand{
+                font-size:1.1rem;
+            }
+            .stats-number{
+                font-size:2rem;
+            }
+            .container{
+                padding:0 1rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-dark">
+    <nav class="navbar navbar-dark bg-dark navbar-expand-lg">
         <div class="container-fluid">
             <a class="navbar-brand" href="admin_9f4b1a.php">
                 <span class="logo-mark" aria-hidden="true"></span>
                 <span>IPTV Detective</span>
-                <small class="text-muted ms-2" style="font-weight:500;color:var(--muted);">Admin</small>
+                <small class="text-muted ms-2" style="font-weight:500;color:var(--muted);">Admin Panel</small>
             </a>
-            <div class="d-flex align-items-center">
-                <div class="me-3 text-end">
-                    <div style="font-size:0.95rem;font-weight:600">Welcome, <?php echo htmlspecialchars($user); ?></div>
-                    <div style="font-size:0.78rem;color:var(--muted)">Secure Admin Panel</div>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="admin_9f4b1a.php">
+                            <i class="bi bi-house-door me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="switchToTab('providers-tab')">
+                            <i class="bi bi-list-ul me-1"></i>Providers
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="switchToTab('groups-tab-btn')">
+                            <i class="bi bi-diagram-3 me-1"></i>Groups
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html" target="_blank">
+                            <i class="bi bi-eye me-1"></i>View Site
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <div class="me-3 text-end">
+                        <div style="font-size:0.95rem;font-weight:600">Welcome, <?php echo htmlspecialchars($user); ?></div>
+                        <div style="font-size:0.78rem;color:var(--muted)">Administrator</div>
+                    </div>
+                    <a href="?logout=1" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-box-arrow-right me-1"></i>Logout
+                    </a>
                 </div>
-                <a href="?logout=1" class="btn btn-outline-light btn-sm">Logout</a>
             </div>
         </div>
     </nav>
     <div class="container mt-4">
-        <h1>Dashboard</h1>
-        <ul class="nav nav-pills mb-3" id="adminTabs" role="tablist">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="mb-1"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h1>
+                <p class="text-muted mb-0">Monitor and manage your IPTV provider database</p>
+            </div>
+            <div class="text-end">
+                <div style="font-size:0.9rem;color:var(--muted)">Last updated</div>
+                <div style="font-size:0.8rem;color:var(--accent)"><?php echo date('M j, Y H:i'); ?></div>
+            </div>
+        </div>
+
+        <ul class="nav nav-pills mb-4" id="adminTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" type="button" role="tab" aria-controls="overview" aria-selected="true">Overview</button>
+                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" type="button" role="tab" aria-controls="overview" aria-selected="true">
+                    <i class="bi bi-graph-up me-1"></i>Overview
+                </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="providers-tab" data-bs-toggle="tab" type="button" role="tab" aria-controls="providers" aria-selected="false">Providers</button>
+                <button class="nav-link" id="providers-tab" data-bs-toggle="tab" type="button" role="tab" aria-controls="providers" aria-selected="false">
+                    <i class="bi bi-list-ul me-1"></i>Providers
+                </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="groups-tab-btn" type="button">Matched Groups</button>
+                <button class="nav-link" id="groups-tab-btn" type="button">
+                    <i class="bi bi-diagram-3 me-1"></i>Matched Groups
+                </button>
             </li>
         </ul>
+
         <div id="mainDashboard">
-        <div id="overviewTab">
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card text-white bg-primary mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">Total Providers</h5>
-                        <p class="card-text"><?php echo $total_providers; ?></p>
+            <div id="overviewTab">
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card h-100">
+                            <div class="stats-number text-primary"><?php echo number_format($total_providers); ?></div>
+                            <div class="stats-label">Total Providers</div>
+                            <i class="bi bi-collection position-absolute top-50 end-0 translate-middle-y me-3 opacity-25" style="font-size:2rem;"></i>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card h-100">
+                            <div class="stats-number text-success"><?php echo number_format($matched_providers); ?></div>
+                            <div class="stats-label">Matched Providers</div>
+                            <i class="bi bi-check-circle position-absolute top-50 end-0 translate-middle-y me-3 opacity-25" style="font-size:2rem;"></i>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card h-100">
+                            <div class="stats-number text-warning"><?php echo number_format($recent_submissions); ?></div>
+                            <div class="stats-label">Recent (7 days)</div>
+                            <i class="bi bi-clock position-absolute top-50 end-0 translate-middle-y me-3 opacity-25" style="font-size:2rem;"></i>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card h-100">
+                            <div class="stats-number text-info"><?php echo $unmatched_providers > 0 ? number_format($unmatched_providers) : '0'; ?></div>
+                            <div class="stats-label">Unmatched</div>
+                            <i class="bi bi-question-circle position-absolute top-50 end-0 translate-middle-y me-3 opacity-25" style="font-size:2rem;"></i>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="col-md-6">
-                <div class="card text-white bg-warning mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">Recent Submissions (7 days)</h5>
-                        <p class="card-text"><?php echo $recent_submissions; ?></p>
+
+                <div class="row">
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header d-flex align-items-center">
+                                <i class="bi bi-pie-chart me-2"></i>
+                                Provider Status Distribution
+                            </div>
+                            <div class="card-body">
+                                <canvas id="statusChart" style="max-height:300px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header d-flex align-items-center">
+                                <i class="bi bi-activity me-2"></i>
+                                Recent Activity
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group list-group-flush">
+                                    <?php
+                                    $stmt = $pdo->prepare('SELECT name, created_at FROM providers ORDER BY created_at DESC LIMIT 8');
+                                    $stmt->execute();
+                                    $count = 0;
+                                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC) && $count < 8) {
+                                        $timeAgo = time() - strtotime($row['created_at']);
+                                        $timeStr = $timeAgo < 3600 ? round($timeAgo/60) . 'm ago' : 
+                                                  ($timeAgo < 86400 ? round($timeAgo/3600) . 'h ago' : 
+                                                  round($timeAgo/86400) . 'd ago');
+                                        echo '<div class="list-group-item px-0 d-flex justify-content-between align-items-center">';
+                                        echo '<div><i class="bi bi-plus-circle text-success me-2"></i><strong>' . htmlspecialchars($row['name']) . '</strong></div>';
+                                        echo '<small class="text-muted">' . $timeStr . '</small>';
+                                        echo '</div>';
+                                        $count++;
+                                    }
+                                    if ($count === 0) {
+                                        echo '<div class="text-center text-muted py-3">No recent activity</div>';
+                                    }
+                                    ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex align-items-center">
+                                <i class="bi bi-lightning me-2"></i>
+                                Quick Actions
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center" onclick="switchToTab('providers-tab')">
+                                            <i class="bi bi-plus-circle me-2"></i>
+                                            Add Provider
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-success w-100 d-flex align-items-center justify-content-center" onclick="switchToTab('groups-tab-btn')">
+                                            <i class="bi bi-diagram-3 me-2"></i>
+                                            View Groups
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <a href="index.html" target="_blank" class="btn btn-outline-info w-100 d-flex align-items-center justify-content-center">
+                                            <i class="bi bi-eye me-2"></i>
+                                            Public Site
+                                        </a>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button class="btn btn-outline-warning w-100 d-flex align-items-center justify-content-center" onclick="refreshData()">
+                                            <i class="bi bi-arrow-clockwise me-2"></i>
+                                            Refresh Data
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">Provider Status</div>
-                    <div class="card-body">
-                        <canvas id="statusChart"></canvas>
-                    </div>
-                </div>
-            </div>
-                <!-- Providers table moved to Providers tab pane -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">Recent Providers</div>
-                    <div class="card-body">
-                        <ul class="list-group">
-                            <?php
-                            $stmt = $pdo->prepare('SELECT name, created_at FROM providers ORDER BY created_at DESC LIMIT 5');
-                            $stmt->execute();
-                            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                echo '<li class="list-group-item">' . htmlspecialchars($row['name']) . ' - ' . $row['created_at'] . '</li>';
-                            }
-                            ?>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-        </div>
-    </div>
 
     <!-- Matched Groups pane (hidden until loaded) -->
     <div id="matchedGroupsPane" class="container mt-4" style="display:none;">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h1>Matched Groups</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <button id="groups-back" class="btn btn-secondary btn-sm">Back</button>
+                <h1 class="mb-1"><i class="bi bi-diagram-3 me-2"></i>Matched Groups</h1>
+                <p class="text-muted mb-0">View providers grouped by similarity</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button id="groups-back" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+                </button>
             </div>
         </div>
         <div id="groupsContent">
-            <div class="text-center py-5">Loading groups&hellip;</div>
+            <div class="text-center py-5">
+                <div class="loading-spinner mx-auto mb-3"></div>
+                <div>Loading groups&hellip;</div>
+            </div>
         </div>
     </div>
 
     <!-- Providers pane (hidden until requested) -->
     <div id="providersPane" class="container mt-4" style="display:none;">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h1>Providers</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <button id="providers-back" class="btn btn-secondary btn-sm">Back</button>
+                <h1 class="mb-1"><i class="bi bi-list-ul me-2"></i>Providers Management</h1>
+                <p class="text-muted mb-0">View, edit, and manage all IPTV providers</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button id="providers-back" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+                </button>
             </div>
         </div>
-        <div class="card">
+
+        <!-- Search and Filter Bar -->
+        <div class="card mb-4">
             <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="searchInput" class="form-label">Search Providers</label>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search by name...">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="statusFilter" class="form-label">Status</label>
+                        <select class="form-select" id="statusFilter">
+                            <option value="">All Status</option>
+                            <option value="public">Public</option>
+                            <option value="private">Private</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="sortBy" class="form-label">Sort By</label>
+                        <select class="form-select" id="sortBy">
+                            <option value="created_at DESC">Newest First</option>
+                            <option value="created_at ASC">Oldest First</option>
+                            <option value="name ASC">Name A-Z</option>
+                            <option value="name DESC">Name Z-A</option>
+                            <option value="price ASC">Price Low-High</option>
+                            <option value="price DESC">Price High-Low</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary w-100" onclick="applyFilters()">
+                            <i class="bi bi-search me-1"></i>Filter
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-table me-2"></i>Providers List</span>
+                <span class="badge bg-primary" id="providerCount"><?php echo $total_providers; ?> total</span>
+            </div>
+            <div class="card-body p-0">
                 <?php if (isset($action_err)): ?>
-                    <div class="alert alert-danger"><?php echo htmlspecialchars($action_err); ?></div>
+                    <div class="alert alert-danger mx-3 mt-3"><?php echo htmlspecialchars($action_err); ?></div>
                 <?php endif; ?>
                 <?php if (isset($action_msg)): ?>
-                    <div class="alert alert-success"><?php echo htmlspecialchars($action_msg); ?></div>
+                    <div class="alert alert-success mx-3 mt-3"><?php echo htmlspecialchars($action_msg); ?></div>
                 <?php endif; ?>
                 <div class="table-responsive">
-                <table class="table table-sm table-striped align-middle">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Price</th>
-                            <th>Channels</th>
-                            <th>Groups</th>
-                            <th>Created</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php
-                    $stmtCols = $pdo->prepare("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=? AND TABLE_NAME='providers'");
-                    $cfg = include __DIR__ . '/inc/config.php';
-                    $stmtCols->execute([$cfg['dbname']]);
-                    $available = $stmtCols->fetchAll(PDO::FETCH_COLUMN);
-                    $selectCols = ['id','name','link','price','channels','groups','created_at'];
-                    $selectCols = array_values(array_unique($selectCols));
-                    $selectCols = array_filter($selectCols, function($c) use ($available){ return in_array($c, $available, true); });
-                    $sql = 'SELECT ' . implode(',', $selectCols) . ' FROM providers ORDER BY created_at DESC';
-                    $stmt = $pdo->query($sql);
-                    while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                        $rowId = 'prov-' . htmlspecialchars($r['id']);
-                        echo '<tr id="' . $rowId . '">';
-                        echo '<td>' . htmlspecialchars($r['id']) . '</td>';
-                        $name = htmlspecialchars($r['name'] ?? '');
-                        echo '<td>' . $name . '</td>';
-                        echo '<td>' . htmlspecialchars(isset($r['price']) ? number_format($r['price'],2) : '') . '</td>';
-                        echo '<td>' . htmlspecialchars($r['channels'] ?? '') . '</td>';
-                        echo '<td>' . htmlspecialchars($r['groups'] ?? '') . '</td>';
-                        echo '<td>' . htmlspecialchars($r['created_at'] ?? '') . '</td>';
-                        echo '<td>';
-                        echo '<button class="btn btn-sm btn-info me-1" onclick="openEditModal(' . htmlspecialchars($r['id']) . ', \'' . addslashes($name) . '\', \'' . addslashes($r['link'] ?? '') . '\', \'' . addslashes($r['price'] ?? '') . '\', \'' . addslashes($r['channels'] ?? '') . '\', \'' . addslashes($r['groups'] ?? '') . '\')">Edit</button>';
-                        echo '<form method="post" style="display:inline" onsubmit="return confirm(\'Delete this provider?\');">'
-                             . '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'] ?? '') . '"'
-                             . '<input type="hidden" name="action" value="delete"'
-                             . '<input type="hidden" name="id" value="' . htmlspecialchars($r['id']) . '"'
-                             . '<button class="btn btn-sm btn-danger">Delete</button>'
-                             . '</form>';
-                        echo '</td>';
-                        echo '</tr>';
-                        // Link row
-                        if (!empty($r['link'])) {
-                            echo '<tr><td></td><td colspan="6"><strong>Link:</strong> <a href="' . htmlspecialchars($r['link']) . '" target="_blank" rel="noopener noreferrer">' . htmlspecialchars($r['link']) . '</a></td></tr>';
-                        }
-                    }
-                    ?>
-                    </tbody>
-                </table>
-                                                <!-- Edit Modal -->
-                                                <div class="modal fade" id="editProviderModal" tabindex="-1" aria-labelledby="editProviderModalLabel" aria-hidden="true">
-                                                    <div class="modal-dialog">
-                                                        <div class="modal-content">
-                                                            <form method="post" id="editProviderForm">
-                                                                <div class="modal-header">
-                                                                    <h5 class="modal-title" id="editProviderModalLabel">Edit Provider</h5>
-                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                                </div>
-                                                                <div class="modal-body">
-                                                                    <input type="hidden" name="action" value="edit">
-                                                                    <input type="hidden" name="id" id="editProviderId">
-                                                                    <div class="mb-3">
-                                                                        <label for="editProviderName" class="form-label">Name</label>
-                                                                        <input type="text" class="form-control" name="name" id="editProviderName" required>
-                                                                    </div>
-                                                                    <div class="mb-3">
-                                                                        <label for="editProviderLink" class="form-label">Link</label>
-                                                                        <input type="text" class="form-control" name="link" id="editProviderLink">
-                                                                    </div>
-                                                                    <div class="mb-3">
-                                                                        <label for="editProviderPrice" class="form-label">Price</label>
-                                                                        <input type="text" class="form-control" name="price" id="editProviderPrice">
-                                                                    </div>
-                                                                    <div class="mb-3">
-                                                                        <label for="editProviderChannels" class="form-label">Channels</label>
-                                                                        <input type="text" class="form-control" name="channels" id="editProviderChannels">
-                                                                    </div>
-                                                                    <div class="mb-3">
-                                                                        <label for="editProviderGroups" class="form-label">Groups</label>
-                                                                        <input type="text" class="form-control" name="groups" id="editProviderGroups">
-                                                                    </div>
-                                                                </div>
-                                                                <div class="modal-footer">
-                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                                                                </div>
-                                                            </form>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                    <table class="table table-hover mb-0" id="providersTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th><i class="bi bi-hash me-1"></i>ID</th>
+                                <th><i class="bi bi-tag me-1"></i>Name</th>
+                                <th><i class="bi bi-cash me-1"></i>Price</th>
+                                <th><i class="bi bi-tv me-1"></i>Channels</th>
+                                <th><i class="bi bi-grid me-1"></i>Groups</th>
+                                <th><i class="bi bi-calendar me-1"></i>Created</th>
+                                <th><i class="bi bi-gear me-1"></i>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="providersTableBody">
+                            <?php
+                            $stmtCols = $pdo->prepare("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=? AND TABLE_NAME='providers'");
+                            $cfg = include __DIR__ . '/inc/config.php';
+                            $stmtCols->execute([$cfg['dbname']]);
+                            $available = $stmtCols->fetchAll(PDO::FETCH_COLUMN);
+                            $selectCols = ['id','name','link','price','channels','groups','created_at','is_public'];
+                            $selectCols = array_values(array_unique($selectCols));
+                            $selectCols = array_filter($selectCols, function($c) use ($available){ return in_array($c, $available, true); });
+                            $sql = 'SELECT ' . implode(',', $selectCols) . ' FROM providers ORDER BY created_at DESC';
+                            $stmt = $pdo->query($sql);
+                            while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                $rowId = 'prov-' . htmlspecialchars($r['id']);
+                                $statusBadge = isset($r['is_public']) && $r['is_public'] ? '<span class="badge bg-success">Public</span>' : '<span class="badge bg-secondary">Private</span>';
+                                echo '<tr id="' . $rowId . '" data-name="' . htmlspecialchars(strtolower($r['name'] ?? '')) . '" data-status="' . (isset($r['is_public']) && $r['is_public'] ? 'public' : 'private') . '">';
+                                echo '<td><code>' . htmlspecialchars($r['id']) . '</code></td>';
+                                echo '<td><strong>' . htmlspecialchars($r['name'] ?? '') . '</strong> ' . $statusBadge . '</td>';
+                                echo '<td>' . (isset($r['price']) && $r['price'] ? '<span class="text-success fw-bold">$' . htmlspecialchars(number_format($r['price'],2)) . '</span>' : '<span class="text-muted">-</span>') . '</td>';
+                                echo '<td>' . (isset($r['channels']) && $r['channels'] ? '<span class="badge bg-info">' . htmlspecialchars($r['channels']) . '</span>' : '<span class="text-muted">-</span>') . '</td>';
+                                echo '<td>' . (isset($r['groups']) && $r['groups'] ? '<span class="badge bg-warning text-dark">' . htmlspecialchars($r['groups']) . '</span>' : '<span class="text-muted">-</span>') . '</td>';
+                                echo '<td><small class="text-muted">' . htmlspecialchars($r['created_at'] ?? '') . '</small></td>';
+                                echo '<td>';
+                                echo '<div class="btn-group btn-group-sm" role="group">';
+                                echo '<button class="btn btn-outline-info" onclick="openEditModal(' . htmlspecialchars($r['id']) . ', \'' . addslashes($r['name'] ?? '') . '\', \'' . addslashes($r['link'] ?? '') . '\', \'' . addslashes($r['price'] ?? '') . '\', \'' . addslashes($r['channels'] ?? '') . '\', \'' . addslashes($r['groups'] ?? '') . '\')" title="Edit"><i class="bi bi-pencil"></i></button>';
+                                echo '<form method="post" style="display:inline" onsubmit="return confirm(\'Delete this provider?\');">'
+                                     . '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'] ?? '') . '"'
+                                     . '<input type="hidden" name="action" value="delete"'
+                                     . '<input type="hidden" name="id" value="' . htmlspecialchars($r['id']) . '"'
+                                     . '<button class="btn btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>'
+                                     . '</form>';
+                                echo '</div>';
+                                echo '</td>';
+                                echo '</tr>';
+                                // Link row
+                                if (!empty($r['link'])) {
+                                    echo '<tr class="table-light"><td></td><td colspan="6"><small><i class="bi bi-link-45deg me-1"></i><a href="' . htmlspecialchars($r['link']) . '" target="_blank" rel="noopener noreferrer">' . htmlspecialchars($r['link']) . '</a></small></td></tr>';
+                                }
+                            }
+                            ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Modal -->
+        <div class="modal fade" id="editProviderModal" tabindex="-1" aria-labelledby="editProviderModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <form method="post" id="editProviderForm">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editProviderModalLabel">
+                                <i class="bi bi-pencil me-2"></i>Edit Provider
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" name="action" value="edit">
+                            <input type="hidden" name="id" id="editProviderId">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="editProviderName" class="form-label">
+                                            <i class="bi bi-tag me-1"></i>Name
+                                        </label>
+                                        <input type="text" class="form-control" name="name" id="editProviderName" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="editProviderPrice" class="form-label">
+                                            <i class="bi bi-cash me-1"></i>Price
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" step="0.01" class="form-control" name="price" id="editProviderPrice">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="editProviderChannels" class="form-label">
+                                            <i class="bi bi-tv me-1"></i>Channels
+                                        </label>
+                                        <input type="number" class="form-control" name="channels" id="editProviderChannels">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="editProviderGroups" class="form-label">
+                                            <i class="bi bi-grid me-1"></i>Groups
+                                        </label>
+                                        <input type="number" class="form-control" name="groups" id="editProviderGroups">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editProviderLink" class="form-label">
+                                    <i class="bi bi-link-45deg me-1"></i>Website Link
+                                </label>
+                                <input type="url" class="form-control" name="link" id="editProviderLink" placeholder="https://example.com">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                <i class="bi bi-x me-1"></i>Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check me-1"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
     <script>
-                // Modal edit logic (manual modal handling to avoid bootstrap dependency)
-                function openEditModal(id, name, link, price, channels, groups) {
-                    document.getElementById('editProviderId').value = id;
-                    document.getElementById('editProviderName').value = name;
-                    document.getElementById('editProviderLink').value = link;
-                    document.getElementById('editProviderPrice').value = price;
-                    document.getElementById('editProviderChannels').value = channels;
-                    document.getElementById('editProviderGroups').value = groups;
-                    // Manual modal display
-                    var el = document.getElementById('editProviderModal');
-                    if (!el) return;
-                    el.classList.add('show');
-                    el.style.display = 'block';
-                    el.setAttribute('aria-modal', 'true');
-                    el.removeAttribute('aria-hidden');
-                    var backdrop = document.createElement('div');
-                    backdrop.className = 'modal-backdrop fade show';
-                    document.body.appendChild(backdrop);
-                    // Add close event listeners
-                    function closeModal() {
-                        el.classList.remove('show');
-                        el.style.display = 'none';
-                        el.setAttribute('aria-hidden', 'true');
-                        el.removeAttribute('aria-modal');
-                        if (backdrop.parentNode) {
-                            backdrop.parentNode.removeChild(backdrop);
-                        }
+        // Initialize CSRF token
+        if (!window.csrfToken) {
+            window.csrfToken = '<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>';
+        }
+
+        // Tab switching function
+        function switchToTab(tabId) {
+            if (tabId === 'providers-tab') {
+                setActiveTab('providers-tab');
+                document.getElementById('mainDashboard').style.display = 'none';
+                document.getElementById('matchedGroupsPane').style.display = 'none';
+                document.getElementById('providersPane').style.display = '';
+            } else if (tabId === 'groups-tab-btn') {
+                setActiveTab('groups-tab-btn');
+                const main = document.getElementById('mainDashboard');
+                const pane = document.getElementById('matchedGroupsPane');
+                const content = document.getElementById('groupsContent');
+                main.style.display = 'none';
+                pane.style.display = '';
+                content.innerHTML = '<div class="text-center py-5"><div class="loading-spinner mx-auto mb-3"></div><div>Loading groups&hellip;</div></div>';
+                loadGroups();
+            } else if (tabId === 'overview-tab') {
+                setActiveTab('overview-tab');
+                document.getElementById('mainDashboard').style.display = '';
+                document.getElementById('matchedGroupsPane').style.display = 'none';
+                document.getElementById('providersPane').style.display = 'none';
+            }
+        }
+
+        // Search and filter functionality
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+
+            const table = document.getElementById('providersTable');
+            const tbody = document.getElementById('providersTableBody');
+            const rows = Array.from(tbody.getElementsByTagName('tr')).filter(row => !row.classList.contains('table-light'));
+
+            // Filter rows
+            let visibleRows = rows.filter(row => {
+                const name = row.dataset.name || '';
+                const status = row.dataset.status || '';
+
+                const matchesSearch = name.includes(searchTerm);
+                const matchesStatus = !statusFilter || status === statusFilter;
+
+                return matchesSearch && matchesStatus;
+            });
+
+            // Sort rows
+            if (sortBy) {
+                visibleRows.sort((a, b) => {
+                    // This is a simplified sort - in a real app you'd want more sophisticated sorting
+                    const aVal = a.cells[1].textContent.toLowerCase();
+                    const bVal = b.cells[1].textContent.toLowerCase();
+                    if (sortBy.includes('ASC')) {
+                        return aVal.localeCompare(bVal);
+                    } else {
+                        return bVal.localeCompare(aVal);
                     }
-                    el.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
-                        btn.addEventListener('click', closeModal);
-                    });
-                    // Close on backdrop click
-                    backdrop.addEventListener('click', closeModal);
-                }
-                document.getElementById('editProviderForm').addEventListener('submit', function(e){
-                    // Optionally add client-side validation here
                 });
+            }
+
+            // Hide all rows first
+            rows.forEach(row => {
+                row.style.display = 'none';
+                // Also hide the link row that follows
+                const nextRow = row.nextElementSibling;
+                if (nextRow && nextRow.classList.contains('table-light')) {
+                    nextRow.style.display = 'none';
+                }
+            });
+
+            // Show filtered and sorted rows
+            visibleRows.forEach(row => {
+                row.style.display = '';
+                // Also show the link row that follows
+                const nextRow = row.nextElementSibling;
+                if (nextRow && nextRow.classList.contains('table-light')) {
+                    nextRow.style.display = '';
+                }
+            });
+
+            // Update count
+            document.getElementById('providerCount').textContent = visibleRows.length + ' shown';
+        }
+
+        // Refresh data function
+        function refreshData() {
+            const btn = event.target.closest('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading-spinner me-2"></span>Refreshing...';
+            btn.disabled = true;
+
+            // Reload the page to refresh data
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+
+        // Modal edit logic
+        function openEditModal(id, name, link, price, channels, groups) {
+            document.getElementById('editProviderId').value = id;
+            document.getElementById('editProviderName').value = name;
+            document.getElementById('editProviderLink').value = link;
+            document.getElementById('editProviderPrice').value = price;
+            document.getElementById('editProviderChannels').value = channels;
+            document.getElementById('editProviderGroups').value = groups;
+
+            const modal = new bootstrap.Modal(document.getElementById('editProviderModal'));
+            modal.show();
+        }
+
+        // Chart initialization
         const ctx = document.getElementById('statusChart').getContext('2d');
         new Chart(ctx, {
-            type: 'pie',
+            type: 'doughnut',
             data: {
                 labels: ['Matched', 'Unmatched'],
                 datasets: [{
                     data: [<?php echo $matched_providers; ?>, <?php echo $unmatched_providers; ?>],
-                    backgroundColor: ['#28a745', '#6c757d']
+                    backgroundColor: ['#28a745', '#6c757d'],
+                    borderWidth: 0
                 }]
             },
             options: {
                 responsive: true,
-                plugins: { legend: { position: 'bottom' } }
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    }
+                }
             }
         });
 
-        // Tab behaviour: show/hide sections and load matched groups
+        // Tab behaviour
         function setActiveTab(id){
-            document.querySelectorAll('#adminTabs .nav-link').forEach(n => { n.classList.remove('active'); n.setAttribute('aria-selected','false'); });
+            document.querySelectorAll('#adminTabs .nav-link').forEach(n => {
+                n.classList.remove('active');
+                n.setAttribute('aria-selected','false');
+            });
             const el = document.getElementById(id);
-            if (el) { el.classList.add('active'); el.setAttribute('aria-selected','true'); }
+            if (el) {
+                el.classList.add('active');
+                el.setAttribute('aria-selected','true');
+            }
         }
 
+        // Event listeners
         document.getElementById('providers-tab').addEventListener('click', function(){
-            setActiveTab('providers-tab');
-            // show providers pane
-            document.getElementById('mainDashboard').style.display = 'none';
-            document.getElementById('matchedGroupsPane').style.display = 'none';
-            document.getElementById('providersPane').style.display = '';
+            switchToTab('providers-tab');
         });
 
         document.getElementById('overview-tab').addEventListener('click', function(){
-            setActiveTab('overview-tab');
-            document.getElementById('mainDashboard').style.display = '';
-            document.getElementById('matchedGroupsPane').style.display = 'none';
-            document.getElementById('providersPane').style.display = 'none';
+            switchToTab('overview-tab');
         });
 
-        // Matched Groups loads inline via AJAX from `get_grouped_matches.php`.
         document.getElementById('groups-tab-btn').addEventListener('click', function(){
-            setActiveTab('groups-tab-btn');
-            const main = document.getElementById('mainDashboard');
-            const pane = document.getElementById('matchedGroupsPane');
+            switchToTab('groups-tab-btn');
+        });
+
+        document.getElementById('groups-back').addEventListener('click', function(){
+            switchToTab('overview-tab');
+        });
+
+        document.getElementById('providers-back').addEventListener('click', function(){
+            switchToTab('overview-tab');
+        });
+
+        // Load groups function
+        function loadGroups() {
             const content = document.getElementById('groupsContent');
-            main.style.display = 'none';
-            pane.style.display = '';
-            content.innerHTML = '<div class="text-center py-5">Loading groups&hellip;</div>';
             fetch('get_grouped_matches.php')
                 .then(r => r.json())
                 .then(data => {
                     if (!data || !data.groups || data.groups.length === 0) {
-                        content.innerHTML = '<div class="alert alert-secondary">No grouped matches found.</div>';
+                        content.innerHTML = '<div class="alert alert-secondary"><i class="bi bi-info-circle me-2"></i>No grouped matches found.</div>';
                         return;
                     }
-                    let html = '<div class="card"><div class="card-body table-responsive"><table class="table table-sm table-striped"><thead><tr><th>IDs</th><th>Group</th><th>Providers</th><th>Count</th><th>Cheapest</th></tr></thead><tbody>';
-                    function fmtPrice(p){
-                        if (p === null || p === undefined || p === '') return '';
-                        const num = Number(p);
-                        return isNaN(num) ? '' : num.toFixed(2);
-                    }
+
+                    let html = '<div class="row">';
                     data.groups.forEach((g, idx) => {
                         const members = (g.members || []);
                         const providers = members.map(m => {
                             const name = m.name || m.id || '';
-                            const price = fmtPrice(m.price);
-                            const href = m.link ? (' href="' + (m.link.replace(/"/g,'') ) + '" target="_blank"') : '';
-                            const pricePart = price ? (' <small class="text-muted">(' + price + ')</small>') : '';
-                            if (href) return ('<a' + href + '>' + name + '</a>' + pricePart);
-                            return name + pricePart;
+                            const price = m.price ? ` ($${Number(m.price).toFixed(2)})` : '';
+                            const href = m.link ? (` href="${m.link.replace(/"/g,'')}" target="_blank"`) : '';
+                            if (href) return `<a${href} class="text-decoration-none">${name}${price}</a>`;
+                            return `${name}${price}`;
                         }).join(', ');
+
                         let cheapest = '';
                         if (g.cheapest) {
                             const c = g.cheapest;
                             const cname = c.name || c.id || '';
-                            const cprice = fmtPrice(c.price);
-                            const chref = c.link ? (' href="' + (c.link.replace(/"/g,'')) + '" target="_blank"') : '';
-                            const cpricePart = cprice ? (' <small class="text-muted">(' + cprice + ')</small>') : '';
-                            const cheapHtml = chref ? ('<a' + chref + '>' + cname + '</a>' + cpricePart) : (cname + cpricePart);
-                            cheapest = '<strong>' + cheapHtml + '</strong>';
+                            const cprice = c.price ? ` ($${Number(c.price).toFixed(2)})` : '';
+                            const chref = c.link ? (` href="${c.link.replace(/"/g,'')}" target="_blank"`) : '';
+                            const cheapHtml = chref ? `<a${chref} class="fw-bold text-success">${cname}${cprice}</a>` : `<span class="fw-bold text-success">${cname}${cprice}</span>`;
+                            cheapest = `<div class="mt-2"><small class="text-muted">Cheapest: ${cheapHtml}</small></div>`;
                         }
+
                         const gidIds = members.map(m => m.id || '').filter(Boolean);
-                        const gid = gidIds.length ? gidIds.map(id => '<a href="#" class="group-id-link" data-id="'+id+'">'+id+'</a>').join(', ') : (g.group_id || ('g' + (idx+1)));
-                        html += '<tr><td>' + gid + '</td><td>' + (g.label || ('Group ' + (idx+1))) + '</td><td>' + providers + '</td><td>' + (g.count || (members?members.length:0)) + '</td><td>' + cheapest + '</td></tr>';
+                        const gid = gidIds.length ? gidIds.map(id => `<a href="#" class="group-id-link badge bg-primary text-decoration-none me-1">${id}</a>`).join('') : (g.group_id || (`g${idx+1}`));
+
+                        html += `
+                            <div class="col-lg-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <span class="fw-bold">${g.label || ('Group ' + (idx+1))}</span>
+                                        <span class="badge bg-info">${g.count || members.length} providers</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-2">
+                                            <small class="text-muted">IDs: ${gid}</small>
+                                        </div>
+                                        <div class="mb-2">
+                                            <strong>Providers:</strong>
+                                            <div class="mt-1">${providers}</div>
+                                        </div>
+                                        ${cheapest}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
                     });
-                    html += '</tbody></table></div></div>';
+                    html += '</div>';
                     content.innerHTML = html;
-                }).catch(err => {
-                    console.error('Failed to load grouped matches', err);
-                    content.innerHTML = '<div class="alert alert-warning">Could not load matched groups.</div>';
+                })
+                .catch(err => {
+                    console.error('Failed to load matched matches', err);
+                    content.innerHTML = '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>Could not load matched groups.</div>';
                 });
-        });
+        }
 
-        document.getElementById('groups-back').addEventListener('click', function(){
-            document.getElementById('matchedGroupsPane').style.display = 'none';
-            document.getElementById('mainDashboard').style.display = '';
-            setActiveTab('overview-tab');
-        });
-
-        document.getElementById('providers-back').addEventListener('click', function(){
-            document.getElementById('providersPane').style.display = 'none';
-            document.getElementById('mainDashboard').style.display = '';
-            setActiveTab('overview-tab');
-        });
-
+        // Group ID link handler
         document.addEventListener('click', function(e){
             const t = e.target;
             if (t && t.classList && t.classList.contains('group-id-link')) {
                 e.preventDefault();
-                const pid = t.dataset.id;
+                const pid = t.textContent;
                 if (!pid) return;
-                document.getElementById('mainDashboard').style.display = 'none';
-                document.getElementById('matchedGroupsPane').style.display = 'none';
-                document.getElementById('providersPane').style.display = '';
-                setActiveTab('providers-tab');
+                switchToTab('providers-tab');
                 setTimeout(() => {
                     const row = document.getElementById('prov-' + pid);
-                    if (row) row.scrollIntoView({behavior:'smooth', block:'center'});
+                    if (row) {
+                        row.scrollIntoView({behavior:'smooth', block:'center'});
+                        row.style.backgroundColor = 'rgba(0,217,255,0.1)';
+                        setTimeout(() => {
+                            row.style.backgroundColor = '';
+                        }, 2000);
+                    }
                 }, 250);
             }
         });
+
+        // Auto-switch to providers tab if there's an action message
         <?php if (isset($action_msg) && (strpos($action_msg, 'updated') !== false || strpos($action_msg, 'deleted') !== false)): ?>
-        setActiveTab('providers-tab');
-        // show providers pane
-        document.getElementById('mainDashboard').style.display = 'none';
-        document.getElementById('matchedGroupsPane').style.display = 'none';
-        document.getElementById('providersPane').style.display = '';
+        switchToTab('providers-tab');
         <?php endif; ?>
+
+        // Initialize search on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add search input listener
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', applyFilters);
+            }
+
+            // Add filter listeners
+            const statusFilter = document.getElementById('statusFilter');
+            const sortBy = document.getElementById('sortBy');
+            if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+            if (sortBy) sortBy.addEventListener('change', applyFilters);
+        });
     </script>
 </body>
 </html>
