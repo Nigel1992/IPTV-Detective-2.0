@@ -533,7 +533,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         </div>
     </div>
     <script>
-                // Modal edit logic (load bootstrap bundle if missing)
+                // Modal edit logic (manual modal handling to avoid bootstrap dependency)
                 function openEditModal(id, name, link, price, channels, groups) {
                     document.getElementById('editProviderId').value = id;
                     document.getElementById('editProviderName').value = name;
@@ -541,35 +541,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     document.getElementById('editProviderPrice').value = price;
                     document.getElementById('editProviderChannels').value = channels;
                     document.getElementById('editProviderGroups').value = groups;
-                    function showModal() {
-                        try {
-                            if (window.bootstrap && bootstrap.Modal) {
-                                var modal = new bootstrap.Modal(document.getElementById('editProviderModal'));
-                                modal.show();
-                                return;
-                            }
-                        } catch (e) {}
-                        // Fallback: display modal via classes
-                        var el = document.getElementById('editProviderModal');
-                        if (!el) return;
-                        el.classList.add('show');
-                        el.style.display = 'block';
-                        el.setAttribute('aria-modal', 'true');
-                        el.removeAttribute('aria-hidden');
-                        var backdrop = document.createElement('div');
-                        backdrop.className = 'modal-backdrop fade show';
-                        document.body.appendChild(backdrop);
+                    // Manual modal display
+                    var el = document.getElementById('editProviderModal');
+                    if (!el) return;
+                    el.classList.add('show');
+                    el.style.display = 'block';
+                    el.setAttribute('aria-modal', 'true');
+                    el.removeAttribute('aria-hidden');
+                    var backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    document.body.appendChild(backdrop);
+                    // Add close event listeners
+                    function closeModal() {
+                        el.classList.remove('show');
+                        el.style.display = 'none';
+                        el.setAttribute('aria-hidden', 'true');
+                        el.removeAttribute('aria-modal');
+                        if (backdrop.parentNode) {
+                            backdrop.parentNode.removeChild(backdrop);
+                        }
                     }
-                    if (typeof bootstrap === 'undefined' || !bootstrap.Modal) {
-                        // Dynamically load bootstrap bundle then show
-                        var s = document.createElement('script');
-                        s.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js';
-                        s.onload = showModal;
-                        s.onerror = showModal;
-                        document.head.appendChild(s);
-                    } else {
-                        showModal();
-                    }
+                    el.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+                        btn.addEventListener('click', closeModal);
+                    });
+                    // Close on backdrop click
+                    backdrop.addEventListener('click', closeModal);
                 }
                 document.getElementById('editProviderForm').addEventListener('submit', function(e){
                     // Optionally add client-side validation here
