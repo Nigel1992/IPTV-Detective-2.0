@@ -82,6 +82,17 @@
       .submissions-card-sm .label{display:none}
       .submissions-card-sm .icon{width:32px;height:32px;font-size:13px}
     }
+
+    /* Stats grid: square stat cards */
+    .stats-grid{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;align-items:center}
+    .stat-card{width:160px;height:160px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.35rem;padding:0.8rem;box-shadow:0 8px 22px rgba(0,0,0,0.35)}
+    .stat-card .stat-count{font-size:28px;font-weight:800;color:var(--accent)}
+    .stat-card .stat-label{font-size:0.9rem;color:#cfeefb;opacity:0.95;text-align:center}
+    .stat-card .btn{margin-top:0.35rem}
+    @media (max-width:576px){
+      .stat-card{width:120px;height:120px}
+      .stat-card .stat-count{font-size:22px}
+    }
   </style>
 </head>
 <body class="bg-dark text-light">
@@ -1000,10 +1011,15 @@
         const j = await r.json();
         if (j && j.success){
           animateCount(el, j.providers_public || 0);
+          const totalEl = document.getElementById('totalProvidersCount');
+          if (totalEl) totalEl.textContent = ((j.providers_total !== undefined) ? Number(j.providers_total).toLocaleString() : '—');
         } else if (j && typeof j.providers_public === 'number'){
           animateCount(el, j.providers_public);
+          const totalEl = document.getElementById('totalProvidersCount');
+          if (totalEl) totalEl.textContent = ((j.providers_total !== undefined) ? Number(j.providers_total).toLocaleString() : '—');
         } else {
           el.textContent = '0';
+          const totalEl = document.getElementById('totalProvidersCount'); if (totalEl) totalEl.textContent = '0';
         }
       }catch(e){ el.textContent = '0'; }
     }
@@ -1119,13 +1135,24 @@
 
   <div class="container mb-3 d-flex flex-column align-items-center">
     <div class="mb-2"><strong>Stats</strong></div>
-    <div id="submissionsCard" class="submissions-card-sm mt-3" role="region" aria-label="Submissions summary" style="max-width:440px;width:100%;">
-      <div class="icon" style="background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#032935">📊</div>
-      <div class="numbers">
-        <div class="count" id="submissionsCount">—</div>
-        <div class="label">Providers added</div>
+    <div class="stats-grid" role="region" aria-label="Site stats">
+      <div class="stat-card" id="card-providers">
+        <div class="stat-count" id="submissionsCount">—</div>
+        <div class="stat-label">Providers added</div>
+        <a href="#subs" class="btn btn-sm btn-outline-light" onclick="document.getElementById('subs-tab').click();return false;">Contribute</a>
       </div>
-      <a href="#subs" class="btn btn-sm btn-outline-light ms-auto" onclick="document.getElementById('subs-tab').click();return false;">Contribute</a>
+      <div class="stat-card" id="card-total">
+        <div class="stat-count" id="totalProvidersCount">—</div>
+        <div class="stat-label">Total providers</div>
+      </div>
+      <div class="stat-card" id="card-recent">
+        <div class="stat-count" id="recentCount">—</div>
+        <div class="stat-label">Recent (7d)</div>
+      </div>
+      <div class="stat-card" id="card-matches">
+        <div class="stat-count" id="matchesCount">—</div>
+        <div class="stat-label">Matches found</div>
+      </div>
     </div>
   </div>
       
