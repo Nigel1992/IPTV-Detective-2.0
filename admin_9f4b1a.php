@@ -613,7 +613,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <p class="text-muted mb-0">Monitor and manage your IPTV provider database</p>
             </div>
             <div class="text-end">
-                <div style="font-size:0.9rem;color:var(--muted)">Last updated</div>
+                <div style="font-size:0.9rem;font-weight:600">Last updated</div>
                 <div style="font-size:0.8rem;color:var(--accent)"><?php echo date('M j, Y H:i'); ?></div>
             </div>
         </div>
@@ -876,14 +876,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                   echo '<td><small class="text-muted">' . htmlspecialchars($r['created_at'] ?? '') . '</small></td>';
                                                                     echo '<td>';
                                                                     echo '<div class="btn-group btn-group-sm" role="group" style="gap:6px;">';
-                                                                    // Prepare escaped values for JS call
-                                                                    $__eid = htmlspecialchars($r['id']);
-                                                                    $__ename = addslashes($r['name'] ?? '');
-                                                                    $__elink = addslashes($r['link'] ?? '');
-                                                                    $__eprice = addslashes($r['price'] ?? '');
-                                                                    $__echannels = addslashes($r['channels'] ?? '');
-                                                                    $__egroups = addslashes($r['groups'] ?? '');
-                                                                    echo '<button class="btn btn-outline-info d-flex align-items-center justify-content-center" style="width:38px;height:38px;padding:0;" onclick="openEditModal(' . $__eid . ', \\'' . $__ename . '\\', \\'' . $__elink . '\\', \\'' . $__eprice . '\\', \\'' . $__echannels . '\\', \\'' . $__egroups . '\\')" title="Edit"><i class="bi bi-pencil"></i></button>';
+                                                                    // Prepare JS-safe values
+                                                                    $js_id = json_encode($r['id']);
+                                                                    $js_name = json_encode($r['name'] ?? '');
+                                                                    $js_link = json_encode($r['link'] ?? '');
+                                                                    $js_price = json_encode($r['price'] ?? '');
+                                                                    $js_channels = json_encode($r['channels'] ?? '');
+                                                                    $js_groups = json_encode($r['groups'] ?? '');
+                                                                    $onclick = 'openEditModal(' . $js_id . ', ' . $js_name . ', ' . $js_link . ', ' . $js_price . ', ' . $js_channels . ', ' . $js_groups . ');';
+                                                                    echo '<button class="btn btn-outline-info d-flex align-items-center justify-content-center" style="width:38px;height:38px;padding:0;" onclick="' . htmlspecialchars($onclick, ENT_QUOTES, 'UTF-8') . '" title="Edit"><i class="bi bi-pencil"></i></button>';
                                                                     echo '<form method="post" style="display:inline" onsubmit="return confirm(\'Delete this provider?\');">';
                                                                     echo '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'] ?? '') . '">';
                                                                     echo '<input type="hidden" name="action" value="delete">';
@@ -1029,26 +1030,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 return matchesSearch && matchesStatus;
             });
 
-            // Sort rows
+            // Sort rows according to selected sort field and direction
             if (sortBy) {
+                const parts = sortBy.split(/\s+/);
+                const field = parts[0] || 'created_at';
+                const dir = (parts[1] || 'DESC').toUpperCase();
+
+                const parsePriceFromRow = (row) => {
+                    const txt = (row.cells[2] && row.cells[2].textContent) ? row.cells[2].textContent : '';
+                    const m = txt.match(/[-\d.,]+/);
+                    if (!m) return 0;
+                    return parseFloat(m[0].replace(/,/g, '')) || 0;
+                };
+
+                const parseDateFromRow = (row) => {
+                    const txt = (row.cells[5] && row.cells[5].textContent) ? row.cells[5].textContent.trim() : '';
+                    const t = Date.parse(txt);
+                    return isNaN(t) ? 0 : t;
+                };
+
                 visibleRows.sort((a, b) => {
-                    // This is a simplified sort - in a real app you'd want more sophisticated sorting
-                    const aVal = a.cells[1].textContent.toLowerCase();
-                    const bVal = b.cells[1].textContent.toLowerCase();
-                    if (sortBy.includes('ASC')) {
-                        return aVal.localeCompare(bVal);
-                    } else {
-                        return bVal.localeCompare(aVal);
+                    let aVal, bVal;
+                    if (field === 'name') {
+                        aVal = a.dataset.name || (a.cells[1] && a.cells[1].textContent.toLowerCase()) || '';
+                        bVal = b.dataset.name || (b.cells[1] && b.cells[1].textContent.toLowerCase()) || '';
+                        return dir === 'ASC' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
                     }
+                    if (field === 'price') {
+                        aVal = parsePriceFromRow(a);
+                        bVal = parsePriceFromRow(b);
+                        return dir === 'ASC' ? (aVal - bVal) : (bVal - aVal);
+                    }
+                    // default to created_at
+                    aVal = parseDateFromRow(a);
+                    bVal = parseDateFromRow(b);
+                    return dir === 'ASC' ? (aVal - bVal) : (bVal - aVal);
                 });
             }
 
             // Hide all rows first
             rows.forEach(row => {
                 row.style.display = 'none';
-                // Also hide the link row that follows
+                // Also hide the link row that follows (if it looks like the link/detail row)
                 const nextRow = row.nextElementSibling;
-                if (nextRow && nextRow.classList.contains('table-light')) {
+                if (nextRow && nextRow.cells && nextRow.cells.length > 1 && nextRow.cells[1].getAttribute && nextRow.cells[1].getAttribute('colspan')) {
+                    nextRow.style.display = 'none';
+                } else if (nextRow && nextRow.querySelector && nextRow.querySelector('a')) {
+                    // fallback: if it contains a link, treat it as the detail row
                     nextRow.style.display = 'none';
                 }
             });
@@ -1056,9 +1084,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             // Show filtered and sorted rows
             visibleRows.forEach(row => {
                 row.style.display = '';
-                // Also show the link row that follows
+                // Also show the link row that follows (if it looks like the link/detail row)
                 const nextRow = row.nextElementSibling;
-                if (nextRow && nextRow.classList.contains('table-light')) {
+                if (nextRow && nextRow.cells && nextRow.cells.length > 1 && nextRow.cells[1].getAttribute && nextRow.cells[1].getAttribute('colspan')) {
+                    nextRow.style.display = '';
+                } else if (nextRow && nextRow.querySelector && nextRow.querySelector('a')) {
                     nextRow.style.display = '';
                 }
             });
@@ -1082,15 +1112,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         // Modal edit logic
         function openEditModal(id, name, link, price, channels, groups) {
-            document.getElementById('editProviderId').value = id;
-            document.getElementById('editProviderName').value = name;
-            document.getElementById('editProviderLink').value = link;
-            document.getElementById('editProviderPrice').value = price;
-            document.getElementById('editProviderChannels').value = channels;
-            document.getElementById('editProviderGroups').value = groups;
+            // Ensure elements exist before attempting to set values
+            const setVal = (sel, val) => {
+                const el = document.getElementById(sel);
+                if (!el) return;
+                el.value = (val === null || val === undefined) ? '' : val;
+            };
 
-            const modal = new bootstrap.Modal(document.getElementById('editProviderModal'));
-            modal.show();
+            setVal('editProviderId', id);
+            setVal('editProviderName', name);
+            setVal('editProviderLink', link);
+            setVal('editProviderPrice', price);
+            setVal('editProviderChannels', channels);
+            setVal('editProviderGroups', groups);
+
+            const modalEl = document.getElementById('editProviderModal');
+            if (modalEl) {
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            }
         }
 
         // Chart initialization
