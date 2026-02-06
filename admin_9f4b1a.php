@@ -772,13 +772,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                         $timeStr = 'N/A';
                                         $tsMs = '';
                                         if (!empty($row['created_at'])) {
-                                            $ts = strtotime($row['created_at']);
-                                            if ($ts !== false && $ts > 0) {
-                                                $timeAgo = time() - $ts;
-                                                $timeStr = $timeAgo < 3600 ? round($timeAgo/60) . 'm ago' : 
-                                                          ($timeAgo < 86400 ? round($timeAgo/3600) . 'h ago' : 
-                                                          round($timeAgo/86400) . 'd ago');
-                                                $tsMs = intval($ts) * 1000;
+                                            try {
+                                                // Treat stored datetimes as UTC to avoid server timezone mismatches.
+                                                $dt = new DateTime($row['created_at'], new DateTimeZone('UTC'));
+                                                $ts = $dt->getTimestamp();
+                                                if ($ts !== false && $ts > 0) {
+                                                    $timeAgo = time() - $ts;
+                                                    $timeStr = $timeAgo < 3600 ? round($timeAgo/60) . 'm ago' : 
+                                                              ($timeAgo < 86400 ? round($timeAgo/3600) . 'h ago' : 
+                                                              round($timeAgo/86400) . 'd ago');
+                                                    $tsMs = intval($ts) * 1000;
+                                                }
+                                            } catch (Exception $e) {
+                                                // fallback to strtotime if DateTime parsing fails
+                                                $ts = @strtotime($row['created_at']);
+                                                if ($ts !== false && $ts > 0) {
+                                                    $timeAgo = time() - $ts;
+                                                    $timeStr = $timeAgo < 3600 ? round($timeAgo/60) . 'm ago' : 
+                                                              ($timeAgo < 86400 ? round($timeAgo/3600) . 'h ago' : 
+                                                              round($timeAgo/86400) . 'd ago');
+                                                    $tsMs = intval($ts) * 1000;
+                                                }
                                             }
                                         }
                                         echo '<div class="list-group-item px-0 d-flex justify-content-between align-items-center">';
@@ -1388,6 +1402,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             const sortBy = document.getElementById('sortBy');
             if (statusFilter) statusFilter.addEventListener('change', applyFilters);
             if (sortBy) sortBy.addEventListener('change', applyFilters);
+            // Update recent activity labels on load
+            if (typeof updateRecentActivityTimes === 'function') updateRecentActivityTimes();
         });
 
         // Update recent activity times to user's local timezone using data-ts (epoch ms)
