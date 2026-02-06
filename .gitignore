@@ -1,1 +1,4 @@
 ftp_credentials*
+# Local config files (do not commit)
+config.php.local
+inc/config.php.local
