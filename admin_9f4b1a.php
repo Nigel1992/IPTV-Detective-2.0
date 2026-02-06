@@ -1088,6 +1088,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 });
             }
 
+            // Reorder table DOM so the visibleRows appear in the sorted order
+            if (visibleRows.length) {
+                try {
+                    const frag = document.createDocumentFragment();
+                    visibleRows.forEach(row => {
+                        frag.appendChild(row);
+                        const nextRow = row.nextElementSibling;
+                        // if the following row is a detail/link row (no id or not a provider row), move it with the main row
+                        if (nextRow && (!nextRow.id || !nextRow.id.startsWith('prov-'))) {
+                            frag.appendChild(nextRow);
+                        }
+                    });
+                    // insert at top so sorted rows show first
+                    tbody.insertBefore(frag, tbody.firstChild);
+                } catch (e) {
+                    console.error('Failed to reorder rows for sorting', e);
+                }
+            }
+
             // Hide all rows first
             rows.forEach(row => {
                 row.style.display = 'none';
