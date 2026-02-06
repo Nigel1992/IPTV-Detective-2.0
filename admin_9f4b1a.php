@@ -867,24 +867,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                 $rowId = 'prov-' . htmlspecialchars($r['id']);
                                 $statusBadge = isset($r['is_public']) && $r['is_public'] ? '<span class="badge bg-success">Public</span>' : '<span class="badge bg-secondary">Private</span>';
-                                echo '<tr id="' . $rowId . '" data-name="' . htmlspecialchars(strtolower($r['name'] ?? '')) . '" data-status="' . (isset($r['is_public']) && $r['is_public'] ? 'public' : 'private') . '">';
-                                echo '<td><code>' . htmlspecialchars($r['id']) . '</code></td>';
-                                echo '<td><strong>' . htmlspecialchars($r['name'] ?? '') . '</strong> ' . $statusBadge . '</td>';
-                                echo '<td>' . (isset($r['price']) && $r['price'] ? '<span class="text-success fw-bold">$' . htmlspecialchars(number_format($r['price'],2)) . '</span>' : '<span class="text-muted">-</span>') . '</td>';
-                                echo '<td>' . (isset($r['channels']) && $r['channels'] ? '<span class="badge bg-info">' . htmlspecialchars($r['channels']) . '</span>' : '<span class="text-muted">-</span>') . '</td>';
-                                echo '<td>' . (isset($r['groups']) && $r['groups'] ? '<span class="badge bg-warning text-dark">' . htmlspecialchars($r['groups']) . '</span>' : '<span class="text-muted">-</span>') . '</td>';
-                                echo '<td><small class="text-muted">' . htmlspecialchars($r['created_at'] ?? '') . '</small></td>';
-                                echo '<td>';
-                                echo '<div class="btn-group btn-group-sm" role="group">';
-                                echo '<button class="btn btn-outline-info" onclick="openEditModal(' . htmlspecialchars($r['id']) . ', \'' . addslashes($r['name'] ?? '') . '\', \'' . addslashes($r['link'] ?? '') . '\', \'' . addslashes($r['price'] ?? '') . '\', \'' . addslashes($r['channels'] ?? '') . '\', \'' . addslashes($r['groups'] ?? '') . '\')" title="Edit"><i class="bi bi-pencil"></i></button>';
-                                echo '<form method="post" style="display:inline" onsubmit="return confirm(\'Delete this provider?\');">'
-                                     . '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'] ?? '') . '"'
-                                     . '<input type="hidden" name="action" value="delete"'
-                                     . '<input type="hidden" name="id" value="' . htmlspecialchars($r['id']) . '"'
-                                     . '<button class="btn btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>'
-                                     . '</form>';
-                                echo '</div>';
-                                echo '</td>';
+                                  echo '<tr id="' . $rowId . '" data-name="' . htmlspecialchars(strtolower($r['name'] ?? '')) . '" data-status="' . (isset($r['is_public']) && $r['is_public'] ? 'public' : 'private') . '">';
+                                  echo '<td><code>' . htmlspecialchars($r['id']) . '</code></td>';
+                                  echo '<td><strong>' . htmlspecialchars($r['name'] ?? '') . '</strong> ' . $statusBadge . '</td>';
+                                  echo '<td>' . (isset($r['price']) && $r['price'] ? '<span class="text-success fw-bold">$' . htmlspecialchars(number_format($r['price'],2)) . '</span>' : '<span class="text-muted">-</span>') . '</td>';
+                                  echo '<td>' . (isset($r['channels']) && $r['channels'] ? '<span class="badge bg-info">' . htmlspecialchars($r['channels']) . '</span>' : '<span class="text-muted">-</span>') . '</td>';
+                                  echo '<td>' . (isset($r['groups']) && $r['groups'] ? '<span class="badge bg-warning text-dark">' . htmlspecialchars($r['groups']) . '</span>' : '<span class="text-muted">-</span>') . '</td>';
+                                  echo '<td><small class="text-muted">' . htmlspecialchars($r['created_at'] ?? '') . '</small></td>';
+                                                                    echo '<td>';
+                                                                    echo '<div class="btn-group btn-group-sm" role="group" style="gap:6px;">';
+                                                                    // Prepare escaped values for JS call
+                                                                    $__eid = htmlspecialchars($r['id']);
+                                                                    $__ename = addslashes($r['name'] ?? '');
+                                                                    $__elink = addslashes($r['link'] ?? '');
+                                                                    $__eprice = addslashes($r['price'] ?? '');
+                                                                    $__echannels = addslashes($r['channels'] ?? '');
+                                                                    $__egroups = addslashes($r['groups'] ?? '');
+                                                                    echo '<button class="btn btn-outline-info d-flex align-items-center justify-content-center" style="width:38px;height:38px;padding:0;" onclick="openEditModal(' . $__eid . ', \\'' . $__ename . '\\', \\'' . $__elink . '\\', \\'' . $__eprice . '\\', \\'' . $__echannels . '\\', \\'' . $__egroups . '\\')" title="Edit"><i class="bi bi-pencil"></i></button>';
+                                                                    echo '<form method="post" style="display:inline" onsubmit="return confirm(\'Delete this provider?\');">';
+                                                                    echo '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'] ?? '') . '">';
+                                                                    echo '<input type="hidden" name="action" value="delete">';
+                                                                    echo '<input type="hidden" name="id" value="' . htmlspecialchars($r['id']) . '">';
+                                                                    echo '<button class="btn btn-outline-danger d-flex align-items-center justify-content-center" style="width:38px;height:38px;padding:0;" title="Delete"><i class="bi bi-trash"></i></button>';
+                                                                    echo '</form>';
+                                  echo '</div>';
+                                  echo '</td>';
                                 echo '</tr>';
                                 // Link row
                                 if (!empty($r['link'])) {
