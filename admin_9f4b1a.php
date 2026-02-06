@@ -768,7 +768,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                     $stmt->execute();
                                     $count = 0;
                                     while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) && $count < 8) {
+                                        // compute server-side fallback, but expose epoch ms for client-side relative rendering
                                         $timeStr = 'N/A';
+                                        $tsMs = '';
                                         if (!empty($row['created_at'])) {
                                             $ts = strtotime($row['created_at']);
                                             if ($ts !== false && $ts > 0) {
@@ -776,11 +778,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                                 $timeStr = $timeAgo < 3600 ? round($timeAgo/60) . 'm ago' : 
                                                           ($timeAgo < 86400 ? round($timeAgo/3600) . 'h ago' : 
                                                           round($timeAgo/86400) . 'd ago');
+                                                $tsMs = intval($ts) * 1000;
                                             }
                                         }
                                         echo '<div class="list-group-item px-0 d-flex justify-content-between align-items-center">';
                                         echo '<div><i class="bi bi-plus-circle text-success me-2"></i><strong>' . htmlspecialchars($row['name'] ?? '') . '</strong></div>';
-                                        echo '<small class="text-muted">' . htmlspecialchars($timeStr) . '</small>';
+                                        echo '<small class="text-muted" data-ts="' . htmlspecialchars($tsMs) . '">' . htmlspecialchars($timeStr) . '</small>';
                                         echo '</div>';
                                         $count++;
                                     }
@@ -1085,6 +1088,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 document.getElementById('mainDashboard').style.display = '';
                 document.getElementById('matchedGroupsPane').style.display = 'none';
                 document.getElementById('providersPane').style.display = 'none';
+                // refresh recent activity times for user's local timezone
+                if (typeof updateRecentActivityTimes === 'function') updateRecentActivityTimes();
             }
         }
 
@@ -1384,6 +1389,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             if (statusFilter) statusFilter.addEventListener('change', applyFilters);
             if (sortBy) sortBy.addEventListener('change', applyFilters);
         });
+
+        // Update recent activity times to user's local timezone using data-ts (epoch ms)
+        function relativeTimeFromEpochMs(epochMs) {
+            if (!epochMs || isNaN(epochMs) || epochMs <= 0) return 'N/A';
+            const now = Date.now();
+            const diff = Math.floor((now - Number(epochMs)) / 1000); // seconds
+            if (diff < 60) return Math.max(1, diff) + 's ago';
+            if (diff < 3600) return Math.round(diff / 60) + 'm ago';
+            if (diff < 86400) return Math.round(diff / 3600) + 'h ago';
+            return Math.round(diff / 86400) + 'd ago';
+        }
+
+        function updateRecentActivityTimes() {
+            const els = document.querySelectorAll('#overviewTab .list-group-item small[data-ts]');
+            els.forEach(el => {
+                const ts = parseInt(el.getAttribute('data-ts'), 10);
+                const txt = relativeTimeFromEpochMs(ts);
+                el.textContent = txt;
+            });
+        }
+
     </script>
 </body>
 </html>
