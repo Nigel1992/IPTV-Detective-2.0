@@ -1,0 +1,52 @@
+
+DirectoryIndex index.html index.php
+
+# Prevent directory listing
+Options -Indexes
+
+# Redirect HTTP to HTTPS (if mod_rewrite enabled) and block sensitive dirs
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+	# Redirect HTTP to HTTPS
+	RewriteCond %{HTTPS} !=on
+	RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+	# Block direct access to sensitive directories
+	RewriteRule ^(inc|scripts|logs)(/.*)?$ - [F,L]
+</IfModule>
+
+# Force HTML MIME type
+AddType text/html .html
+
+# Deny access to sensitive file extensions
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|sql|md)$">
+	<IfModule mod_authz_core.c>
+		Require all denied
+	</IfModule>
+	<IfModule !mod_authz_core.c>
+		Order Allow,Deny
+		Deny from all
+	</IfModule>
+</FilesMatch>
+
+# Optional security headers (ignored if mod_headers not available)
+<IfModule mod_headers.c>
+	Header always set X-Content-Type-Options "nosniff"
+	Header always set X-Frame-Options "DENY"
+	Header always set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Prevent directory listing
+Options -Indexes
+
+# Security headers (safe to enable when mod_headers is available)
+<IfModule mod_headers.c>
+	Header always set X-Content-Type-Options "nosniff"
+	Header always set X-Frame-Options "DENY"
+	Header always set X-XSS-Protection "1; mode=block"
+	<FilesMatch "\.(html|htm|js|css|json|php|xml|txt|m3u)$">
+		Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+		Header always set Pragma "no-cache"
+		Header always set Expires "0"
+	</FilesMatch>
+</IfModule>
+
