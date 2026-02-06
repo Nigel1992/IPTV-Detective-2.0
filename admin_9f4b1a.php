@@ -577,6 +577,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 padding:0 1rem;
             }
         }
+        /* Elevated visual polish */
+        :root{
+            --card-elev: 0 14px 40px rgba(2,6,23,0.55);
+            --soft-elev: 0 8px 24px rgba(2,6,23,0.45);
+            --glass: rgba(255,255,255,0.03);
+        }
+        /* Subtle entrance animation for cards */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card, .stats-card {
+            will-change: transform, opacity;
+            animation: fadeInUp 420ms ease both;
+        }
+        /* Stronger card shadows and interactive lift */
+        .card{
+            transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms ease;
+            box-shadow: var(--card-elev);
+        }
+        .card:hover{ transform: translateY(-6px); box-shadow: 0 28px 80px rgba(0,0,0,0.5); }
+        .stats-card{ box-shadow: var(--soft-elev); border-radius:14px; }
+
+        /* Table row elevation on hover with subtle border accent */
+        .table tbody tr{ transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease; }
+        .table tbody tr:hover{ background: linear-gradient(90deg, rgba(255,255,255,0.01), rgba(0,0,0,0.04)); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+        .table thead th{ position: sticky; top: 0; z-index: 10; backdrop-filter: blur(6px); }
+
+        /* Buttons: soft gradients, depth and hover states */
+        .btn-primary{ box-shadow: 0 8px 20px rgba(0,217,255,0.12); }
+        .btn-primary:active{ transform: translateY(1px) scale(0.997); }
+        .btn-outline-light{ transition: transform 160ms ease, box-shadow 160ms ease; }
+        .btn-outline-light:hover{ transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
+
+        /* Action buttons inside table */
+        .btn-group .btn{ transition: transform 140ms ease, box-shadow 140ms ease; }
+        .btn-group .btn:hover{ transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.28); }
+
+        /* Input and selects: larger tap area and inner shadow */
+        .form-control, .form-select{ padding:0.6rem 0.75rem; border-radius:10px; box-shadow: inset 0 1px 0 rgba(0,0,0,0.25); }
+        .form-control::placeholder{ color: rgba(214,238,245,0.45); }
+
+        /* Badges refinement */
+        .badge{ font-weight:700; border-radius:8px; padding:0.35rem 0.6rem; }
+        .badge.bg-primary{ background: linear-gradient(90deg,#00c2ff,#7cf6ff); color:#032935; }
+        .badge.bg-success{ background: linear-gradient(90deg,#28a745,#5cd67a); }
+
+        /* Scrollbar styling for wide tables */
+        .table-responsive::-webkit-scrollbar{ height:8px; }
+        .table-responsive::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.06); border-radius:8px; }
+
+        /* Small utilities */
+        .text-muted{ opacity:0.85; }
+        .link-muted a{ color:var(--muted); }
     </style>
 </head>
 <body>
