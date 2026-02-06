@@ -1036,7 +1036,9 @@
               if (rg && rg.ok){
                 const gj = await rg.json();
                 if (gj && Array.isArray(gj.groups)){
-                  if (matchesEl) matchesEl.textContent = gj.groups.length.toLocaleString();
+                  // sum group.count to get total resellers involved
+                  const totalResellers = gj.groups.reduce((s,g)=> s + (typeof g.count === 'number' ? g.count : (g.count ? Number(g.count) : 0)), 0);
+                  if (matchesEl) matchesEl.textContent = totalResellers.toLocaleString();
                   return;
                 }
               }
@@ -1057,7 +1059,8 @@
               if (rg && rg.ok){
                 const gj = await rg.json();
                 if (gj && Array.isArray(gj.groups)){
-                  if (matchesEl) matchesEl.textContent = gj.groups.length.toLocaleString();
+                  const totalResellers = gj.groups.reduce((s,g)=> s + (typeof g.count === 'number' ? g.count : (g.count ? Number(g.count) : 0)), 0);
+                  if (matchesEl) matchesEl.textContent = totalResellers.toLocaleString();
                   return;
                 }
               }
@@ -1199,7 +1202,7 @@
       </div>
       <div class="stat-card matches" id="card-matches">
         <div class="stat-count" id="matchesCount">—</div>
-        <div class="stat-label">Matches found</div>
+        <div class="stat-label">Resellers found</div>
       </div>
     </div>
   </div>
