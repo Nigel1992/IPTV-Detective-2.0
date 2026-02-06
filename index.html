@@ -1000,15 +1000,10 @@
         const j = await r.json();
         if (j && j.success){
           animateCount(el, j.providers_public || 0);
-          const totEl = document.getElementById('submissionsTotal');
-          if (totEl) totEl.textContent = '(total: ' + ((j.providers_total !== undefined) ? Number(j.providers_total).toLocaleString() : '—') + ')';
         } else if (j && typeof j.providers_public === 'number'){
           animateCount(el, j.providers_public);
-          const totEl = document.getElementById('submissionsTotal');
-          if (totEl) totEl.textContent = '(total: ' + ((j.providers_total !== undefined) ? Number(j.providers_total).toLocaleString() : '—') + ')';
         } else {
           el.textContent = '0';
-          const totEl = document.getElementById('submissionsTotal'); if (totEl) totEl.textContent = '(total: 0)';
         }
       }catch(e){ el.textContent = '0'; }
     }
@@ -1128,7 +1123,7 @@
       <div class="icon" style="background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#032935">📊</div>
       <div class="numbers">
         <div class="count" id="submissionsCount">—</div>
-        <div class="label">Providers added <small id="submissionsTotal">(total: —)</small></div>
+        <div class="label">Providers added</div>
       </div>
       <a href="#subs" class="btn btn-sm btn-outline-light ms-auto" onclick="document.getElementById('subs-tab').click();return false;">Contribute</a>
     </div>
