@@ -83,7 +83,8 @@
             <div style="width:64px;height:64px;border-radius:12px;background:linear-gradient(90deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#032935;font-weight:700;font-size:20px;box-shadow:0 8px 24px rgba(0,0,0,0.28);">📊</div>
             <div style="flex:1;min-width:120px;">
               <div style="font-size:20px;font-weight:700;color:var(--accent);" id="submissionsCount">—</div>
-              <div class="small text-muted">Total submissions in database</div>
+              <div class="small text-muted">Public submissions</div>
+              <div class="small text-muted" id="submissionsTotal" style="opacity:0.9">(total: —)</div>
             </div>
           </div>
           <div class="small text-muted mt-2">Your submission helps improve matching and spot resellers — <a href="#subs" class="fw-bold text-decoration-underline" onclick="document.getElementById('subs-tab').click();return false;">Contribute a submission →</a></div>
@@ -992,10 +993,17 @@
         const r = await fetch('/get_counts.php');
         if (!r.ok) throw new Error('Network');
         const j = await r.json();
-        if (j && j.success && typeof j.providers === 'number'){
-          animateCount(el, j.providers);
+        if (j && j.success){
+          animateCount(el, j.providers_public || 0);
+          const totEl = document.getElementById('submissionsTotal');
+          if (totEl) totEl.textContent = '(total: ' + ((j.providers_total !== undefined) ? Number(j.providers_total).toLocaleString() : '—') + ')';
+        } else if (j && typeof j.providers_public === 'number'){
+          animateCount(el, j.providers_public);
+          const totEl = document.getElementById('submissionsTotal');
+          if (totEl) totEl.textContent = '(total: ' + ((j.providers_total !== undefined) ? Number(j.providers_total).toLocaleString() : '—') + ')';
         } else {
           el.textContent = '0';
+          const totEl = document.getElementById('submissionsTotal'); if (totEl) totEl.textContent = '(total: 0)';
         }
       }catch(e){ el.textContent = '0'; }
     }
