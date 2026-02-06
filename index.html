@@ -1026,13 +1026,19 @@
           animateCount(el, j.providers_public || 0);
           const totalEl = document.getElementById('totalProvidersCount');
           if (totalEl) totalEl.textContent = ((j.providers_total !== undefined) ? Number(j.providers_total).toLocaleString() : '—');
+          const recentEl = document.getElementById('recentCount'); if (recentEl) recentEl.textContent = ((j.providers_recent_7 !== undefined) ? Number(j.providers_recent_7).toLocaleString() : '—');
+          const matchesEl = document.getElementById('matchesCount'); if (matchesEl) matchesEl.textContent = ((j.providers_matches !== undefined) ? Number(j.providers_matches).toLocaleString() : '—');
         } else if (j && typeof j.providers_public === 'number'){
           animateCount(el, j.providers_public);
           const totalEl = document.getElementById('totalProvidersCount');
           if (totalEl) totalEl.textContent = ((j.providers_total !== undefined) ? Number(j.providers_total).toLocaleString() : '—');
+          const recentEl = document.getElementById('recentCount'); if (recentEl) recentEl.textContent = ((j.providers_recent_7 !== undefined) ? Number(j.providers_recent_7).toLocaleString() : '—');
+          const matchesEl = document.getElementById('matchesCount'); if (matchesEl) matchesEl.textContent = ((j.providers_matches !== undefined) ? Number(j.providers_matches).toLocaleString() : '—');
         } else {
           el.textContent = '0';
           const totalEl = document.getElementById('totalProvidersCount'); if (totalEl) totalEl.textContent = '0';
+          const recentEl = document.getElementById('recentCount'); if (recentEl) recentEl.textContent = '0';
+          const matchesEl = document.getElementById('matchesCount'); if (matchesEl) matchesEl.textContent = '0';
         }
       }catch(e){ el.textContent = '0'; }
     }
