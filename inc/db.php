@@ -2,6 +2,11 @@
 function get_db() {
     // Read credentials from inc/config.php
     $cfgFile = __DIR__ . '/config.php';
+    $altCfg = __DIR__ . '/config.php.local';
+    // Allow a local config fallback for hosts that keep credentials in config.php.local
+    if (!file_exists($cfgFile) && file_exists($altCfg)) {
+        $cfgFile = $altCfg;
+    }
     if (!file_exists($cfgFile)) {
         http_response_code(500);
         exit('DB config missing: ' . $cfgFile);
