@@ -129,17 +129,7 @@
               <input class="form-control" name="price" type="number" step="0.01" min="0.01" required>
               <div class="invalid-feedback">Please enter a price (minimum $0.01).</div>
             </div>
-            <!-- Compact submissions card moved here -->
-            <div class="col-md-4 col-12 d-flex justify-content-md-end">
-              <div id="submissionsCard" class="submissions-card-sm mt-3" role="region" aria-label="Submissions summary" style="max-width:220px;width:100%;">
-                <div class="icon" style="background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#032935">📊</div>
-                <div class="numbers">
-                  <div class="count" id="submissionsCount">—</div>
-                  <div class="label">Public <small id="submissionsTotal">(total: —)</small></div>
-                </div>
-                <a href="#subs" class="btn btn-sm btn-outline-light ms-auto" onclick="document.getElementById('subs-tab').click();return false;">Contribute</a>
-              </div>
-            </div>
+            <!-- submissions card moved below dialog -->
             <div class="col-md-6">
               <label class="form-label">Select .m3u File</label>
               <input class="form-control" type="file" name="m3u_file" accept=".m3u,.txt" required>
@@ -1129,6 +1119,17 @@
           <p class="small mb-0"><strong>How to use:</strong> Click <strong>Generate</strong> to build the Xtream M3U link, then click <strong>Download</strong> to fetch and save the .m3u file automatically. If the browser blocks the request or the download fails (CORS/network), the link will open in a new tab so you can save the playlist manually. Keep credentials private and don’t share them publicly.</p>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="container mb-3 d-flex justify-content-center">
+    <div id="submissionsCard" class="submissions-card-sm mt-3" role="region" aria-label="Submissions summary" style="max-width:220px;width:100%;">
+      <div class="icon" style="background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#032935">📊</div>
+      <div class="numbers">
+        <div class="count" id="submissionsCount">—</div>
+        <div class="label">Public <small id="submissionsTotal">(total: —)</small></div>
+      </div>
+      <a href="#subs" class="btn btn-sm btn-outline-light ms-auto" onclick="document.getElementById('subs-tab').click();return false;">Contribute</a>
     </div>
   </div>
       
