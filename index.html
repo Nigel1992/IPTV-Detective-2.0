@@ -85,8 +85,21 @@
 
     /* Stats grid: square stat cards */
     .stats-grid{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;align-items:center}
-    .stat-card{width:160px;height:160px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.35rem;padding:0.8rem;box-shadow:0 8px 22px rgba(0,0,0,0.35)}
-    .stat-card .stat-count{font-size:28px;font-weight:800;color:var(--accent)}
+    .stat-card{width:160px;height:160px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.35rem;padding:0.8rem;box-shadow:0 8px 22px rgba(0,0,0,0.35);transition:transform .12s ease, box-shadow .12s ease}
+    .stat-card:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(0,0,0,0.5)}
+
+    /* per-card accents */
+    .stat-card.providers{background:linear-gradient(180deg, rgba(0,194,255,0.06), rgba(12,24,36,0.6));border-color:rgba(0,194,255,0.12)}
+    .stat-card.total{background:linear-gradient(180deg, rgba(124,246,255,0.04), rgba(12,24,36,0.6));border-color:rgba(124,246,255,0.08)}
+    .stat-card.recent{background:linear-gradient(180deg, rgba(255,193,7,0.06), rgba(12,24,36,0.6));border-color:rgba(255,193,7,0.12)}
+    .stat-card.matches{background:linear-gradient(180deg, rgba(124,237,102,0.06), rgba(12,24,36,0.6));border-color:rgba(124,237,102,0.12)}
+
+    .stat-card.providers .stat-count{color:var(--accent)}
+    .stat-card.total .stat-count{color:var(--accent-2)}
+    .stat-card.recent .stat-count{color:#ffd27a}
+    .stat-card.matches .stat-count{color:#7cf67f}
+
+    .stat-card .stat-count{font-size:28px;font-weight:800}
     .stat-card .stat-label{font-size:0.9rem;color:#cfeefb;opacity:0.95;text-align:center}
     .stat-card .btn{margin-top:0.35rem}
     @media (max-width:576px){
@@ -1136,20 +1149,19 @@
   <div class="container mb-3 d-flex flex-column align-items-center">
     <div class="mb-2"><strong>Stats</strong></div>
     <div class="stats-grid" role="region" aria-label="Site stats">
-      <div class="stat-card" id="card-providers">
+      <div class="stat-card providers" id="card-providers">
         <div class="stat-count" id="submissionsCount">—</div>
         <div class="stat-label">Providers added</div>
-        <a href="#subs" class="btn btn-sm btn-outline-light" onclick="document.getElementById('subs-tab').click();return false;">Contribute</a>
       </div>
-      <div class="stat-card" id="card-total">
+      <div class="stat-card total" id="card-total">
         <div class="stat-count" id="totalProvidersCount">—</div>
         <div class="stat-label">Total providers</div>
       </div>
-      <div class="stat-card" id="card-recent">
+      <div class="stat-card recent" id="card-recent">
         <div class="stat-count" id="recentCount">—</div>
         <div class="stat-label">Recent (7d)</div>
       </div>
-      <div class="stat-card" id="card-matches">
+      <div class="stat-card matches" id="card-matches">
         <div class="stat-count" id="matchesCount">—</div>
         <div class="stat-label">Matches found</div>
       </div>
