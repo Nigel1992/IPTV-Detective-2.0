@@ -83,8 +83,8 @@ if (!isset($_SESSION['admin_user'])) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Admin Login - IPTV Detective</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" integrity="sha384-iGsTKEx3NiYk6dKiX+cGcaB5DsXuYKCR+gdr3PvXmlHvA080iJEASttpi5VUsIn5" crossorigin="anonymous" async defer></script>
     </head>
     <body class="bg-light">
         <div class="container mt-5">
@@ -230,11 +230,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $recent_submissions = $pdo->query('SELECT COUNT(*) FROM providers WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)')->fetchColumn();
     try {
         $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        $url = $proto . '://' . $host . '/get_grouped_matches.php';
-        $opts = ['http' => ['timeout' => 2, 'ignore_errors' => true]];
-        $json = @file_get_contents($url, false, stream_context_create($opts));
-        if ($json) {
+        // Avoid using attacker-controlled host (HTTP_HOST). Use loopback and set a trusted Host header.
+        $local_host = '127.0.0.1';
+        $host_header = 'Host: ' . ($cfg['host'] ?? 'localhost');
+        $ch = curl_init($proto . '://' . $local_host . '/get_grouped_matches.php');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 2);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [$host_header]);
+        // forward session cookie so the admin-only endpoint can authenticate
+        if (session_id()) {
+            curl_setopt($ch, CURLOPT_COOKIE, session_name() . '=' . session_id());
+        }
+        $json = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($json && $http_code >= 200 && $http_code < 300) {
             $data = json_decode($json, true);
             if (isset($data['groups']) && is_array($data['groups'])) {
                 $ids = [];
@@ -300,13 +310,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - IPTV Detective</title>
     <!-- Dark Bootswatch theme for a professional dark UI -->
-    <link href="https://cdn.jsdelivr.net/npm/bootswatch@5/dist/darkly/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootswatch@5/dist/darkly/bootstrap.min.css" rel="stylesheet" integrity="sha384-t2UKecXY6tDoQIsEiNhYTaTFWmoHgQT7MV80h9huTejPYLkdgaOHv8ssDrS3Cdcw" crossorigin="anonymous">
     <!-- Nice system font stack -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" integrity="sha384-4LISF5TTJX/fLmGSxO53rV4miRxdg84mZsxmO8Rx5jGtp/LbrixFETvWa5a6sESd" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
     <link href="static/style.css" rel="stylesheet">
     <style>
         :root{

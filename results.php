@@ -23,7 +23,9 @@ $new_set = [];
 foreach ($channels as $c) { $url = isset($c['url']) ? sanitize_url($c['url']) : ''; $new_set[] = strtolower(trim($c['name'])) . '|' . strtolower(trim($url)); }
 $new_set = array_unique($new_set);
 $comparisons = [];
-$others = $pdo->query('SELECT * FROM snapshots WHERE id != ' . (int)$id)->fetchAll(PDO::FETCH_ASSOC);
+$stmtOthers = $pdo->prepare('SELECT * FROM snapshots WHERE id != ?');
+$stmtOthers->execute([$id]);
+$others = $stmtOthers->fetchAll(PDO::FETCH_ASSOC);
 foreach ($others as $other) {
     $other_channels = $pdo->prepare('SELECT name, url FROM channels WHERE snapshot_id = ?');
     $other_channels->execute([$other['id']]);
@@ -48,7 +50,7 @@ foreach ($others as $other) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Results - IPTV Detective</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <link href="/static/style.css" rel="stylesheet">
   </head>
   <body class="bg-light">
