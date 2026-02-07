@@ -212,6 +212,991 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
 
           <h6>How to use it</h6>
           <ol class="help-list">
-            <li><span class="help-term">Open the <strong>Check Provider</strong> tab</span> and enter the provider name, provider website URL, and the yearly price.</li>
-... (file continues identical to original index.html)
+                    <li><span class="help-term">Open the <strong>Check Provider</strong> tab</span> and enter the provider name, provider website URL, and the yearly price.</li>
+            <li><span class="help-term">Choose the provider's <u>.m3u</u> file</span> (the playlist that lists channels). If the file is large, parsing may take a minute.</li>
+            <li><span class="help-term">Submit the form.</span> The site compares channels and groups in your file to other submissions and shows:</li>
+            <ul>
+              <li><strong>Channel & group counts</strong> — how many channels and groups were found.</li>
+              <li><strong>Fingerprint (hash)</strong> — a short deterministic hash used to find identical files.</li>
+              <li><strong>Similarity/compare result</strong> — matching providers and a visual match score.</li>
+            </ul>
+          </ol>
+
+          <h6>Privacy — what we send</h6>
+          <p class="help-note">We do not upload the full M3U file to the server for most checks — only small counts and fingerprints are sent. This keeps uploads fast and avoids storing full playlists publicly. If you choose to submit a provider, that submission may be stored and displayed.</p>
+
+          <h6>Why this helps</h6>
+          <p>Many resellers copy the same channel list and sell it under different names. By comparing fingerprints and group lists we can detect when different providers are actually the same package — helping you find better prices or spot duplicated offers.</p>
+
+          <div class="mt-3">
+            <strong>Tips</strong>
+            <ul class="help-list">
+              <li>Use a provider website URL that starts with <code>https://</code> or <code>http://</code>.</li>
+              <li>If parsing appears slow, please be patient — large M3Us can take a minute.</li>
+              <li>For privacy, do not include credentials in the provider URL.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Back to site</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" integrity="sha384-4LISF5TTJX/fLmGSxO53rV4miRxdg84mZsxmO8Rx5jGtp/LbrixFETvWa5a6sESd" crossorigin="anonymous">
+
+  <!-- Score explanation modal -->
+  <div class="modal fade help-modal" id="scoreModal" tabindex="-1" aria-labelledby="scoreModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="scoreModalLabel">How scores and matches are calculated</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="lead help-note">This explains, in plain language, how the site decides whether two IPTV packages are the same or similar.</p>
+
+          <h6>1) File fingerprint (exact match)</h6>
+          <p class="help-note">We compute a short fingerprint (a deterministic hash) from the provider's playlist. If two files have the same fingerprint, they are considered an <strong>exact match</strong> — identical channel lists.</p>
+
+          <h6>2) Channel and group comparison</h6>
+          <p>For non-identical files we compare two things:</p>
+          <ul class="help-list">
+            <li><span class="help-term">Channel overlap</span>: how many individual channel URLs appear in both files.</li>
+            <li><span class="help-term">Group overlap</span>: how many channel groups (categories) are the same between files.</li>
+          </ul>
+
+          <h6>3) How the similarity score is built</h6>
+          <p class="help-note">We turn the overlaps into percentages and combine them into a single similarity score. A simple, easy-to-understand example we use:</p>
+          <ul class="help-list">
+            <li>Channel overlap contributes about <strong>60%</strong> of the score.</li>
+            <li>Group overlap contributes about <strong>40%</strong> of the score.</li>
+          </ul>
+          <p>So if two files share 80% of channels and 50% of groups, the score would be roughly 0.6*80 + 0.4*50 = 68%.</p>
+
+          <h6>4) Thresholds and match labels</h6>
+          <p class="help-note">We use the score to label results so they're easy to act on:</p>
+          <ul class="help-list">
+            <li><strong>Match (likely identical)</strong>: score &gt;= 90%</li>
+            <li><strong>Partial match</strong>: score between 50% and 90% — similar package, may differ by a few channels or updated links</li>
+            <li><strong>No match</strong>: score &lt; 50% — different package</li>
+          </ul>
+
+          <h6>5) Practical notes</h6>
+          <ul class="help-list">
+            <li>Small differences in channel URLs (tracking parameters, trailing slashes) are normalized before comparing to avoid false mismatches.</li>
+            <li>Exact hash matches are the strongest signal — if the hash is identical, treat packages as the same.</li>
+            <li>We prefer conservative thresholds to avoid false positives; a high-scoring partial match is still worth reviewing manually.</li>
+          </ul>
+
+          <div class="mt-3"><strong>Example:</strong> Two providers share 95% of channels but list groups differently; final score might be ~80–90% and show as a strong partial match — worth checking the provider pages and prices.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- M3U info modal (shown before choosing file) -->
+  <div class="modal fade help-modal" id="m3uNoteModal" tabindex="-1" aria-labelledby="m3uNoteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="m3uNoteLabel">About large M3U files</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small help-note">Large M3U files can take some time to parse. If the page appears frozen after you choose a file, please be patient — the site is processing the playlist.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="m3uProceedBtn">Proceed to choose file</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+        // MD5 helper using WebCrypto if available; fallback to a compact, tested JS implementation
+        async function md5hex(msg){
+          // try WebCrypto (may not be available for 'MD5' on all browsers)
+          try{
+            if (crypto && crypto.subtle && crypto.subtle.digest) {
+              const enc = new TextEncoder();
+              const buf = await crypto.subtle.digest('MD5', enc.encode(msg));
+              return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+            }
+          }catch(e){ /* fall back to JS */ }
+          return md5_js(msg);
+        }
+        function md5_js(s){
+          // MD5 on bytes via TextEncoder (robust and deterministic)
+          const K = [
+            0xd76aa478,0xe8c7b756,0x242070db,0xc1bdceee,0xf57c0faf,0x4787c62a,0xa8304613,0xfd469501,
+            0x698098d8,0x8b44f7af,0xffff5bb1,0x895cd7be,0x6b901122,0xfd987193,0xa679438e,0x49b40821,
+            0xf61e2562,0xc040b340,0x265e5a51,0xe9b6c7aa,0xd62f105d,0x02441453,0xd8a1e681,0xe7d3fbc8,
+            0x21e1cde6,0xc33707d6,0xf4d50d87,0x455a14ed,0xa9e3e905,0xfcefa3f8,0x676f02d9,0x8d2a4c8a,
+            0xfffa3942,0x8771f681,0x6d9d6122,0xfde5380c,0xa4beea44,0x4bdecfa9,0xf6bb4b60,0xbebfbc70,
+            0x289b7ec6,0xeaa127fa,0xd4ef3085,0x04881d05,0xd9d4d039,0xe6db99e5,0x1fa27cf8,0xc4ac5665,
+            0xf4292244,0x432aff97,0xab9423a7,0xfc93a039,0x655b59c3,0x8f0ccc92,0xffeff47d,0x85845dd1,
+            0x6fa87e4f,0xfe2ce6e0,0xa3014314,0x4e0811a1,0xf7537e82,0xbd3af235,0x2ad7d2bb,0xeb86d391
+          ];
+          const S = [
+            7,12,17,22, 7,12,17,22, 7,12,17,22, 7,12,17,22,
+            5,9,14,20, 5,9,14,20, 5,9,14,20, 5,9,14,20,
+            4,11,16,23, 4,11,16,23, 4,11,16,23, 4,11,16,23,
+            6,10,15,21, 6,10,15,21, 6,10,15,21, 6,10,15,21
+          ];
+
+          const enc = new TextEncoder();
+          const msgBytes = enc.encode(s);
+          const origBitLen = msgBytes.length * 8;
+
+          // pad: append 0x80 then zeros until length mod 64 == 56
+          const withOne = new Uint8Array(msgBytes.length + 1);
+          withOne.set(msgBytes); withOne[msgBytes.length] = 0x80;
+          let paddedLen = withOne.length;
+          while (paddedLen % 64 !== 56) paddedLen++;
+          const padded = new Uint8Array(paddedLen + 8);
+          padded.set(withOne);
+          const dv = new DataView(padded.buffer);
+          // append length in bits, little-endian 64-bit
+          dv.setUint32(padded.length - 8, origBitLen & 0xffffffff, true);
+          dv.setUint32(padded.length - 4, Math.floor(origBitLen / 0x100000000), true);
+
+          let a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476;
+
+          for (let i = 0; i < padded.length; i += 64) {
+            const M = new Uint32Array(16);
+            for (let j = 0; j < 16; j++) M[j] = dv.getUint32(i + j*4, true);
+            let A = a0, B = b0, C = c0, D = d0;
+            for (let k = 0; k < 64; k++) {
+              let F, g;
+              if (k < 16) { F = (B & C) | (~B & D); g = k; }
+              else if (k < 32) { F = (D & B) | (~D & C); g = (5*k + 1) % 16; }
+              else if (k < 48) { F = B ^ C ^ D; g = (3*k + 5) % 16; }
+              else { F = C ^ (B | ~D); g = (7*k) % 16; }
+              const tmp = D;
+              D = C;
+              C = B;
+              const sum = (A + F + K[k] + (M[g] >>> 0)) >>> 0;
+              const rotated = ((sum << S[k]) | (sum >>> (32 - S[k]))) >>> 0;
+              B = (B + rotated) >>> 0;
+              A = tmp;
+            }
+            a0 = (a0 + A) >>> 0; b0 = (b0 + B) >>> 0; c0 = (c0 + C) >>> 0; d0 = (d0 + D) >>> 0;
+          }
+
+          function toHexLE(n){ let s = ''; for (let i = 0; i < 4; i++) s += ('0' + ((n >>> (i*8)) & 0xff).toString(16)).slice(-2); return s; }
+          return toHexLE(a0) + toHexLE(b0) + toHexLE(c0) + toHexLE(d0);
+        }
+
+        // Parse M3U file locally and show channel/group counts
+        document.querySelector('input[name="m3u_file"]').addEventListener('change', async function(e){
+          const file = e.target.files[0];
+          if (!file) { document.getElementById('m3u-info').textContent = ''; return; }
+          try {
+            const text = await file.text();
+            let channels = 0, groups = new Set();
+            const lines = text.split(/\r?\n/);
+            for (let line of lines) {
+              if (line.startsWith('#EXTINF')) {
+                const m = line.match(/group-title="([^"]+)"/);
+                if (m && m[1]) groups.add(m[1]);
+              } else if (line && !line.startsWith('#')) {
+                channels++;
+              }
+            }
+            // keep counts out of the small status line to avoid duplicate display; summary will show counts and hash
+            document.getElementById('m3u-info').textContent = '';
+            document.getElementById('channel_count').value = channels;
+            document.getElementById('group_count').value = groups.size;
+
+            // compute local-only deterministic fingerprints and enable compare button
+            try{
+              const normalize = s => (''+s).trim().toLowerCase().replace(/^https?:\/\//,'').split('?')[0].replace(/\/$/,'');
+              const normChannels = [];
+              for (let line of lines) {
+                if (line && !line.startsWith('#')) normChannels.push(normalize(line));
+              }
+              const vodCount = normChannels.filter(c=>/vod/i.test(c)).length;
+              // compute MD5 from entire file text (normalize line endings first)
+              const normalized = text.replace(/\r\n?/g,'\n');
+              const md5Hash = await md5hex(normalized);
+              window._localFingerprint = { md5: md5Hash, vod_count: vodCount, channel_count: channels, group_count: groups.size };
+              updateSummaryUI();
+              const cmpBtn = document.getElementById('compareLocalBtn'); if (cmpBtn) cmpBtn.disabled = false;
+            } catch (e) { console.warn('Fingerprint compute failed', e); }
+
+          } catch (err) {
+            document.getElementById('m3u-info').textContent = 'Could not parse file.';
+            document.getElementById('channel_count').value = '';
+            document.getElementById('group_count').value = '';
+          }
+        });
+
+    // Show verification banner if anti-bot cookie not present
+    (function(){
+      const alertEl = document.getElementById('verifyAlert');
+      const reloadLink = document.getElementById('verifyReload');
+      if (alertEl) {
+        if (!document.cookie.includes('__test=')) {
+          alertEl.style.display = '';
+          reloadLink.addEventListener('click', function(e){ e.preventDefault(); window.location.reload(true); });
+        } else {
+          alertEl.style.display = 'none';
+        }
+        // Re-check on visibility change (user may complete verification in another tab)
+        document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') { if (document.cookie.includes('__test=')) alertEl.style.display='none'; }});
+      }
+    })();
+
+    // Server-backed submissions
+
+    async function renderSubs() {
+      const el = document.getElementById('subs-list');
+      if (!document.cookie.includes('__test=')) {
+        el.innerHTML = '<div class="alert alert-warning">Site verification required. Please reload the page and allow verification to complete, then open Submissions.</div>';
+        return;
+      }
+      el.innerHTML = '<div class="text-center py-3"><span class="spinner-border" role="status"></span> Loading...</div>';
+      try {
+        const res = await fetch('get_submissions.php');
+        const data = await res.json();
+        if (!data || !data.length) {
+          el.innerHTML = '<div class="alert alert-secondary">No submissions yet.</div>';
+          return;
+        }
+        let html = `<div class="table-responsive"><table class="table table-sm table-dark table-hover align-middle"><thead class="table-secondary text-dark"><tr><th>Date</th><th>Provider</th><th>Link</th><th>Price per year (USD/EUR/GBP/CAD/AUD)</th><th>Channels</th><th>Groups</th><th style="width:180px">Similarity</th><th>Hash</th><th>Status</th></tr></thead><tbody>`;
+        for (let s of data) {
+          // cache submission data for detail view
+          window._submissionCache = window._submissionCache || {};
+          window._submissionCache[s.id] = s;
+          const created = s.created_at || '';
+          const sim = s.similarity_score ? (parseFloat(s.similarity_score).toFixed(2) + '%') : '-';
+          const simVal = s.similarity_score ? Math.min(100, Math.round(parseFloat(s.similarity_score))) : 0;
+          const status = s.matched ? `<span class='badge bg-success'><i class='bi bi-check-circle'></i> Match</span>` : `<span class='badge bg-secondary text-dark'><i class='bi bi-lock'></i> No match</span>`;
+          html += `<tr>
+            <td><small>${created}</small></td>
+            <td><div class="provider-name">${escapeHtml(s.name)}</div></td>
+            <td><a href="${escapeHtml(s.link)}" target="_blank">${escapeHtml(s.link)}</a></td>
+            <td>${s.price} / year</td>
+            <td>${s.channels}</td>
+            <td>${s.groups}</td>
+            <td>
+              <div class="small mb-1">${sim}</div>
+              <div class="progress" style="height:8px"> 
+                <div class="progress-bar ${simVal>=80?'bg-success':(simVal>=50?'bg-warning':'bg-secondary')}" role="progressbar" style="width:${simVal}%"></div>
+              </div>
+            </td>
+            <td style="font-size:11px;word-break:break-all">${s.hash}</td>
+            <td class="text-end"><div class="d-flex justify-content-end align-items-center gap-2">${status}<button class="btn btn-sm btn-outline-primary view-details" data-id="${s.id}" title="More info" aria-label="More info"><i class="bi bi-eye"></i>&nbsp;More info</button></div></td> 
+          </tr>`;
+        }
+        html += '</tbody></table>';
+        el.innerHTML = html;
+      } catch (e) {
+        el.innerHTML = '<div class="alert alert-danger">Failed to load submissions</div>';
+        console.error(e);
+      }
+    }
+
+    function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c]; }); }
+
+    // flagging removed
+    function flagProvider(){ throw new Error('Flagging removed'); }
+
+    document.getElementById('iptv-form').onsubmit = async function(e){
+      e.preventDefault();
+      const form = this;
+      // Bootstrap validation
+      if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+      }
+      const btn = form.querySelector('button[type=submit]');
+      btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Checking...';
+      const name = form.name.value.trim();
+      const link = form.link.value.trim();
+      const price = parseFloat(form.price.value);
+      const file = form.m3u_file.files[0];
+      if (!file) { alert('Please select an M3U file.'); btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; return; }
+      // Anti-bot check: ensure InfinityFree JS challenge cookie is set
+      if (!document.cookie.includes('__test=')) {
+        alert('Please reload the page to complete site verification (anti-bot). After reload, re-select your file and submit.');
+        window.location.reload(true);
+        return;
+      }
+      // Additional client-side validation
+      try { new URL(link); } catch (e) { alert('Please enter a valid URL for Provider Link.'); btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; return; }
+      if (!(price > 0)) { alert('Please enter a valid price greater than 0'); btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; return; }
+      try{
+        // Do NOT send full M3U content to server for large files — only send counts
+        // Ensure counts are available (parse file locally if needed)
+        let channelCount = document.getElementById('channel_count').value;
+        let groupCount = document.getElementById('group_count').value;
+        if (!channelCount) {
+          // fallback: parse the file now (no upload) to compute counts
+          const text = await file.text();
+          let channels = 0, groups = new Set();
+          const lines = text.split(/\r?\n/);
+          for (let line of lines) {
+            if (line.startsWith('#EXTINF')) {
+              const m = line.match(/group-title="([^"]+)"/);
+              if (m && m[1]) groups.add(m[1]);
+            } else if (line && !line.startsWith('#')) {
+              channels++;
+            }
+          }
+          channelCount = channels;
+          groupCount = groups.size;
+          // avoid duplicating counts in the small status line; update summary below
+          document.getElementById('m3u-info').textContent = '';
+          document.getElementById('channel_count').value = channelCount;
+          document.getElementById('group_count').value = groupCount;
+          // build small fingerprints locally for client-side use only (not sent to server)
+          const normalize = s => (''+s).trim().toLowerCase().replace(/^https?:\/\//,'').split('?')[0].replace(/\/$/,'');
+          const normChannels = [];
+          for (let line of lines) {
+            if (line && !line.startsWith('#')) normChannels.push(normalize(line));
+          }
+          const vodCount = normChannels.filter(c=>/vod/i.test(c)).length;
+          // (duplicate MD5 helper removed)
+          function add32(a, b) {
+            return (a + b) & 0xffffffff;
+          }          const firstN = 50;
+
+          // deterministic sample: take the first N and the last N to improve repeatability
+          const sampleDeterministic = normChannels.slice(0, firstN).concat(normChannels.slice(-firstN)).slice(0, firstN).join('|');
+          const groupArr = Array.from(groups).sort();
+          const groupHashInput = groupArr.join('|');
+          // compute MD5 from full file content (preserve integrity) — normalize line endings to LF for stability
+          const normalized = text.replace(/\r\n?/g,'\n');
+          const md5Hash = await md5hex(normalized);
+          window._localFingerprint = { md5: md5Hash, vod_count: vodCount, channel_count: channels, group_count: groups.size };
+          // clear small status; summary shows counts & MD5
+          document.getElementById('m3u-info').textContent = '';
+          updateSummaryUI();
+          // enable compare button
+          const cmpBtn = document.getElementById('compareLocalBtn'); if (cmpBtn) cmpBtn.disabled = false;
+        }
+        const fd = new FormData();
+        fd.append('name',name); fd.append('link',link); fd.append('price',price.toFixed(2));
+        // Include Cloudflare Turnstile token if present (widget injects input named 'cf-turnstile-response')
+        try {
+          const tEl = document.querySelector('input[name="cf-turnstile-response"]');
+          if (tEl && tEl.value) fd.append('cf-turnstile-response', tEl.value);
+        } catch (e) { console.warn('Turnstile token not found', e); }
+        if (channelCount !== undefined && channelCount !== null && channelCount !== '') fd.append('channel_count', channelCount);
+        if (groupCount !== undefined && groupCount !== null && groupCount !== '') fd.append('group_count', groupCount);
+        // include md5 of the selected file when available
+        if (window._localFingerprint && window._localFingerprint.md5) fd.append('md5', window._localFingerprint.md5);
+        fd.append('counts_only','1');
+        const res = await fetch('submit_provider.php',{method:'POST',body:fd});
+        let data;
+        const ctype = (res.headers.get('content-type') || '').toLowerCase();
+        if (ctype.includes('application/json')) {
+          try { data = await res.json(); } catch (e) { throw new Error('Invalid JSON from server'); }
+        } else {
+          // non-JSON response - likely anti-bot HTML (infinityfree) or server error
+          const txt = await res.text();
+          if (/This site requires Javascript|slowAES|aes\.js/i.test(txt)) {
+            throw new Error('Server requires JavaScript/cookies (anti-bot). Please reload this page in your browser and try again.');
+          }
+          // Show a truncated bit of the response to aid debugging
+          const snippet = txt.replace(/\s+/g,' ').slice(0,1000);
+          throw new Error('Invalid response from server: ' + snippet);
+        }
+
+        btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare';
+        if (!res.ok) { alert('Error: ' + (data && data.error ? data.error : 'Server error')); return; }
+        if (data.error) { alert('Error: '+data.error); return; }
+        const setIf = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        setIf('r_name', name);
+        setIf('r_link', link);
+        setIf('r_price', price.toFixed(2));
+        setIf('r_hash', data.hash || '');
+        setIf('r_channels', data.channels);
+        setIf('r_groups', data.groups);
+        let compareHtml = '';
+        if (data.matched) {
+          const diff = (data.match_price_diff !== null && data.match_price_diff !== undefined) ? Number(data.match_price_diff) : null;
+          const diffText = diff === null ? '' : (diff < 0 ? `<span class='text-success fw-bold'>Cheaper by $${Math.abs(diff)}</span>` : `<span class='text-danger fw-bold'>More expensive by $${diff}</span>`);
+          const visit = data.match_link ? ` <a class="visit-inline" href="${escapeHtml(data.match_link)}" target="_blank">Visit</a>` : '';
+
+          compareHtml = `
+            <div class="match-box">
+              <div class="match-header">
+                <div class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill text-success fs-5"></i><div class="match-title">Match</div></div>
+                <div class="text-muted small">Similarity: <strong>${data.similarity}%</strong></div>
+              </div>
+              <div class="match-body">
+                <div>
+                  <div><strong>${escapeHtml(data.match_name || 'Matched provider')}</strong> <span class="text-muted">($${data.match_price !== null && data.match_price !== undefined ? data.match_price : 'N/A'})</span> ${diffText}${visit}</div>
+                </div>
+                <div class="match-details mt-2">
+                  ${data.match_channels_text ? `<div class="small text-muted">${escapeHtml(data.match_channels_text)}</div>` : ''}
+                  ${data.match_groups_text ? `<div class="small text-muted">${escapeHtml(data.match_groups_text)}</div>` : ''}
+                  ${data.cheapest_match && data.cheapest_match.name ? `<div class="small mt-2">Cheapest similar: <strong>${escapeHtml(data.cheapest_match.name)}</strong> ($${data.cheapest_match.price}) ${data.cheapest_match.link ? ` — <a href="${escapeHtml(data.cheapest_match.link)}" target="_blank">Visit</a>` : ''}</div>` : ''}
+                </div>
+              </div>
+            </div>`;
+        } else if (data.similarity && data.similarity>0) compareHtml = `<span class='text-warning'><i class='bi bi-exclamation-triangle'></i> Similarity: ${data.similarity}%</span>`;
+        else compareHtml = `<span class='text-danger'><i class='bi bi-lock'></i> No match found<br><small>Likely private or not enough data</small></span>`;
+        const rCompareEl = document.getElementById('r_compare'); if (rCompareEl) rCompareEl.innerHTML = compareHtml;
+        const resultsEl = document.getElementById('results');
+        if (resultsEl) {
+          resultsEl.style.display = '';
+          try { resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(e) { window.scrollTo({ top: resultsEl.offsetTop, behavior: 'smooth' }); }
+        }
+        renderSubs();
+      } catch (e) {
+        alert('Submission failed: ' + (e.message || 'Unknown error'));
+        btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare';
+        console.error(e);
+      }
+    };
+
+    // Initial load: check admin access to enable Submissions/Grouped Matches tabs
+    (async function(){
+      try{
+        const r = await fetch('is_admin.php', { credentials: 'same-origin', cache: 'no-store' });
+        const j = await r.json();
+        const isAdmin = j && j.admin;
+        const subsBtn = document.getElementById('subs-tab');
+        const groupsBtn = document.getElementById('groups-tab');
+        const adminStatus = document.getElementById('adminStatus');
+        if (!isAdmin) {
+          // hide the nav items for non-admins
+          if (subsBtn && subsBtn.parentElement) subsBtn.parentElement.style.display = 'none';
+          if (groupsBtn && groupsBtn.parentElement) groupsBtn.parentElement.style.display = 'none';
+        } else {
+          // register listeners and render submissions
+          if (subsBtn) subsBtn.addEventListener('click', renderSubs);
+          if (groupsBtn) groupsBtn.addEventListener('click', renderGroupedMatches);
+          renderSubs();
+          // show admin badge in top-right header
+          if (adminStatus) {
+            const user = j.user || 'admin';
+            adminStatus.style.display = '';
+            adminStatus.innerHTML = '<a href="https://astrolume.infinityfreeapp.com/IPTV%20Detective/admin_9f4b1a.php" class="badge" style="background:#ff8c00;color:#fff;padding:0.55rem 0.7rem;">Admin signed in: ' + escapeHtml(user) + '</a>';
+          }
+        }
+      } catch(e){
+        console.warn('is_admin check failed', e);
+        // by default hide admin tabs to be safe
+        const subsBtn = document.getElementById('subs-tab');
+        const groupsBtn = document.getElementById('groups-tab');
+        if (subsBtn && subsBtn.parentElement) subsBtn.parentElement.style.display = 'none';
+        if (groupsBtn && groupsBtn.parentElement) groupsBtn.parentElement.style.display = 'none';
+      }
+    })();
+
+    /* Local compare removed */
+
+    // Update the small M3U summary area with counts and the full MD5 hash
+    function updateSummaryUI(){
+      const s = window._localFingerprint || {};
+      const channels = s.channel_count || '';
+      const groups = s.group_count || '';
+      const md5hash = s.md5 || '';
+      const el = document.getElementById('m3u-summary'); if(!el) return;
+      if(!channels && !groups && !md5hash){ el.style.display='none'; el.innerHTML=''; return; }
+      el.style.display = '';
+      el.innerHTML = `Channels: ${channels} | Groups: ${groups}${md5hash ? ' | Hash (MD5): '+md5hash : ''}`;
+    }
+
+    // Copy button removed; no delegated handler needed
+
+
+    async function compareLocalToOnline(){ console.warn('compareLocalToOnline removed'); return; } // local compare disabled
+
+
+
+
+    // Render grouped matches: groups with more than one provider sharing the same group_fingerprint
+    async function renderGroupedMatches(){
+      const el = document.getElementById('groups-list');
+      if (!document.cookie.includes('__test=')) {
+        el.innerHTML = '<div class="alert alert-warning">Site verification required. Please reload the page and allow verification to complete, then open Grouped Matches.</div>';
+        return;
+      }
+      el.innerHTML = '<div class="text-center py-3"><span class="spinner-border" role="status"></span> Loading grouped matches...</div>';
+      try{
+        const res = await fetch('get_grouped_matches.php');
+        const data = await res.json();
+        if(!data || !data.groups || !data.groups.length){ el.innerHTML = '<div class="alert alert-secondary">No grouped matches found.</div>'; return; }
+
+        let out = '<div class="row g-3">';
+        for(const g of data.groups){
+          // cheapest provider
+          const cheapest = g.cheapest;
+          const providersHtml = g.members.map(p => `
+            <div class="d-flex justify-content-between align-items-center py-1">
+              <div>
+                <strong>${escapeHtml(p.name)}</strong>
+                <div class="small text-muted">$${p.price}/yr${p.link ? ' — <a href="'+escapeHtml(p.link)+'" target="_blank">Visit</a>' : ''}</div>
+              </div>
+              <div><button class="btn btn-sm btn-action more-info small-btn view-details" data-id="${p.id}" title="More info">More info</button></div>
+            </div>
+          `).join('');
+          const groupsPreview = g.label ? escapeHtml(g.label) : '';
+          out += `<div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <div class="fw-bold">${groupsPreview}</div>
+                    <div class="small text-muted">${g.count} providers grouped by similarity</div>
+                  </div>
+                  <div class="text-end">
+                    <div class="fw-bold">Cheapest: $${cheapest.price}</div>
+                    <a href="${escapeHtml(cheapest.link)}" target="_blank" class="btn btn-sm btn-primary ms-2">Visit</a>
+                  </div>
+                </div>
+                <hr>
+                ${providersHtml}
+              </div>
+            </div>
+          </div>`;
+        }
+        out += '</div>';
+        el.innerHTML = out;
+      } catch(e){ el.innerHTML = '<div class="alert alert-danger">Failed to load grouped matches</div>'; console.error(e); }
+    }
+
+    // Details modal
+    function viewDetails(id){
+      const s = window._submissionCache && window._submissionCache[id];
+      if(!s) return alert('Details not available');
+      document.getElementById('modalProvider').textContent = s.name;
+      document.getElementById('modalLink').innerHTML = `<a href="${escapeHtml(s.link)}" target="_blank">${escapeHtml(s.link)}</a>`;
+      document.getElementById('modalPrice').textContent = s.price;
+      document.getElementById('modalChannels').textContent = s.channels;
+      document.getElementById('modalGroups').textContent = s.groups;
+      document.getElementById('modalSimilarity').textContent = s.similarity_score ? parseFloat(s.similarity_score).toFixed(2) + '%' : 'N/A';
+      document.getElementById('modalHash').textContent = s.hash || '';
+      // Remove File Hash (MD5) line from modal
+      // Removed: modalMd5 element handling
+
+      // Load comparisons
+      const compEl = document.getElementById('modalComparisons');
+      compEl.innerHTML = '<div class="text-center py-2"><span class="spinner-border spinner-border-sm" role="status"></span> Finding matches...</div>';
+      fetch('get_comparisons.php?id=' + id)
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) { compEl.innerHTML = '<div class="alert alert-danger">Comparison error</div>'; return; }
+          // show best cheaper match if present and sufficiently similar (>=80%)
+          if (data.target_is_cheapest) {
+            compEl.innerHTML = `<div class="alert alert-success"><strong>This is the cheapest known listing for this playlist.</strong></div>`;
+          } else if (data.best_cheaper && parseFloat(data.best_cheaper.similarity || 0) >= 80) {
+            const b = data.best_cheaper;
+            const bcHtml = `<div class="alert alert-warning"><strong>Cheaper provider found:</strong> ${escapeHtml(b.name)} — $${b.price} / year (save $${b.savings}) <a href="${escapeHtml(b.link)}" target="_blank" class="ms-2 btn btn-sm btn-outline-light">Visit</a></div>`;
+            compEl.innerHTML = bcHtml;
+          } else {
+            compEl.innerHTML = '';
+          }
+          if (!data.matches || !data.matches.length) { compEl.innerHTML += '<div class="alert alert-secondary">No similar public providers found.</div>'; }
+          else {
+            // Filter matches to only show those with 80% similarity or higher
+            const highSimilarityMatches = data.matches.filter(m => {
+              const sim = parseFloat(m.similarity || 0);
+              return sim >= 80;
+            });
+            if (!highSimilarityMatches.length) {
+              compEl.innerHTML += '<div class="alert alert-secondary">No highly similar (80%+) public providers found.</div>';
+            } else {
+            let out = '<div class="row g-3">';
+            for (let m of highSimilarityMatches) {
+              const cheaperBadge = m.cheaper ? `<div class="text-success">Cheaper by $${Math.abs(m.price_diff)}</div>` : `<div class="text-muted">More expensive by $${Math.abs(m.price_diff)}</div>`;
+              const bestBadge = (data.best_cheaper && data.best_cheaper.id == m.id) ? `<span class="badge bg-success ms-2">Best cheaper</span>` : '';
+
+            const pct = m.similarity ? parseFloat(m.similarity).toFixed(2) : '0.00';
+            // prefer server-provided human-readable text when available
+            const channelsText = m.channels_match_text ? m.channels_match_text : ((typeof m.shared !== 'undefined' && m.shared !== null)
+              ? (parseInt(m.shared) + ' amount of channels match')
+              : (m.channels_match ? 'Channels match' : ((m.shared || 0) + ' amount of channels')));
+            const groupsText = m.groups_match_text ? m.groups_match_text : ((typeof m.shared_groups !== 'undefined' && m.shared_groups !== null)
+              ? (parseInt(m.shared_groups) + ' amount of groups match')
+              : (m.groups_match ? 'Groups match' : ((m.shared_groups || 0) + ' amount of groups')));
+            const groupedBadge = (m.grouped && parseFloat(pct) >= 80) ? `<span class="badge bg-info ms-2">Grouped</span>` : '';
+            // Info lines: similarity, channels, groups, identical hash
+            let infoLines = [];
+            infoLines.push(`<div class='small'><span class='fw-bold'>${pct}% similar</span> ${groupedBadge}</div>`);
+            infoLines.push(`<div class='small'><strong>${channelsText}</strong></div>`);
+            infoLines.push(`<div class='small'><strong>${groupsText}</strong></div>`);
+            // Show identical hash if present and matches target
+            // Always show identical hash info line if MD5s match (for all cards, including grouped)
+            if (typeof m.md5 !== 'undefined' && typeof data.target !== 'undefined' && m.md5 && data.target.md5 && m.md5 === data.target.md5) {
+              infoLines.push(`<div class='small text-info'><span class='badge badge-tech bg-info text-dark'>Identical file hash (MD5)</span></div>`);
+            }
+            const progressClass = pct >= 80 ? 'bg-success' : pct >= 50 ? 'bg-warning' : 'bg-secondary';
+            const simBar = infoLines.join('\n') + '<div class="progress mt-2" style="height:8px"><div class="progress-bar ' + progressClass + '" role="progressbar" style="width:' + pct + '%"></div></div>';
+              out += `<div class="col-md-6">
+                <div class="card h-100">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <div class="fw-bold">${escapeHtml(m.name)} ${bestBadge}</div>
+                        <div class="text-muted small">${escapeHtml(m.link)}</div>
+                      </div>
+                      <div class="text-end">
+                        <div class="fw-bold">$${m.price} / year</div>
+                        ${cheaperBadge}
+                      </div>
+                    </div>
+                    <div class="mt-3">${simBar}</div>
+                    <div class="mt-2">
+                      <a class="btn btn-sm btn-primary" href="${escapeHtml(m.link)}" target="_blank">Visit</a>
+                    </div>
+                  </div>
+                </div>
+              </div>`;
+            }
+            out += '</div>';
+            compEl.innerHTML = out;
+          }
+          }
+        })
+        .catch(err => { compEl.innerHTML = '<div class="alert alert-danger">Comparison failed</div>'; console.error(err); });
+      var myModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+      myModal.show();
+    }
+
+    // M3U file chooser helper: show modal first, then open file picker when user confirms
+    (function(){
+      const input = document.querySelector('input[name="m3u_file"]');
+      const proceedBtn = document.getElementById('m3uProceedBtn');
+      let programmatic = false;
+      if (!input) return;
+      input.addEventListener('click', function(ev){
+        if (programmatic) { programmatic = false; return; } // allow real click after proceed
+        ev.preventDefault();
+        const modal = new bootstrap.Modal(document.getElementById('m3uNoteModal'));
+        modal.show();
+      });
+      if (proceedBtn) {
+        proceedBtn.addEventListener('click', function(){
+          // mark that the next click is programmatic so handler won't re-open modal
+          programmatic = true;
+          const modalEl = document.getElementById('m3uNoteModal');
+          const modal = bootstrap.Modal.getInstance(modalEl);
+          if (modal) modal.hide();
+          // trigger native file chooser
+          input.click();
+        });
+      }
+    })();
+
+    
+
+    // Delegated event handlers for dynamic content
+    document.addEventListener('click', function(e){
+      const el = e.target.closest && e.target.closest('.view-details');
+      if (el) { const id = el.getAttribute('data-id'); viewDetails(parseInt(id)); }
+    });
+
+    // Xtream URL generator: show modal
+    document.getElementById('xtremeLink').addEventListener('click', function(e){
+      e.preventDefault();
+      const modalEl = document.getElementById('xtremeModal');
+      const md = new bootstrap.Modal(modalEl);
+      md.show();
+    });
+
+    // Build Xtream/M3U URL helper (safe to call anytime)
+    function generateXtreamUrl(){
+      const hostEl = document.getElementById('xt_host');
+      const host = (hostEl ? hostEl.value : '').trim();
+      const port = (document.getElementById('xt_port')?.value || '').trim();
+      let path = (document.getElementById('xt_path')?.value || 'get.php').trim();
+      const user = (document.getElementById('xt_user')?.value || '').trim();
+      const pass = (document.getElementById('xt_pass')?.value || '').trim();
+      const extra = (document.getElementById('xt_extra')?.value || '').trim();
+      if (!host) { alert('Please enter the panel host'); return null; }
+      path = path.replace(/^\/+/, '');
+      const scheme = host.startsWith('http') ? '' : 'http://';
+      const hostPort = port ? host + ':' + port : host;
+      let url = `${scheme}${hostPort}/${path}`;
+      const params = [];
+      if (user) params.push('username=' + encodeURIComponent(user));
+      if (pass) params.push('password=' + encodeURIComponent(pass));
+      if (extra) { params.push(extra); }
+      else { params.push('type=m3u_plus'); params.push('include=all_groups'); }
+      const q = params.join('&');
+      url += (q ? ('?' + q) : '');
+      return url;
+    }
+
+    // Use event delegation for modal buttons (works even if modal isn't in DOM at bind time)
+    document.addEventListener('click', function(e){
+      const t = e.target;
+      if (t.closest && t.closest('#xt_gen')) {
+        const url = generateXtreamUrl(); if (!url) return; document.getElementById('xt_result').value = url; return;
+      }
+      if (t.closest && t.closest('#xt_copy')) {
+        const v = document.getElementById('xt_result').value || '';
+        if (!v) return alert('Nothing to copy');
+        navigator.clipboard?.writeText(v).then(()=>alert('Copied to clipboard')).catch(()=>prompt('Copy this URL', v));
+        return;
+      }
+      if (t.closest && t.closest('#xt_download')) {
+        const base = document.getElementById('xt_result').value || ''; if (!base) return alert('Generate a URL first'); document.getElementById('xt_status').textContent = 'Starting download...'; attemptDownloadFromUrl(base); return;
+      }
+      // copy handled above by delegated handler for #xt_copy
+    });
+    // Attempt to fetch the generated URL and prompt a download; on CORS/network fallback, open the link in a new tab
+    async function attemptDownloadFromUrl(url){
+      const statusEl = document.getElementById('xt_status');
+      statusEl.textContent = 'Attempting to fetch...';
+      // try fetch with timeout
+      const ac = new AbortController();
+      const timeout = setTimeout(()=>ac.abort(), 12000);
+      try{
+        const resp = await fetch(url, {signal: ac.signal});
+        clearTimeout(timeout);
+        if (!resp.ok) {
+          statusEl.innerHTML = `Remote returned HTTP ${resp.status}. Opening link for manual download...`;
+          window.open(url,'_blank','noopener');
+          return;
+        }
+        const txt = await resp.text();
+        const isM3U = /#EXTM3U/i.test(txt) || /^(http|rtmp|udp|rtsp):/im.test(txt);
+        const blob = new Blob([txt], {type:'application/vnd.apple.mpegurl'});
+        const a = document.createElement('a');
+        try { var host = (new URL(url)).hostname; } catch(e){ var host = 'playlist'; }
+        const fname = `playlist-${host}.m3u`.replace(/[^a-z0-9_.-]/gi,'_');
+        a.href = URL.createObjectURL(blob);
+        a.download = fname;
+        document.body.appendChild(a); a.click(); a.remove();
+        statusEl.textContent = isM3U ? 'Downloaded M3U file.' : 'Downloaded file (not detected as M3U).';
+      } catch(e){
+        clearTimeout(timeout);
+        const msg = (e.name === 'AbortError') ? 'Timeout' : (e.message || 'Fetch failed');
+        statusEl.textContent = `${msg}. Opening link in a new tab for manual download.`;
+        window.open(url,'_blank','noopener');
+      }
+    }
+
+
+
+    // Download: try fetching and prompting a download, fallback to opening the URL
+    // (delegated handler calls attemptDownloadFromUrl when #xt_download is clicked)
+
+  </script>
+
+  <script>
+    // Fetch and animate submissions count on homepage
+    async function loadSubmissionsCount(){
+      const el = document.getElementById('submissionsCount');
+      if (!el) return;
+      try{
+        const r = await fetch('get_counts.php?_=' + Date.now(), { cache: 'no-store' });
+        if (!r.ok) { console.error('get_counts fetch failed', r.status); }
+        if (!r.ok) throw new Error('Network');
+        const j = await r.json();
+        if (j && j.success){
+          animateCount(el, j.providers_public || 0);
+          const totalEl = document.getElementById('totalProvidersCount');
+          if (totalEl) totalEl.textContent = ((j.providers_total !== undefined) ? Number(j.providers_total).toLocaleString() : '—');
+          const recentEl = document.getElementById('recentCount'); if (recentEl) recentEl.textContent = ((j.providers_recent_7 !== undefined) ? Number(j.providers_recent_7).toLocaleString() : '—');
+          // Try fetching grouped matches from external endpoint and use the number of groups as "Matches found". Fallback to providers_matches from get_counts if fetch fails.
+          const matchesEl = document.getElementById('matchesCount');
+          (async function(){
+            const externalUrl = 'https://astrolume.infinityfreeapp.com/IPTV%20Detective/get_grouped_matches.php';
+            try{
+              const rg = await fetch(externalUrl, {cache: 'no-store'});
+              if (rg && rg.ok){
+                const gj = await rg.json();
+                if (gj && Array.isArray(gj.groups)){
+                  // sum group.count to get total resellers involved
+                  const totalResellers = gj.groups.reduce((s,g)=> s + (typeof g.count === 'number' ? g.count : (g.count ? Number(g.count) : 0)), 0);
+                  if (matchesEl) matchesEl.textContent = totalResellers.toLocaleString();
+                  return;
+                }
+              }
+            }catch(e){ /* ignore and fall back */ }
+            // fallback
+            if (matchesEl) matchesEl.textContent = ((j.providers_matches !== undefined) ? Number(j.providers_matches).toLocaleString() : '—');
+          })();
+        } else if (j && typeof j.providers_public === 'number'){
+          animateCount(el, j.providers_public);
+          const totalEl = document.getElementById('totalProvidersCount');
+          if (totalEl) totalEl.textContent = ((j.providers_total !== undefined) ? Number(j.providers_total).toLocaleString() : '—');
+          const recentEl = document.getElementById('recentCount'); if (recentEl) recentEl.textContent = ((j.providers_recent_7 !== undefined) ? Number(j.providers_recent_7).toLocaleString() : '—');
+          const matchesEl = document.getElementById('matchesCount');
+          (async function(){
+            const externalUrl = 'https://astrolume.infinityfreeapp.com/IPTV%20Detective/get_grouped_matches.php';
+            try{
+              const rg = await fetch(externalUrl, {cache: 'no-store'});
+              if (rg && rg.ok){
+                const gj = await rg.json();
+                if (gj && Array.isArray(gj.groups)){
+                  const totalResellers = gj.groups.reduce((s,g)=> s + (typeof g.count === 'number' ? g.count : (g.count ? Number(g.count) : 0)), 0);
+                  if (matchesEl) matchesEl.textContent = totalResellers.toLocaleString();
+                  return;
+                }
+              }
+            }catch(e){ /* ignore and fall back */ }
+            if (matchesEl) matchesEl.textContent = ((j.providers_matches !== undefined) ? Number(j.providers_matches).toLocaleString() : '—');
+          })();
+        } else {
+          el.textContent = '0';
+          const totalEl = document.getElementById('totalProvidersCount'); if (totalEl) totalEl.textContent = '0';
+          const recentEl = document.getElementById('recentCount'); if (recentEl) recentEl.textContent = '0';
+          const matchesEl = document.getElementById('matchesCount'); if (matchesEl) matchesEl.textContent = '0';
+        }
+      }catch(e){ el.textContent = '0'; }
+    }
+    function animateCount(el, target){
+      const targetNum = Number(target) || 0;
+      let cur = 0;
+      const duration = 800; // ms
+      const frames = Math.max(12, Math.round(duration / 16));
+      const step = Math.max(1, Math.round(targetNum / frames));
+      const tick = Math.max(16, Math.floor(duration / frames));
+      const iv = setInterval(()=>{
+        cur += step;
+        if (cur >= targetNum){ cur = targetNum; clearInterval(iv); }
+        el.textContent = cur.toLocaleString();
+      }, tick);
+    }
+    document.addEventListener('DOMContentLoaded', loadSubmissionsCount);
+  </script>
+
+  <!-- Details Modal -->
+  <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content bg-dark text-light">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalProvider">Provider</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <dl class="row small">
+            <dt class="col-sm-3">Link</dt><dd class="col-sm-9" id="modalLink"></dd>
+            <dt class="col-sm-3">Price per year (USD/EUR/GBP/CAD/AUD)</dt><dd class="col-sm-9" id="modalPrice"></dd>
+            <dt class="col-sm-3">Channels</dt><dd class="col-sm-9" id="modalChannels"></dd>
+            <dt class="col-sm-3">Groups</dt><dd class="col-sm-9" id="modalGroups"></dd>
+            <dt class="col-sm-3">Similarity</dt><dd class="col-sm-9" id="modalSimilarity"></dd>
+            <dt class="col-sm-3">Hash</dt><dd class="col-sm-9 hash-box" id="modalHash"></dd>
+          <hr>
+          <h5 class="mt-3">Matches</h5>
+          <div id="modalComparisons">Loading comparisons...</div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Xtream-to-M3U Modal (triggered from file input help link) -->
+  <div class="modal fade" id="xtremeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+      <div class="modal-content bg-dark text-light">
+        <div class="modal-header">
+          <h5 class="modal-title">Xtream / Panel → M3U URL Generator</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted">Use this to build a typical Xtream-style M3U URL when you only have panel credentials. This generator creates a common URL pattern; check your provider or panel for exact path/parameters.</p>
+          <div class="mb-2">
+            <label class="form-label small">Host (example: panel.example.com)</label>
+            <input id="xt_host" class="form-control form-control-sm" placeholder="panel.example.com">
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label small">Port (optional)</label>
+              <input id="xt_port" class="form-control form-control-sm" placeholder="80 or 8080">
+            </div>
+            <div class="col-6">
+              <label class="form-label small">Path (optional)</label>
+              <input id="xt_path" class="form-control form-control-sm" placeholder="get.php" value="get.php">
+            </div>
+          </div>
+          <div class="mb-2 mt-2">
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label small">Username</label>
+                <input id="xt_user" class="form-control form-control-sm" placeholder="username">
+              </div>
+              <div class="col-6">
+                <label class="form-label small">Password</label>
+                <input id="xt_pass" class="form-control form-control-sm" placeholder="password">
+              </div>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Additional params (optional)</label>
+            <input id="xt_extra" class="form-control form-control-sm" placeholder="type=m3u_plus&include=all_groups">
+            <div class="form-text small text-muted">If left empty the generator will add <code>type=m3u_plus&amp;include=all_groups</code> to request an M3U with all groups listed.</div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-sm btn-primary" id="xt_gen">Generate URL</button>
+            <button class="btn btn-sm btn-outline-light" id="xt_copy">Copy</button>
+          </div>
+          <div class="mt-2">
+            <input id="xt_result" class="form-control form-control-sm" readonly placeholder="Generated URL will appear here">
+          </div>
+
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-sm btn-outline-light" id="xt_download">Download</button>
+            <button class="btn btn-sm btn-outline-light" id="xt_copy">Copy</button>
+          </div>
+          <div class="alert alert-warning small py-1 mt-1" role="alert"><strong>Note:</strong> Download may take a while to start/initiate for large playlists with many groups and channels.</div>
+
+          <div class="mt-3" id="xt_status_area">
+            <div id="xt_status" class="small text-muted">Click <strong>Download</strong> to attempt fetching the M3U and prompt a download; if the fetch is blocked, the link will open in a new tab for manual download.</div>
+          </div>
+
+          <hr>
+          <p class="small mb-0"><strong>How to use:</strong> Click <strong>Generate</strong> to build the Xtream M3U link, then click <strong>Download</strong> to fetch and save the .m3u file automatically. If the browser blocks the request or the download fails (CORS/network), the link will open in a new tab so you can save the playlist manually. Keep credentials private and don’t share them publicly.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container mb-3 d-flex flex-column align-items-center">
+    <div class="mb-2 stats-heading"><strong>Stats</strong></div>
+    <div class="stats-grid" role="region" aria-label="Site stats">
+      <div class="stat-card providers" id="card-providers">
+        <div class="stat-count" id="submissionsCount">—</div>
+        <div class="stat-label">Providers added</div>
+      </div>
+      <div class="stat-card total" id="card-total">
+        <div class="stat-count" id="totalProvidersCount">—</div>
+        <div class="stat-label">Total providers</div>
+      </div>
+      <div class="stat-card recent" id="card-recent">
+        <div class="stat-count" id="recentCount">—</div>
+        <div class="stat-label">Recent (7d)</div>
+      </div>
+      <div class="stat-card matches" id="card-matches">
+        <div class="stat-count" id="matchesCount">—</div>
+        <div class="stat-label">Matches found</div>
+      </div>
+    </div>
+  </div>
+      
+      <footer class="mt-5 pb-4 text-center">
+  <hr style="opacity: 0.1; border-color: var(--accent);">
+  <div class="py-3">
+    <p class="mb-2" style="font-family: 'Inter', sans-serif; opacity: 0.8;">
+      This project is <strong>open source</strong>. Help us improve the detection engine!
+    </p>
+    <a href="https://github.com/Nigel1992/IPTV-Detective-2.0" 
+       target="_blank" 
+       class="btn btn-outline-info btn-sm" 
+       style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px; border-radius: 4px;">
+      <i class="bi bi-github"></i> VIEW ON GITHUB
+    </a>
+    <div class="site-version mt-3">Version <strong>2.0</strong> — build <span id="buildDate">2026-02-06</span></div>
+  </div>
+</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+</body>
 </html>
