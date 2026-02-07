@@ -11,14 +11,14 @@ Options -Indexes
 	RewriteCond %{HTTPS} !=on
 	RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 	# Block direct access to sensitive directories
-	RewriteRule ^(inc|scripts|logs)(/.*)?$ - [F,L]
+	RewriteRule ^(inc|scripts|logs|\.venv|\.github)(/.*)?$ - [F,L]
 </IfModule>
 
 # Force HTML MIME type
 AddType text/html .html
 
 # Deny access to sensitive file extensions
-<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|sql|md)$">
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|sql|md|local|bundle)$">
 	<IfModule mod_authz_core.c>
 		Require all denied
 	</IfModule>
@@ -27,6 +27,17 @@ AddType text/html .html
 		Deny from all
 	</IfModule>
 </FilesMatch>
+
+# Deny access to specific sensitive files
+<Files ".gitignore">
+	<IfModule mod_authz_core.c>
+		Require all denied
+	</IfModule>
+	<IfModule !mod_authz_core.c>
+		Order Allow,Deny
+		Deny from all
+	</IfModule>
+</Files>
 
 # Optional security headers (ignored if mod_headers not available)
 <IfModule mod_headers.c>
