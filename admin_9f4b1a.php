@@ -704,7 +704,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="index.html" target="_blank">
+                        <a class="nav-link" href="./" target="_blank">
                             <i class="bi bi-eye me-1"></i>View Site
                         </a>
                     </li>
@@ -876,7 +876,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                         </button>
                                     </div>
                                     <div class="col-md-3">
-                                        <a href="index.html" target="_blank" class="btn btn-outline-info w-100 d-flex align-items-center justify-content-center">
+                                        <a href="./" target="_blank" class="btn btn-outline-info w-100 d-flex align-items-center justify-content-center">
                                             <i class="bi bi-eye me-2"></i>
                                             Public Site
                                         </a>
