@@ -1,5 +1,24 @@
 <?php
-$cfg = include __DIR__ . '/inc/config.php';
+// Load configuration from one of several possible locations (inc/config.php, inc/config.php.local, root config.php.local)
+$cfg = null;
+$cfgCandidates = [
+    __DIR__ . '/inc/config.php',
+    __DIR__ . '/inc/config.php.local',
+    __DIR__ . '/config.php.local',
+    __DIR__ . '/inc/config.example.php',
+    __DIR__ . '/config.example.php'
+];
+foreach ($cfgCandidates as $c) {
+    if (is_file($c)) { 
+        $cfg = include $c; 
+        break;
+    }
+}
+if (!is_array($cfg)) {
+    // Last resort: fallback to built-in defaults
+    $cfg = [ 'turnstile_site_key' => 'PLACEHOLDER_TURNSTILE_SITE_KEY', 'turnstile_secret' => 'PLACEHOLDER_TURNSTILE_SECRET' ];
+}
+$siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cfg['turnstile_site_key'] : 'PLACEHOLDER_TURNSTILE_SITE_KEY';
 ?>
 <!doctype html>
 <html lang="en">
@@ -131,7 +150,7 @@ $cfg = include __DIR__ . '/inc/config.php';
             </div>
           </div>
           <div class="mt-4 d-flex justify-content-end">
-            <div class="cf-turnstile" data-sitekey="<?php echo htmlspecialchars($cfg['turnstile_site_key']); ?>"></div>
+            <div class="cf-turnstile" data-sitekey="<?php echo htmlspecialchars((string)$siteKey, ENT_QUOTES, 'UTF-8'); ?>"></div>
           </div>
           <div class="mt-3 text-end">
             <button class="btn btn-primary btn-lg" type="submit"><i class="bi bi-search"></i> Check & Compare</button>
