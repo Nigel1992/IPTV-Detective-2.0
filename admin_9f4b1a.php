@@ -84,7 +84,7 @@ if (!isset($_SESSION['admin_user'])) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Admin Login - IPTV Detective</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
-        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" integrity="sha384-iGsTKEx3NiYk6dKiX+cGcaB5DsXuYKCR+gdr3PvXmlHvA080iJEASttpi5VUsIn5" crossorigin="anonymous" async defer></script>
     </head>
     <body class="bg-light">
         <div class="container mt-5">
