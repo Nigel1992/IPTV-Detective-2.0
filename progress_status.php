@@ -23,4 +23,6 @@ if ($fh) {
 $txt = is_string($txt) ? preg_replace('/[\x00-\x1F\x7F]/u', '', $txt) : '';
 // Return base64-encoded message to avoid any accidental XSS when consumed
 $enc = base64_encode($txt);
-echo json_encode(['done'=>false, 'msg'=>$enc, 'encoding'=>'base64']);
+$payload = ['done' => false, 'msg' => (string)$enc, 'encoding' => 'base64'];
+// Use JSON_HEX_* flags to ensure safe representation when embedded in HTML contexts
+echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
