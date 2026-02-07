@@ -60,7 +60,8 @@ foreach ($others as $other) {
       </div>
     </nav>
     <div class="container">
-      <h3>Results for Snapshot #<?php echo (int)$id; ?></h3>
+      <?php $safe_id = (int)$id; ?>
+      <h3>Results for Snapshot #<?php echo htmlspecialchars((string)$safe_id, ENT_QUOTES, 'UTF-8'); ?></h3>
       <p>Channels: <strong><?php echo (int)$s['channel_count']; ?></strong> — Groups: <strong><?php echo (int)$s['group_count']; ?></strong></p>
       <hr>
       <h5>Channels</h5>

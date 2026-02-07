@@ -40,7 +40,11 @@
               document.getElementById('progress-msg').textContent = 'Done! Redirecting...';
               setTimeout(function(){ window.location = 'results.php?snapshot_id=' + sid; }, 1000);
             } else {
-              document.getElementById('progress-msg').textContent = data.msg || 'Processing...';
+              var msg = data.msg || 'Processing...';
+              if (data.encoding === 'base64' && msg) {
+                try { msg = atob(msg); } catch (e) { msg = 'Processing...'; }
+              }
+              document.getElementById('progress-msg').textContent = msg;
               setTimeout(poll, 1000);
             }
           })

@@ -7,8 +7,20 @@ header('Expires: 0');
 header('Content-Type: application/json; charset=utf-8');
 $sid = isset($_GET['snapshot_id']) ? preg_replace('/[^0-9]/','',$_GET['snapshot_id']) : '';
 if (!preg_match('/^[0-9]+$/', $sid)) { http_response_code(400); echo json_encode(['error'=>'Invalid snapshot_id']); exit; }
+// Construct expected file path and ensure it's inside this directory
 $file = __DIR__ . '/progress_' . $sid . '.log';
-if (!is_readable($file)) { echo json_encode(['done'=>true]); exit; }
-$txt = @file_get_contents($file);
-$txt = is_string($txt) ? substr($txt, 0, 2000) : '';
-echo json_encode(['done'=>false, 'msg'=>$txt]);
+$expected_dir = realpath(__DIR__);
+$real = realpath($file);
+if ($real === false || strpos($real, $expected_dir) !== 0) { echo json_encode(['error'=>'File not accessible']); exit; }
+if (!is_readable($real)) { echo json_encode(['done'=>true]); exit; }
+// Read up to 2000 bytes safely and strip control characters
+$txt = '';
+$fh = @fopen($real, 'rb');
+if ($fh) {
+    $txt = stream_get_contents($fh, 2000);
+    fclose($fh);
+}
+$txt = is_string($txt) ? preg_replace('/[\x00-\x1F\x7F]/u', '', $txt) : '';
+// Return base64-encoded message to avoid any accidental XSS when consumed
+$enc = base64_encode($txt);
+echo json_encode(['done'=>false, 'msg'=>$enc, 'encoding'=>'base64']);
