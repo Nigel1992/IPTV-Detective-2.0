@@ -954,7 +954,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
       if (data.matched) {
         const diff = (data.match_price_diff !== null && data.match_price_diff !== undefined) ? Number(data.match_price_diff) : null;
         const diffText = diff === null ? '' : (diff < 0 ? `<span class='text-success fw-bold'>Cheaper by $${Math.abs(diff)}</span>` : `<span class='text-danger fw-bold'>More expensive by $${diff}</span>`);
-        const visit = data.match_link ? ` <a class="visit-inline" href="${escapeHtml(data.match_link)}" target="_blank">Visit</a>` : '';
+        // visit link removed by policy — do not display external Visit links here
 
         compareHtml = `
           <div class="match-card success">
@@ -963,10 +963,10 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
               <div class="text-muted small">Similarity: <strong>${data.similarity}%</strong></div>
             </div>
             <div class="mt-2">
-              <div><strong>${escapeHtml(data.match_name || 'Matched provider')}</strong> <span class="text-muted">($${data.match_price !== null && data.match_price !== undefined ? data.match_price : 'N/A'})</span> ${diffText}${visit}</div>
+              <div><strong>${escapeHtml(data.match_name || 'Matched provider')}</strong> <span class="text-muted">($${data.match_price !== null && data.match_price !== undefined ? data.match_price : 'N/A'})</span> ${diffText}</div>
               ${data.match_channels_text ? `<div class="small text-muted mt-2">${escapeHtml(data.match_channels_text)}</div>` : ''}
               ${data.match_groups_text ? `<div class="small text-muted">${escapeHtml(data.match_groups_text)}</div>` : ''}
-              ${data.cheapest_match && data.cheapest_match.name ? `<div class="small mt-2">Cheapest similar: <strong>${escapeHtml(data.cheapest_match.name)}</strong> ($${data.cheapest_match.price}) ${data.cheapest_match.link ? ` — <a href="${escapeHtml(data.cheapest_match.link)}" target="_blank">Visit</a>` : ''}</div>` : ''}
+              ${data.cheapest_match && data.cheapest_match.name ? `<div class="small mt-2">Cheapest similar: <strong>${escapeHtml(data.cheapest_match.name)}</strong> ($${data.cheapest_match.price})</div>` : ''}
             </div>
           </div>`;
       } else if (data.similarity && data.similarity > 0) {
@@ -989,7 +989,6 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                   compareHtml = '<div class="match-list">';
                   for (const best of matchesFiltered) {
                     const diff = (best.price !== null && best.price !== undefined) ? (best.price < data.price ? ` <span class="text-success fw-bold">Cheaper by $${(data.price - best.price).toFixed(2)}</span>` : (best.price > data.price ? ` <span class="text-danger fw-bold">More expensive by $${(best.price - data.price).toFixed(2)}</span>` : '')) : '';
-                    const visit = best.link ? ` <a class="visit-inline" href="${escapeHtml(best.link)}" target="_blank">Visit</a>` : '';
                     const detailsHtml = (best.match_details && best.match_details.length) ? ('<div class="small text-muted mt-2"><div class="d-flex flex-wrap gap-2">' + best.match_details.map(m=>`<span class="badge bg-dark text-info py-1 px-2">${escapeHtml(m.field)}: ${escapeHtml(String(m.percentage))}%</span>`).join('') + '</div></div>') : '';
                     compareHtml += `
                       <div class="match-card success mb-2">
@@ -998,7 +997,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                           <div class="text-muted small">Similarity: <strong>${best.similarity}%</strong></div>
                         </div>
                         <div class="mt-2">
-                          <div><strong>${escapeHtml(best.name || 'Matched provider')}</strong> <span class="text-muted">($${best.price !== null && best.price !== undefined ? best.price : 'N/A'})</span>${diff}${visit}</div>
+                          <div><strong>${escapeHtml(best.name || 'Matched provider')}</strong> <span class="text-muted">($${best.price !== null && best.price !== undefined ? best.price : 'N/A'})</span>${diff}</div>
                           ${detailsHtml}
                         </div>
                       </div>`;
@@ -1100,7 +1099,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
             <div class="d-flex justify-content-between align-items-center py-1">
               <div>
                 <strong>${escapeHtml(p.name)}</strong>
-                <div class="small text-muted">$${p.price}/yr${p.link ? ' — <a href="'+escapeHtml(p.link)+'" target="_blank">Visit</a>' : ''}</div>
+                <div class="small text-muted">$${p.price}/yr</div>
               </div>
               <div><button class="btn btn-sm btn-action more-info small-btn view-details" data-id="${p.id}" title="More info">More info</button></div>
             </div>
@@ -1116,7 +1115,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                   </div>
                   <div class="text-end">
                     <div class="fw-bold">Cheapest: $${cheapest.price}</div>
-                    <a href="${escapeHtml(cheapest.link)}" target="_blank" class="btn btn-sm btn-primary ms-2">Visit</a>
+                    
                   </div>
                 </div>
                 <hr>
@@ -1158,7 +1157,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
             compEl.innerHTML = `<div class="alert alert-success"><strong>This is the cheapest known listing for this playlist.</strong></div>`;
           } else if (data.best_cheaper && parseFloat(data.best_cheaper.similarity || 0) >= 80) {
             const b = data.best_cheaper;
-            const bcHtml = `<div class="alert alert-warning"><strong>Cheaper provider found:</strong> ${escapeHtml(b.name)} — $${b.price} / year (save $${b.savings}) <a href="${escapeHtml(b.link)}" target="_blank" class="ms-2 btn btn-sm btn-outline-light">Visit</a></div>`;
+            const bcHtml = `<div class="alert alert-warning"><strong>Cheaper provider found:</strong> ${escapeHtml(b.name)} — $${b.price} / year (save $${b.savings})</div>`;
             compEl.innerHTML = bcHtml;
           } else {
             compEl.innerHTML = '';
@@ -1223,7 +1222,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                     </div>
                     <div class="mt-3">${simBar}</div>
                     <div class="mt-2">
-                      <a class="btn btn-sm btn-primary" href="${escapeHtml(m.link)}" target="_blank">Visit</a>
+                      
                     </div>
                   </div>
                 </div>
