@@ -37,7 +37,7 @@ if (!$target) { http_response_code(404); echo json_encode(['error'=>'Provider no
 $matches = [];
 // MD5 matching removed - not used anymore
 
-// Now find similar (non-exact) candidates based on exact match of specific fields
+// Now find similar (non-exact) candidates based on available metrics (return many matches with similarity scores)
 if ($has_live_categories || $has_live_streams || $has_series || $has_series_categories || $has_vod_categories) {
     // fetch a reasonable candidate set — limit to recent 1000 for performance
     // build candidate select dynamically (avoid selecting missing columns)
@@ -50,61 +50,45 @@ if ($has_live_categories || $has_live_streams || $has_series || $has_series_cate
     $stmt = $pdo->prepare('SELECT ' . implode(',', $candCols) . ' FROM providers WHERE id != ? AND is_public = 1 LIMIT 1000');
     $stmt->execute([$pid]);
     $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Define metric weights (same as submit logic)
+    $metricCols = ['live_streams'=>0.30,'live_categories'=>0.20,'series'=>0.20,'series_categories'=>0.15,'vod_categories'=>0.05];
+    $availableMetrics = [];
+    foreach ($metricCols as $col => $w) {
+        if (in_array($col, $candCols, true)) $availableMetrics[$col] = $w;
+    }
+    $useLegacy = empty($availableMetrics);
+
     foreach ($candidates as $r) {
-        // Check exact matches for each available field
-        $matches_live_categories = !$has_live_categories || (isset($target['live_categories']) && isset($r['live_categories']) && $target['live_categories'] == $r['live_categories']);
-        $matches_live_streams = !$has_live_streams || (isset($target['live_streams']) && isset($r['live_streams']) && $target['live_streams'] == $r['live_streams']);
-        $matches_series = !$has_series || (isset($target['series']) && isset($r['series']) && $target['series'] == $r['series']);
-        $matches_series_categories = !$has_series_categories || (isset($target['series_categories']) && isset($r['series_categories']) && $target['series_categories'] == $r['series_categories']);
-        $matches_vod_categories = !$has_vod_categories || (isset($target['vod_categories']) && isset($r['vod_categories']) && $target['vod_categories'] == $r['vod_categories']);
-        
-        // All available fields must match exactly
-        $all_match = $matches_live_categories && $matches_live_streams && $matches_series && $matches_series_categories && $matches_vod_categories;
-        
-        if (!$all_match) continue;
-        
-        $price_diff = floatval($r['price']) - floatval($target['price']);
-        $simRounded = 100.0; // Exact match
-        $isGrouped = true; // Since it's an exact match
-        
-        // Build detailed match information
         $match_details = [];
-        if ($has_live_categories) {
-            $match_details[] = [
-                'field' => 'Live Categories',
-                'matches' => $matches_live_categories,
-                'percentage' => $matches_live_categories ? 100 : 0
-            ];
+        $similarity = 0.0;
+
+        if ($useLegacy) {
+            // legacy using channels/groups if provided in DB
+            $other_count_raw = isset($r['channels']) ? intval($r['channels']) : 0;
+            $other_groups_raw = isset($r['groups']) ? intval($r['groups']) : 0;
+            $chan_count_sim = ($target['channels'] || $other_count_raw) ? (1.0 - abs(($target['channels'] ?? 0) - $other_count_raw) / max(1, max(($target['channels'] ?? 0), $other_count_raw))) * 100.0 : 0.0;
+            $group_count_sim = ($target['groups'] || $other_groups_raw) ? (1.0 - abs(($target['groups'] ?? 0) - $other_groups_raw) / max(1, max(($target['groups'] ?? 0), $other_groups_raw))) * 100.0 : 0.0;
+            $similarity = ($chan_count_sim * 0.45) + ($group_count_sim * 0.45);
+            $match_details[] = ['field'=>'Channels','percentage'=>round($chan_count_sim,2)];
+            $match_details[] = ['field'=>'Groups','percentage'=>round($group_count_sim,2)];
+        } else {
+            $metricScore = 0.0;
+            foreach ($availableMetrics as $col => $baseW) {
+                $valA = isset($target[$col]) ? intval($target[$col]) : 0;
+                $valB = isset($r[$col]) ? intval($r[$col]) : 0;
+                $sim = ($valA || $valB) ? (1.0 - abs($valA - $valB) / max(1, max($valA, $valB))) * 100.0 : 0.0;
+                $metricScore += $sim * $baseW;
+                $match_details[] = ['field'=>ucwords(str_replace('_',' ',$col)),'percentage'=>round($sim,2)];
+            }
+            $similarity = $metricScore;
         }
-        if ($has_live_streams) {
-            $match_details[] = [
-                'field' => 'Live Streams',
-                'matches' => $matches_live_streams,
-                'percentage' => $matches_live_streams ? 100 : 0
-            ];
-        }
-        if ($has_series) {
-            $match_details[] = [
-                'field' => 'Series',
-                'matches' => $matches_series,
-                'percentage' => $matches_series ? 100 : 0
-            ];
-        }
-        if ($has_series_categories) {
-            $match_details[] = [
-                'field' => 'Series Categories',
-                'matches' => $matches_series_categories,
-                'percentage' => $matches_series_categories ? 100 : 0
-            ];
-        }
-        if ($has_vod_categories) {
-            $match_details[] = [
-                'field' => 'VOD Categories',
-                'matches' => $matches_vod_categories,
-                'percentage' => $matches_vod_categories ? 100 : 0
-            ];
-        }
-        
+
+        // Only include candidates with any similarity (>=1%)
+        if ($similarity <= 0) continue;
+
+        $price_diff = floatval($r['price']) - floatval($target['price']);
+
         $matches[] = [
             'id' => $r['id'],
             'name' => $r['name'],
@@ -112,8 +96,8 @@ if ($has_live_categories || $has_live_streams || $has_series || $has_series_cate
             'price' => floatval($r['price']),
             'seller_source' => $r['seller_source'] ?? null,
             'seller_info' => $r['seller_info'] ?? null,
-            'similarity' => $simRounded,
-            'grouped' => 1,
+            'similarity' => round($similarity,2),
+            'grouped' => ($similarity >= 100.0) ? 1 : 0,
             'shared' => 0,
             'price_diff' => round($price_diff, 2),
             'cheaper' => $price_diff < 0,
