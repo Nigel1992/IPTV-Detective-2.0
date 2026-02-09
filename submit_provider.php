@@ -146,20 +146,29 @@ $vod_categories_count = isset($_POST['vod_categories_count']) ? intval($_POST['v
 // @file_put_contents(__DIR__ . '/submit_debug.log', date('c') . " request: ip=" . ($_SERVER['REMOTE_ADDR'] ?? 'unknown') . " counts_only=" . (isset($_POST['counts_only']) ? '1' : '0') . " channel_count=" . intval($channel_count) . " group_count=" . intval($group_count) . "\n", FILE_APPEND);
 // Require either the full M3U text OR at minimum a channel count supplied by the client
 // Require all submission fields to be present
-// xt_port is optional; allow empty port but require other fields (not just whitespace)
+// Allow counts-only submissions without Xtream credentials
 $counts_only = isset($_POST['counts_only']) && ($_POST['counts_only'] == '1' || $_POST['counts_only'] === 'true');
-$required = [
-    'name' => $name,
-    'price' => $price,
-    'channel_count' => $channel_count,
-    'seller_source' => $seller_source,
-    'seller_info' => $seller_info
-];
-// For non-counts submissions, require Xtream credentials
-if (!$counts_only) {
-    $required['xt_host'] = $xt_host;
-    $required['xt_user'] = $xt_user;
-    $required['xt_pass'] = $xt_pass;
+
+// xt_port is optional; require other fields depending on counts_only
+if ($counts_only) {
+    $required = [
+        'name' => $name,
+        'price' => $price,
+        'channel_count' => $channel_count,
+        'seller_source' => $seller_source,
+        'seller_info' => $seller_info
+    ];
+} else {
+    $required = [
+        'name' => $name,
+        'price' => $price,
+        'channel_count' => $channel_count,
+        'xt_host' => $xt_host,
+        'xt_user' => $xt_user,
+        'xt_pass' => $xt_pass,
+        'seller_source' => $seller_source,
+        'seller_info' => $seller_info
+    ];
 }
 foreach ($required as $k => $v) {
     if ($k === 'price') { if (!($price > 0)) { http_response_code(400); echo json_encode(['error'=>'Missing or invalid required fields']); exit; } continue; }
