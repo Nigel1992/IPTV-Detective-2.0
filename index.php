@@ -1022,6 +1022,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
         const diffText = diff === null ? '' : (diff < 0 ? `<span class='text-success fw-bold'>Cheaper by $${Math.abs(diff)}</span>` : `<span class='text-danger fw-bold'>More expensive by $${diff}</span>`);
         // Attempt to fetch seller info for this matched provider (if available) and include it in the card
         let sellerHtml = '';
+        let sellerInline = '';
         if (data.match_id) {
           try {
             const mcRes = await fetch('get_comparisons.php?id=' + encodeURIComponent(data.match_id));
@@ -1029,7 +1030,9 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
               const mcJ = await mcRes.json();
               const t = mcJ && mcJ.target ? mcJ.target : null;
               if (t && (t.seller_source || t.seller_info)) {
-                sellerHtml = `<div class="small text-muted mt-1">Seller: ${escapeHtml(t.seller_source || '')}${t.seller_info ? ' — ' + escapeHtml(t.seller_info) : ''}</div>`;
+                const sText = escapeHtml(t.seller_source || '') + (t.seller_info ? ' — ' + escapeHtml(t.seller_info) : '');
+                sellerHtml = `<div class="small text-muted mt-1">Seller: ${sText}</div>`;
+                sellerInline = `<span class="small text-muted ms-2">Seller: ${sText}</span>`;
               }
             }
           } catch (ex) { /* ignore errors */ }
@@ -1070,6 +1073,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                   for (const best of matchesFiltered) {
                     const diff = (best.price !== null && best.price !== undefined) ? (best.price < data.price ? ` <span class="text-success fw-bold">Cheaper by $${(data.price - best.price).toFixed(2)}</span>` : (best.price > data.price ? ` <span class="text-danger fw-bold">More expensive by $${(best.price - data.price).toFixed(2)}</span>` : '')) : '';
                     const detailsHtml = (best.match_details && best.match_details.length) ? ('<div class="small text-muted mt-2"><div class="d-flex flex-wrap gap-2">' + best.match_details.map(m=>`<span class="badge bg-dark text-info py-1 px-2">${escapeHtml(m.field)}: ${escapeHtml(String(m.percentage))}%</span>`).join('') + '</div></div>') : '';
+                    const sellerInline = (best.seller_source || best.seller_info) ? `<span class="small text-muted ms-2">Seller: ${escapeHtml(best.seller_source || '')}${best.seller_info ? ' — ' + escapeHtml(best.seller_info) : ''}</span>` : '';
                     compareHtml += `
                       <div class="match-card success mb-2">
                         <div class="match-header">
@@ -1077,7 +1081,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                           <div class="text-muted small">Similarity: <strong>${best.similarity}%</strong></div>
                         </div>
                         <div class="mt-2">
-                          <div><strong>${escapeHtml(best.name || 'Matched provider')}</strong> <span class="text-muted">($${best.price !== null && best.price !== undefined ? best.price : 'N/A'})</span>${diff}</div>
+                          <div><strong>${escapeHtml(best.name || 'Matched provider')}</strong> <span class="text-muted">($${best.price !== null && best.price !== undefined ? best.price : 'N/A'})</span>${sellerInline}${diff}</div>
                           ${detailsHtml}
                         </div>
                       </div>`;
