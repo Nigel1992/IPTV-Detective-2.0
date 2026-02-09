@@ -582,6 +582,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
       const name = form.name.value.trim();
       // Provider link input removed; server accepts optional link if provided elsewhere
       const price = parseFloat(form.price.value);
+      const link = (form.link && form.link.value) ? form.link.value.trim() : '';
       // Get Xtream credentials
       const xtHost = form.xt_host.value.trim();
       const xtPort = form.xt_port.value.trim();
