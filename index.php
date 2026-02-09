@@ -192,11 +192,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                     <input class="form-control" name="name" required placeholder="Provider or brand (e.g. SuperIPTV, BestIPTV)">
                     <div class="invalid-feedback">Please provide the provider name.</div>
                   </div>
-                  <div class="mb-3">
-                    <label class="form-label">Provider Link</label>
-                    <input class="form-control" name="link" type="url" required placeholder="https://provider.example.com">
-                    <div class="invalid-feedback">Please provide a valid provider URL.</div>
-                  </div>
+                  <!-- Provider Link removed from public form; link is optional and not entered here -->
                   <div class="mb-0">
                     <label class="form-label">Price per Year</label>
                     <div class="input-group">
@@ -613,9 +609,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
         return;
       }
       // Additional client-side validation
-      if (link) {
-        try { new URL(link); } catch (e) { alert('Please enter a valid URL for Provider Link.'); if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; } return; }
-      }
+      // Provider Link removed from form; skip link validation
       if (!(price > 0)) { alert('Please enter a valid price greater than 0'); if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; } return; }
       if (!xtHost || !xtUser || !xtPass) { alert('Please fill in all Xtream credentials.'); if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; } return; }
 
