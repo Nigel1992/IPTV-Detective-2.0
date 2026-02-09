@@ -26,8 +26,7 @@ IPTV Detective is a web-based tool for analyzing, comparing, and managing IPTV p
 
 4. **Deploy to your web server:**
 	- Upload the files to your PHP-enabled web server.
-	- Ensure the `logs/` directory is writable if you want to keep logs.
-
+	- Ensure the `logs/` directory is writable if you want to keep logs.	- If using the provided `deploy.sh`, keep a local `.deploy.env` (gitignored) with your FTP credentials and never commit it. `deploy.sh` stages code with `rsync` and **purges `.deploy.env`**, and the uploader uses `lftp mirror` with `--exclude-glob ".deploy.env" --exclude-glob ".env"` as a last line of defense to avoid uploading local secrets.
 5. **Access the site:**
 	- Visit the main page (`index.html`) to use the submission and comparison features.
 	- Use your renamed admin dashboard to moderate and review submissions.
