@@ -30,7 +30,7 @@ I built **IPTV Detective** — a **free, open-source** web tool that analyzes IP
 
 You can provide:
 - Xtream fields (host, optional port, username, password) for deeper analysis (credentials never stored)
-- Or use test/debug flows for development (limited and not a substitute for normal analysis)
+- Or use test/debug flows for development (limited and not a substitute for normal analysis). If you don't trust providing your primary credentials, consider creating a temporary/trial IPTV account for analysis.
 
 ---
 
