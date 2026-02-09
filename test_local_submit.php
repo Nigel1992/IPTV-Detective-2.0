@@ -21,10 +21,7 @@ $__TEST_SKIP_TOKEN = $_SESSION['test_skip_token'];
     <label>Provider name</label><br>
     <input name="name" id="name" value="Test Provider" style="width:100%">
   </div>
-  <div>
-    <label>Provider link</label><br>
-    <input name="link" id="link" value="http://example.com" style="width:100%">
-  </div>
+  <!-- Provider link removed from test form -->
   <div style="display:flex;gap:10px;margin-top:0.5rem">
     <div style="flex:1">
       <label>Price per year</label><br>

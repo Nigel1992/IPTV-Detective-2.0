@@ -582,11 +582,18 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
       btn = form.querySelector('button[type=submit], button, input[type=submit]');
       if (btn) { try { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Fetching...'; } catch(e) {} }
       const name = form.name.value.trim();
-      const link = (form.link ? form.link.value.trim() : '');
+      // Provider link input removed; server accepts optional link if provided elsewhere
       const price = parseFloat(form.price.value);
       // Get Xtream credentials
       const xtHost = form.xt_host.value.trim();
       const xtPort = form.xt_port.value.trim();
+      // If port is provided, it must be numeric
+      if (xtPort && !/^[0-9]+$/.test(xtPort)) {
+        form.classList.add('was-validated');
+        alert('Port must be a numeric value');
+        if (btn) { try { btn.disabled = false; btn.innerHTML = 'Submit'; } catch(e) {} }
+        return;
+      }
       const xtUser = form.xt_user.value.trim();
       const xtPass = form.xt_pass.value.trim();
       // Seller/source information
@@ -887,7 +894,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
 
       // Prepare form data
       const fd = new FormData();
-      fd.append('name', name); fd.append('link', link); fd.append('price', price.toFixed(2));
+      fd.append('name', name); fd.append('price', price.toFixed(2));
       const liveCats = apiCounts.live_categories && apiCounts.live_categories.count !== null ? apiCounts.live_categories.count : 0;
       const liveStreams = apiCounts.live_streams && apiCounts.live_streams.count !== null ? apiCounts.live_streams.count : 0;
       const seriesCnt = apiCounts.series && apiCounts.series.count !== null ? apiCounts.series.count : 0;
