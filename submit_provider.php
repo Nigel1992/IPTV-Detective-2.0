@@ -126,8 +126,16 @@ $seller_info = trim($_POST['seller_info'] ?? '');
 // Provider link
 $link = trim($_POST['link'] ?? '');
 
-$channel_count = isset($_POST['channel_count']) ? intval($_POST['channel_count']) : null;
-$group_count = isset($_POST['group_count']) ? intval($_POST['group_count']) : null;
+$channel_count_raw = $_POST['channel_count'] ?? null;
+$group_count_raw = $_POST['group_count'] ?? null;
+// Require channel_count to be present (may be 0) and numeric
+if ($channel_count_raw === null || $channel_count_raw === '' || !is_numeric($channel_count_raw)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Missing or invalid channel_count']);
+    exit;
+}
+$channel_count = intval($channel_count_raw);
+$group_count = ($group_count_raw === null || $group_count_raw === '') ? null : intval($group_count_raw);
 // Counts provided by client
 $live_categories_count = isset($_POST['live_categories_count']) ? intval($_POST['live_categories_count']) : 0;
 $live_streams_count = isset($_POST['live_streams_count']) ? intval($_POST['live_streams_count']) : 0;
@@ -138,10 +146,16 @@ $vod_categories_count = isset($_POST['vod_categories_count']) ? intval($_POST['v
 // @file_put_contents(__DIR__ . '/submit_debug.log', date('c') . " request: ip=" . ($_SERVER['REMOTE_ADDR'] ?? 'unknown') . " counts_only=" . (isset($_POST['counts_only']) ? '1' : '0') . " channel_count=" . intval($channel_count) . " group_count=" . intval($group_count) . "\n", FILE_APPEND);
 // Require either the full M3U text OR at minimum a channel count supplied by the client
 // Require all submission fields to be present
-// xt_port is optional; allow empty port but require other fields
-if (!$name || !($price > 0) || $channel_count === null || !$xt_host || !$xt_user || !$xt_pass || !$seller_source || !$seller_info || !$link) {
+// xt_port is optional; allow empty port but require other fields (not just whitespace)
+if (!$name || !($price > 0) || $channel_count === null || !$xt_host || !$xt_user || !$xt_pass || !$seller_source || !$seller_info) {
     http_response_code(400);
     echo json_encode(['error'=>'Missing required fields']);
+    exit;
+}
+// If provided, xt_port must be numeric
+if ($xt_port !== '' && !ctype_digit($xt_port)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid xt_port']);
     exit;
 }
 // Validate URL (only if provided) and price server-side

@@ -609,7 +609,15 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
         return;
       }
       // Additional client-side validation
-      // Provider Link removed from form; skip link validation
+      // Ensure required fields contain non-whitespace values
+      if (!name || name.trim().length === 0) { alert('Please enter the provider name.'); form.classList.add('was-validated'); if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; } return; }
+      if (!(price > 0)) { alert('Please enter a valid price greater than 0'); if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; } return; }
+      if (!xtHost || xtHost.trim().length === 0) { alert('Please enter the Xtream host.'); if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; } return; }
+      if (!xtUser || xtUser.trim().length === 0) { alert('Please enter the Xtream username.'); if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; } return; }
+      if (!xtPass || xtPass.trim().length === 0) { alert('Please enter the Xtream password.'); if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; } return; }
+      if (!sellerSource || sellerSource.trim().length === 0) { alert('Please select the seller source.'); if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; } return; }
+      if (!sellerInfo || sellerInfo.trim().length === 0) { alert('Please enter seller details.'); if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; } return; }
+      // Port numeric check (already enforced)
       if (!(price > 0)) { alert('Please enter a valid price greater than 0'); if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; } return; }
       if (!xtHost || !xtUser || !xtPass) { alert('Please fill in all Xtream credentials.'); if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; } return; }
 
