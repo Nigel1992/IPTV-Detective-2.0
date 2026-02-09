@@ -4,6 +4,8 @@
 # Exclude sensitive config files
 inc/config.php
 deploy.sh
+# Local deploy credentials (source as .deploy.env)
+.deploy.env
 
 # Exclude logs and other sensitive files
 logs/
