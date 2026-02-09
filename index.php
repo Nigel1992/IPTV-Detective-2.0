@@ -995,25 +995,31 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
             if (cRes.ok) {
               const cJ = await cRes.json();
               if (cJ && Array.isArray(cJ.matches) && cJ.matches.length > 0) {
-                // Render all returned matches in a compact styled list
-                compareHtml = '<div class="match-list">';
-                for (const best of cJ.matches) {
-                  const diff = (best.price !== null && best.price !== undefined) ? (best.price < data.price ? ` <span class="text-success fw-bold">Cheaper by $${(data.price - best.price).toFixed(2)}</span>` : (best.price > data.price ? ` <span class="text-danger fw-bold">More expensive by $${(best.price - data.price).toFixed(2)}</span>` : '')) : '';
-                  const visit = best.link ? ` <a class="visit-inline" href="${escapeHtml(best.link)}" target="_blank">Visit</a>` : '';
-                  const details = (best.match_details && best.match_details.length) ? best.match_details.map(m=>`${m.field}: ${m.percentage}%`).join('; ') : '';
-                  compareHtml += `
-                    <div class="match-card success mb-2">
-                      <div class="match-header">
-                        <div class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill fs-5"></i><div class="match-title">${escapeHtml(best.name || 'Matched provider')}</div></div>
-                        <div class="text-muted small">Similarity: <strong>${best.similarity}%</strong></div>
-                      </div>
-                      <div class="mt-2">
-                        <div><strong>${escapeHtml(best.name || 'Matched provider')}</strong> <span class="text-muted">($${best.price !== null && best.price !== undefined ? best.price : 'N/A'})</span>${diff}${visit}</div>
-                        ${details ? `<div class="small text-muted mt-2">${escapeHtml(details)}</div>` : ''}
-                      </div>
-                    </div>`;
+                // Only show matches with similarity >= 85%
+                const matchesFiltered = cJ.matches.filter(m => parseFloat(m.similarity) >= 85);
+                if (!matchesFiltered.length) {
+                  compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">No strong matches (>=85%) found</div></div>`;
+                } else {
+                  // Render filtered matches
+                  compareHtml = '<div class="match-list">';
+                  for (const best of matchesFiltered) {
+                    const diff = (best.price !== null && best.price !== undefined) ? (best.price < data.price ? ` <span class="text-success fw-bold">Cheaper by $${(data.price - best.price).toFixed(2)}</span>` : (best.price > data.price ? ` <span class="text-danger fw-bold">More expensive by $${(best.price - data.price).toFixed(2)}</span>` : '')) : '';
+                    const visit = best.link ? ` <a class="visit-inline" href="${escapeHtml(best.link)}" target="_blank">Visit</a>` : '';
+                    const details = (best.match_details && best.match_details.length) ? best.match_details.map(m=>`${m.field}: ${m.percentage}%`).join('; ') : '';
+                    compareHtml += `
+                      <div class="match-card success mb-2">
+                        <div class="match-header">
+                          <div class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill fs-5"></i><div class="match-title">${escapeHtml(best.name || 'Matched provider')}</div></div>
+                          <div class="text-muted small">Similarity: <strong>${best.similarity}%</strong></div>
+                        </div>
+                        <div class="mt-2">
+                          <div><strong>${escapeHtml(best.name || 'Matched provider')}</strong> <span class="text-muted">($${best.price !== null && best.price !== undefined ? best.price : 'N/A'})</span>${diff}${visit}</div>
+                          ${details ? `<div class="small text-muted mt-2">${escapeHtml(details)}</div>` : ''}
+                        </div>
+                      </div>`;
+                  }
+                  compareHtml += '</div>';
                 }
-                compareHtml += '</div>';
               } else {
                 compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">Likely private or not enough data</div></div>`;
               }
