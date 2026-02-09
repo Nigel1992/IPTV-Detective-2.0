@@ -138,7 +138,8 @@ $vod_categories_count = isset($_POST['vod_categories_count']) ? intval($_POST['v
 // @file_put_contents(__DIR__ . '/submit_debug.log', date('c') . " request: ip=" . ($_SERVER['REMOTE_ADDR'] ?? 'unknown') . " counts_only=" . (isset($_POST['counts_only']) ? '1' : '0') . " channel_count=" . intval($channel_count) . " group_count=" . intval($group_count) . "\n", FILE_APPEND);
 // Require either the full M3U text OR at minimum a channel count supplied by the client
 // Require all submission fields to be present
-if (!$name || !($price > 0) || $channel_count === null || !$xt_host || !$xt_port || !$xt_user || !$xt_pass || !$seller_source || !$seller_info || !$link) {
+// xt_port is optional; allow empty port but require other fields
+if (!$name || !($price > 0) || $channel_count === null || !$xt_host || !$xt_user || !$xt_pass || !$seller_source || !$seller_info || !$link) {
     http_response_code(400);
     echo json_encode(['error'=>'Missing required fields']);
     exit;

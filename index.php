@@ -222,8 +222,8 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                     </div>
                     <div class="col-6">
                       <label class="form-label">Port <small class="text-muted">(optional)</small></label>
-                      <input class="form-control" name="xt_port" required placeholder="80 or 8080">
-                      <div class="invalid-feedback">Please enter the Xtream port.</div>
+                      <input class="form-control" name="xt_port" placeholder="80 or 8080">
+                      <div class="form-text text-muted">Port is optional; leave blank to use default (80/443).</div>
                     </div>
                     <div class="col-6">
                       <label class="form-label">Username</label>
