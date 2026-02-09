@@ -1,0 +1,30 @@
+# Allow the proxy endpoint to be public
+<Files "proxy.php">
+  <IfModule mod_authz_core.c>
+    Require all granted
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order Allow,Deny
+    Allow from all
+  </IfModule>
+</Files>
+
+# Default: deny everything else in this directory
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order Allow,Deny
+  Deny from all
+</IfModule>
+
+# Extra: deny specific sensitive extensions except proxy.php
+<FilesMatch "^(?!(proxy\.php$)).*\.(php|inc|ini|env)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order Allow,Deny
+    Deny from all
+  </IfModule>
+</FilesMatch>

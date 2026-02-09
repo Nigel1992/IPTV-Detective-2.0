@@ -1,0 +1,46 @@
+body { padding-bottom: 40px; }
+.table td { word-break: break-all; }
+.container { max-width: 1100px; }
+
+/* Techy accent helpers */
+.badge-accent{background:linear-gradient(90deg,#00c2ff33,#7cf6ff22);color:#00d9ff;border:1px solid rgba(0,194,255,0.08)}
+.small-muted { color: #9fb9c9 }
+
+/* Compact cards */
+.card.h-100{border-radius:10px}
+
+/* Highlighted action button */
+.btn-action{background:linear-gradient(90deg, rgba(0,194,255,0.08), rgba(124,246,255,0.03));border:1px solid rgba(0,194,255,0.18);color:var(--accent);box-shadow:0 6px 18px rgba(0,194,255,0.04);border-radius:8px;padding:6px 10px;transition: transform .18s ease, box-shadow .18s ease, background .18s ease}
+.btn-action .bi{color:var(--accent);font-weight:600}
+.btn-action:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(0,194,255,0.10),0 0 8px rgba(124,246,255,0.06)}
+.btn-action:focus{outline:none;box-shadow:0 0 0 6px rgba(0,194,255,0.06)}
+
+/* More prominent variant for 'More info' buttons */
+.btn-action.more-info{background:linear-gradient(90deg,#00d9ff,#7cf6ff);color:#032935;font-weight:700;border:none;box-shadow:0 10px 32px rgba(0,194,255,0.16);padding:6px 12px;font-size:0.9rem}
+.btn-action.more-info .bi{color:#032935}
+.btn-action.more-info:hover{transform:translateY(-4px) scale(1.03);box-shadow:0 28px 72px rgba(0,220,255,0.24),0 0 26px rgba(124,246,255,0.18)}
+.btn-action.more-info:focus{box-shadow:0 0 0 8px rgba(124,246,255,0.12)}
+
+/* Compact variant for smaller buttons */
+.small-btn{padding:4px 8px;font-size:0.78rem;border-radius:6px}
+
+@keyframes neonPulse{0%{transform:translateY(0) scale(1); box-shadow:0 6px 18px rgba(0,194,255,0.02)}50%{transform:translateY(-3px) scale(1.06); box-shadow:0 26px 56px rgba(0,194,255,0.18)}100%{transform:translateY(0) scale(1); box-shadow:0 6px 18px rgba(0,194,255,0.02)}}
+.btn-action.pulse{animation:neonPulse 2.2s ease-in-out infinite}
+
+/* Ensure provider link row matches the table row background */
+#providersTable tbody tr.table-light td a {
+	background-color: transparent !important;
+	color: inherit !important;
+	text-decoration: underline;
+}
+
+/* Make the link area fill the cell so its background doesn't show different */
+#providersTable tbody tr.table-light td small a {
+	display: inline-block;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 0;
+	background: transparent !important;
+}
+
+

@@ -1,0 +1,16 @@
+# Exclude all shell scripts
+*.sh
+
+# Exclude sensitive config files
+inc/config.php
+config.php
+
+# Exclude logs and other sensitive files
+logs/
+*.log
+.venv/
+.git/
+.github/
+*.sql
+.env
+*.sh

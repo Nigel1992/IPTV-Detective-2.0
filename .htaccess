@@ -1,0 +1,91 @@
+
+DirectoryIndex index.html index.php
+
+# Do not display PHP errors to visitors
+php_flag display_errors off
+php_flag display_startup_errors off
+
+# Prevent directory listing
+Options -Indexes
+
+# Deny access to sensitive files
+<FilesMatch "\.(php\.local|local)$">
+    Require all denied
+</FilesMatch>
+<Files "config.php">
+    Require all denied
+</Files>
+
+# Redirect HTTP to HTTPS (if mod_rewrite enabled) and block sensitive dirs
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+	# Redirect HTTP to HTTPS
+	RewriteCond %{HTTPS} !=on
+	RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+	# Allow access to the server-side proxy at /inc/proxy.php
+	RewriteCond %{REQUEST_URI} !inc/proxy\.php
+	# Do not apply the block if the request targets an existing file or directory
+	RewriteCond %{REQUEST_FILENAME} !-f
+	RewriteCond %{REQUEST_FILENAME} !-d
+	# Block direct access to sensitive directories (except the proxy)
+	RewriteRule ^(inc|scripts|logs|\.venv|\.github)(/.*)?$ - [F,L]
+</IfModule>
+
+# Force HTML MIME type
+AddType text/html .html
+
+# Deny access to sensitive file extensions
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|sql|md|local|bundle)$">
+	<IfModule mod_authz_core.c>
+		Require all denied
+	</IfModule>
+	<IfModule !mod_authz_core.c>
+		Order Allow,Deny
+		Deny from all
+	</IfModule>
+</FilesMatch>
+
+# Block access to config files
+<Files "config.php">
+	<IfModule mod_authz_core.c>
+		Require all denied
+	</IfModule>
+	<IfModule !mod_authz_core.c>
+		Order Allow,Deny
+		Deny from all
+	</IfModule>
+</Files>
+
+# Deny access to specific sensitive files
+<Files ".gitignore">
+	<IfModule mod_authz_core.c>
+		Require all denied
+	</IfModule>
+	<IfModule !mod_authz_core.c>
+		Order Allow,Deny
+		Deny from all
+	</IfModule>
+</Files>
+
+# Optional security headers (ignored if mod_headers not available)
+<IfModule mod_headers.c>
+	Header always set X-Content-Type-Options "nosniff"
+	Header always set X-Frame-Options "DENY"
+	Header always set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Prevent directory listing
+Options -Indexes
+
+# Security headers (safe to enable when mod_headers is available)
+<IfModule mod_headers.c>
+	Header always set X-Content-Type-Options "nosniff"
+	Header always set X-Frame-Options "DENY"
+	Header always set X-XSS-Protection "1; mode=block"
+	<FilesMatch "\.(html|htm|js|css|json|php|xml|txt|m3u)$">
+		Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+		Header always set Pragma "no-cache"
+		Header always set Expires "0"
+	</FilesMatch>
+</IfModule>
+
