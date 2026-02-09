@@ -1005,7 +1005,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                   for (const best of matchesFiltered) {
                     const diff = (best.price !== null && best.price !== undefined) ? (best.price < data.price ? ` <span class="text-success fw-bold">Cheaper by $${(data.price - best.price).toFixed(2)}</span>` : (best.price > data.price ? ` <span class="text-danger fw-bold">More expensive by $${(best.price - data.price).toFixed(2)}</span>` : '')) : '';
                     const visit = best.link ? ` <a class="visit-inline" href="${escapeHtml(best.link)}" target="_blank">Visit</a>` : '';
-                    const details = (best.match_details && best.match_details.length) ? best.match_details.map(m=>`${m.field}: ${m.percentage}%`).join('; ') : '';
+                    const detailsHtml = (best.match_details && best.match_details.length) ? ('<div class="small text-muted mt-2"><div class="d-flex flex-wrap gap-2">' + best.match_details.map(m=>`<span class="badge bg-dark text-info py-1 px-2">${escapeHtml(m.field)}: ${escapeHtml(String(m.percentage))}%</span>`).join('') + '</div></div>') : '';
                     compareHtml += `
                       <div class="match-card success mb-2">
                         <div class="match-header">
@@ -1014,7 +1014,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                         </div>
                         <div class="mt-2">
                           <div><strong>${escapeHtml(best.name || 'Matched provider')}</strong> <span class="text-muted">($${best.price !== null && best.price !== undefined ? best.price : 'N/A'})</span>${diff}${visit}</div>
-                          ${details ? `<div class="small text-muted mt-2">${escapeHtml(details)}</div>` : ''}
+                          ${detailsHtml}
                         </div>
                       </div>`;
                   }
