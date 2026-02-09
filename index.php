@@ -192,6 +192,11 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                     <input class="form-control" name="name" required placeholder="Provider or brand (e.g. SuperIPTV, BestIPTV)">
                     <div class="invalid-feedback">Please provide the provider name.</div>
                   </div>
+                  <div class="mb-3">
+                    <label class="form-label">Provider Link</label>
+                    <input class="form-control" name="link" type="url" required placeholder="https://provider.example.com">
+                    <div class="invalid-feedback">Please provide a valid provider URL.</div>
+                  </div>
                   <div class="mb-0">
                     <label class="form-label">Price per Year</label>
                     <div class="input-group">
@@ -217,7 +222,8 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                     </div>
                     <div class="col-6">
                       <label class="form-label">Port <small class="text-muted">(optional)</small></label>
-                      <input class="form-control" name="xt_port" placeholder="80 or 8080 (optional)">
+                      <input class="form-control" name="xt_port" required placeholder="80 or 8080">
+                      <div class="invalid-feedback">Please enter the Xtream port.</div>
                     </div>
                     <div class="col-6">
                       <label class="form-label">Username</label>

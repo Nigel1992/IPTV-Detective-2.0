@@ -123,6 +123,8 @@ $xt_pass = trim($_POST['xt_pass'] ?? '');
 // Seller/source info
 $seller_source = trim($_POST['seller_source'] ?? '');
 $seller_info = trim($_POST['seller_info'] ?? '');
+// Provider link
+$link = trim($_POST['link'] ?? '');
 
 $channel_count = isset($_POST['channel_count']) ? intval($_POST['channel_count']) : null;
 $group_count = isset($_POST['group_count']) ? intval($_POST['group_count']) : null;
@@ -135,19 +137,18 @@ $vod_categories_count = isset($_POST['vod_categories_count']) ? intval($_POST['v
 // Log request summary for diagnostics
 // @file_put_contents(__DIR__ . '/submit_debug.log', date('c') . " request: ip=" . ($_SERVER['REMOTE_ADDR'] ?? 'unknown') . " counts_only=" . (isset($_POST['counts_only']) ? '1' : '0') . " channel_count=" . intval($channel_count) . " group_count=" . intval($group_count) . "\n", FILE_APPEND);
 // Require either the full M3U text OR at minimum a channel count supplied by the client
-// Note: link is optional per UI change — require name, price and counts/m3u
-if (!$name || !($price > 0) || $channel_count === null) {
+// Require all submission fields to be present
+if (!$name || !($price > 0) || $channel_count === null || !$xt_host || !$xt_port || !$xt_user || !$xt_pass || !$seller_source || !$seller_info || !$link) {
     http_response_code(400);
     echo json_encode(['error'=>'Missing required fields']);
     exit;
 }
 // Validate URL (only if provided) and price server-side
-if ($link) {
-    if (!filter_var($link, FILTER_VALIDATE_URL)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid provider URL']);
-        exit;
-    }
+// Validate provider link and price server-side
+if (!filter_var($link, FILTER_VALIDATE_URL)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid provider URL']);
+    exit;
 }
 if (!($price > 0)) {
     http_response_code(400);
