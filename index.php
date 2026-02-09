@@ -258,7 +258,6 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                 <div class="col-md-6">
                   <div class="info-card">
                     <div class="info-row"><div class="info-label">Provider</div><div class="info-value" id="r_name">&nbsp;</div></div>
-                    <div class="info-row"><div class="info-label">Link</div><div class="info-value"><a id="r_link" href="#" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-info">—</a></div></div>
                     <div class="info-row"><div class="info-label">Price / year</div><div class="info-value" id="r_price">&nbsp;</div></div>
                     <div class="info-row"><div class="info-label">Seller</div><div class="info-value" id="r_seller">&nbsp;</div></div>
                     <div class="mt-2 small text-muted">Results are approximate and depend on available public submissions.</div>
@@ -941,21 +940,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
       if (data.error) { alert('Error: ' + data.error); return; }
       const setIf = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
       setIf('r_name', name);
-      // Link element content and href (validate to avoid unsafe schemes)
-      const isValidHttpUrl = s => { try { const u = new URL(s); return u.protocol === 'http:' || u.protocol === 'https:'; } catch (e) { return false; } };
-      const linkEl = document.getElementById('r_link'); if (linkEl) {
-        if (link && isValidHttpUrl(link)) {
-          linkEl.textContent = link;
-          linkEl.href = link;
-          linkEl.target = '_blank';
-          linkEl.setAttribute('rel','noopener noreferrer');
-        } else if (link && !/^https?:\/\//i.test(link)) {
-          // try prefixing with http:// if user supplied a bare host
-          const pref = 'http://' + link;
-          if (isValidHttpUrl(pref)) { linkEl.textContent = link; linkEl.href = pref; linkEl.target = '_blank'; linkEl.setAttribute('rel','noopener noreferrer'); }
-          else { linkEl.textContent = '—'; linkEl.href = '#'; linkEl.removeAttribute('target'); linkEl.removeAttribute('rel'); }
-        } else { linkEl.textContent = '—'; linkEl.href = '#'; linkEl.removeAttribute('target'); linkEl.removeAttribute('rel'); }
-      }
+      // Link display removed from results per user request (no link shown here)
       setIf('r_price', price.toFixed(2));
       setIf('r_channels', data.channels);
       setIf('r_groups', data.groups);
