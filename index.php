@@ -258,7 +258,6 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                 <div class="col-md-6">
                   <div class="info-card">
                     <div class="info-row"><div class="info-label">Provider</div><div class="info-value" id="r_name">&nbsp;</div></div>
-                    <div class="info-row"><div class="info-label">Link</div><div class="info-value"><a id="r_link" href="#" target="_blank" class="text-decoration-none text-info">&nbsp;</a></div></div>
                     <div class="info-row"><div class="info-label">Price / year</div><div class="info-value" id="r_price">&nbsp;</div></div>
                     <div class="info-row"><div class="info-label">Seller</div><div class="info-value" id="r_seller">&nbsp;</div></div>
                     <div class="mt-2 small text-muted">Results are approximate and depend on available public submissions.</div>
@@ -660,10 +659,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
       try {
         const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.style.display = '';
         const nameEl = document.getElementById('r_name'); if (nameEl) nameEl.textContent = name;
-        const linkElNow = document.getElementById('r_link'); if (linkElNow) {
-          if (link) { linkElNow.textContent = link; linkElNow.href = link; linkElNow.target = '_blank'; }
-          else { linkElNow.textContent = '—'; linkElNow.href = '#'; linkElNow.removeAttribute('target'); }
-        }
+        // Link display removed from results dialog (we don't expose provider link here)
         const priceElNow = document.getElementById('r_price'); if (priceElNow) priceElNow.textContent = price.toFixed(2);
           const sellerElNow = document.getElementById('r_seller'); if (sellerElNow) sellerElNow.textContent = (sellerSource || sellerInfo) ? (sellerSource + (sellerInfo ? ' — ' + sellerInfo : '')) : '—';
         ['r_live_cats','r_live_streams','r_series_count','r_series_cats_count','r_vod_cats_count','r_vod_streams_count'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='—'; });
