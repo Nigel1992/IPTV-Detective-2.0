@@ -857,6 +857,72 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
           }
         });
         await Promise.all(promises);
+        // If any important counts are zero, retry fetching until they are non-zero (with backoff) up to maxAttempts
+        const importantKeys = ['live_categories','live_streams','series','series_categories','vod_categories'];
+        const anyZero = () => importantKeys.some(k => apiCounts[k] && (apiCounts[k].count === null || apiCounts[k].count === 0));
+        const maxAttempts = 6;
+        let attempt = 1;
+        const rCompareEl = document.getElementById('r_compare');
+        if (anyZero()) {
+          if (rCompareEl) rCompareEl.innerHTML = `<div class="match-card warn"><div class="match-header"><div class="match-title">Retrying data fetch</div></div><div class="mt-2 small text-muted">Some counts returned 0; will retry up to ${maxAttempts} times...</div></div>`;
+          // Keep progress UI visible while retrying
+          if (progressWrap && progressBar && progressLabel) {
+            progressBar.classList.add('progress-bar-striped','progress-bar-animated');
+            progressWrap.style.display = '';
+          }
+        }
+        while (anyZero() && attempt < maxAttempts) {
+          attempt++;
+          if (rCompareEl) rCompareEl.innerHTML = `<div class="match-card warn"><div class="match-header"><div class="match-title">Retrying data fetch</div></div><div class="mt-2 small text-muted">Some counts returned 0; retrying (${attempt}/${maxAttempts})...</div></div>`;
+          // exponential backoff with a cap
+          await new Promise(r => setTimeout(r, Math.min(1500 * attempt, 8000)));
+
+          // Re-fetch each action and re-parse counts
+          let completedActionsRetry = 0;
+          const totalActionsRetry = Object.keys(apiActions).length;
+          const retryPromises = Object.keys(apiActions).map(async (k) => {
+            const res = await fetchApiAction(apiActions[k]);
+            let count = null, sample = [];
+            if (res && res.ok) {
+              const body = res.body;
+              if (body && typeof body === 'object' && body.count !== undefined) {
+                count = Number(body.count) || 0;
+                sample = Array.isArray(body.sample) ? body.sample.slice(0,10) : [];
+              } else if (Array.isArray(body)) { count = body.length; sample = body.slice(0,10); }
+              else if (typeof body === 'object' && body !== null) {
+                const arr = body.categories || body.playlist || body.streams || body.items || body.data || null;
+                if (Array.isArray(arr)) { count = arr.length; sample = arr.slice(0,10); }
+                else {
+                  const findArray = obj => {
+                    if (!obj || typeof obj !== 'object') return null;
+                    for (const key in obj) {
+                      if (Array.isArray(obj[key])) return obj[key];
+                      if (typeof obj[key] === 'object') {
+                        const r = findArray(obj[key]); if (r) return r;
+                      }
+                    }
+                    return null;
+                  };
+                  const arr2 = findArray(body);
+                  if (Array.isArray(arr2)) { count = arr2.length; sample = arr2.slice(0,10); }
+                }
+              } else if (typeof body === 'string') {
+                const lines = body.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+                count = lines.length; sample = lines.slice(0,10);
+              }
+            }
+            apiCounts[k] = { count, sample };
+            completedActionsRetry++;
+            if (progressBar && progressLabel) {
+              const pct = Math.round((completedActionsRetry / totalActionsRetry) * 100);
+              progressBar.style.width = pct + '%';
+              progressBar.textContent = pct + '%';
+              progressLabel.textContent = `Retrying counts (${completedActionsRetry}/${totalActionsRetry})`;
+            }
+          });
+          await Promise.all(retryPromises);
+        }
+
         // hide progress UI
         if (progressWrap && progressBar && progressLabel) {
           progressBar.classList.remove('progress-bar-striped','progress-bar-animated');
