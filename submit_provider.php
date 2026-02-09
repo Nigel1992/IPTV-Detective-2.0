@@ -184,11 +184,15 @@ if ($xt_port !== '' && !ctype_digit($xt_port)) {
     echo json_encode(['error' => 'Invalid xt_port']);
     exit;
 }
-// Validate URL (only if provided) and price server-side
-// Validate provider link and price server-side
-if (!filter_var($link, FILTER_VALIDATE_URL)) {
+// Validate provider link only if provided, and always validate price server-side
+if ($link !== '' && !filter_var($link, FILTER_VALIDATE_URL)) {
     http_response_code(400);
     echo json_encode(['error' => 'Invalid provider URL']);
+    exit;
+}
+if (!($price > 0)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid price']);
     exit;
 }
 if (!($price > 0)) {
