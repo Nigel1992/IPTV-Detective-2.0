@@ -3,7 +3,7 @@
 
 # Exclude sensitive config files
 inc/config.php
-config.php
+deploy.sh
 
 # Exclude logs and other sensitive files
 logs/
