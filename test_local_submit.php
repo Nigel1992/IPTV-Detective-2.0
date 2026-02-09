@@ -72,10 +72,15 @@ function log(msg){
 }
 
 function makeApiUrl(action){
-  const host = document.getElementById('xt_host').value.trim();
-  const port = document.getElementById('xt_port').value.trim();
-  const user = document.getElementById('xt_user').value.trim();
-  const pass = document.getElementById('xt_pass').value.trim();
+  // Trim inputs to avoid whitespace-only values
+  const hostEl = document.getElementById('xt_host'); hostEl.value = hostEl.value.trim();
+  const portEl = document.getElementById('xt_port'); portEl.value = portEl.value.trim();
+  const userEl = document.getElementById('xt_user'); userEl.value = userEl.value.trim();
+  const passEl = document.getElementById('xt_pass'); passEl.value = passEl.value.trim();
+  const host = hostEl.value;
+  const port = portEl.value;
+  const user = userEl.value;
+  const pass = passEl.value;
   const scheme = host.startsWith('http') ? '' : 'http://';
   const hostPort = port ? host + ':' + port : host;
   return `${scheme}${hostPort}/player_api.php?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}&action=${encodeURIComponent(action)}`;

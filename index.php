@@ -570,6 +570,8 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
       const form = this;
       let btn = null;
       try {
+        // Trim required inputs to prevent whitespace-only submissions
+      ['name','seller_info','xt_host','xt_user','xt_pass','price','xt_port'].forEach(function(n){ if (form[n]) form[n].value = form[n].value.trim(); });
       // Bootstrap validation
       if (!form.checkValidity()) {
         form.classList.add('was-validated');

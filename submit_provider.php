@@ -147,10 +147,23 @@ $vod_categories_count = isset($_POST['vod_categories_count']) ? intval($_POST['v
 // Require either the full M3U text OR at minimum a channel count supplied by the client
 // Require all submission fields to be present
 // xt_port is optional; allow empty port but require other fields (not just whitespace)
-if (!$name || !($price > 0) || $channel_count === null || !$xt_host || !$xt_user || !$xt_pass || !$seller_source || !$seller_info) {
-    http_response_code(400);
-    echo json_encode(['error'=>'Missing required fields']);
-    exit;
+$required = [
+    'name' => $name,
+    'price' => $price,
+    'channel_count' => $channel_count,
+    'xt_host' => $xt_host,
+    'xt_user' => $xt_user,
+    'xt_pass' => $xt_pass,
+    'seller_source' => $seller_source,
+    'seller_info' => $seller_info
+];
+foreach ($required as $k => $v) {
+    if ($k === 'price') { if (!($price > 0)) { http_response_code(400); echo json_encode(['error'=>'Missing or invalid required fields']); exit; } continue; }
+    if ($v === null || (is_string($v) && strlen(trim($v)) === 0)) {
+        http_response_code(400);
+        echo json_encode(['error'=>'Missing or invalid required fields']);
+        exit;
+    }
 }
 // If provided, xt_port must be numeric
 if ($xt_port !== '' && !ctype_digit($xt_port)) {
