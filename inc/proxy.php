@@ -126,6 +126,34 @@ if (!filter_var($safe_url, FILTER_VALIDATE_URL)) {
     echo json_encode(['error' => 'Invalid URL'], JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT);
     exit;
 }
+// Load optional proxy allowlist from local config (inc/config.php)
+$cfg = null;
+if (is_file(__DIR__ . '/config.php')) {
+    $cfg = include __DIR__ . '/config.php';
+}
+$allowed_hosts = $cfg['proxy_allowlist'] ?? [];
+if (!empty($allowed_hosts)) {
+    $host_ok = false;
+    foreach ($allowed_hosts as $pattern) {
+        if (strpos($pattern, '*') !== false) {
+            $regex = '/^' . str_replace('\\*', '.*', preg_quote($pattern, '/')) . '$/i';
+            if (preg_match($regex, $parts['host'])) { $host_ok = true; break; }
+        } else {
+            if (strcasecmp($pattern, $parts['host']) === 0) { $host_ok = true; break; }
+        }
+    }
+    if (!$host_ok) {
+        http_response_code(403);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Host not allowed'], JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT);
+        exit;
+    }
+}
+// Restrict curl to safe protocols where supported
+if (defined('CURLOPT_SAFE_PROTOCOLS')) {
+    curl_setopt($ch, CURLOPT_SAFE_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+    curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+}
 curl_setopt($ch, CURLOPT_URL, $safe_url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, false); // we handle streaming in write func
 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
