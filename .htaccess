@@ -24,11 +24,11 @@ Options -Indexes
 	RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
 	# --- Maintenance mode: create a file named MAINTENANCE in document root to enable ---
-	# When enabled, all requests (except maintenance assets) will be served /maintenance.html with 503 status
+	# When enabled, all requests (except maintenance assets) will be served /maintenance.html (internal rewrite, HTTP 200)
 	RewriteCond %{DOCUMENT_ROOT}/MAINTENANCE -f
 	RewriteCond %{REQUEST_URI} !/maintenance.html$
 	RewriteCond %{REQUEST_URI} !\.(css|js|png|jpg|gif|svg)$ [NC]
-	RewriteRule .* /maintenance.html [R=503,L,E=MAINTENANCE:1]
+	RewriteRule .* /maintenance.html [L,E=MAINTENANCE:1]
 
 	# Allow access to the server-side proxy at /inc/proxy.php
 	RewriteCond %{REQUEST_URI} !inc/proxy\.php
