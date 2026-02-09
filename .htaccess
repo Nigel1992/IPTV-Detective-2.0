@@ -22,6 +22,14 @@ Options -Indexes
 	# Redirect HTTP to HTTPS
 	RewriteCond %{HTTPS} !=on
 	RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+	# --- Maintenance mode: create a file named MAINTENANCE in document root to enable ---
+	# When enabled, all requests (except maintenance assets) will be served /maintenance.html with 503 status
+	RewriteCond %{DOCUMENT_ROOT}/MAINTENANCE -f
+	RewriteCond %{REQUEST_URI} !/maintenance.html$
+	RewriteCond %{REQUEST_URI} !\.(css|js|png|jpg|gif|svg)$ [NC]
+	RewriteRule .* /maintenance.html [R=503,L,E=MAINTENANCE:1]
+
 	# Allow access to the server-side proxy at /inc/proxy.php
 	RewriteCond %{REQUEST_URI} !inc/proxy\.php
 	# Do not apply the block if the request targets an existing file or directory
@@ -72,6 +80,8 @@ AddType text/html .html
 	Header always set X-Content-Type-Options "nosniff"
 	Header always set X-Frame-Options "DENY"
 	Header always set X-XSS-Protection "1; mode=block"
+	# If maintenance mode is enabled, set Retry-After header
+	Header always set Retry-After "3600" env=MAINTENANCE
 </IfModule>
 
 # Prevent directory listing
