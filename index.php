@@ -1020,7 +1020,20 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
       if (data.matched) {
         const diff = (data.match_price_diff !== null && data.match_price_diff !== undefined) ? Number(data.match_price_diff) : null;
         const diffText = diff === null ? '' : (diff < 0 ? `<span class='text-success fw-bold'>Cheaper by $${Math.abs(diff)}</span>` : `<span class='text-danger fw-bold'>More expensive by $${diff}</span>`);
-        // visit link removed by policy — do not display external Visit links here
+        // Attempt to fetch seller info for this matched provider (if available) and include it in the card
+        let sellerHtml = '';
+        if (data.match_id) {
+          try {
+            const mcRes = await fetch('get_comparisons.php?id=' + encodeURIComponent(data.match_id));
+            if (mcRes.ok) {
+              const mcJ = await mcRes.json();
+              const t = mcJ && mcJ.target ? mcJ.target : null;
+              if (t && (t.seller_source || t.seller_info)) {
+                sellerHtml = `<div class="small text-muted mt-1">Seller: ${escapeHtml(t.seller_source || '')}${t.seller_info ? ' — ' + escapeHtml(t.seller_info) : ''}</div>`;
+              }
+            }
+          } catch (ex) { /* ignore errors */ }
+        }
 
         compareHtml = `
           <div class="match-card success">
@@ -1030,6 +1043,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
             </div>
             <div class="mt-2">
               <div><strong>${escapeHtml(data.match_name || 'Matched provider')}</strong> <span class="text-muted">($${data.match_price !== null && data.match_price !== undefined ? data.match_price : 'N/A'})</span> ${diffText}</div>
+              ${sellerHtml}
               ${data.match_channels_text ? `<div class="small text-muted mt-2">${escapeHtml(data.match_channels_text)}</div>` : ''}
               ${data.match_groups_text ? `<div class="small text-muted">${escapeHtml(data.match_groups_text)}</div>` : ''}
               ${data.cheapest_match && data.cheapest_match.name ? `<div class="small mt-2">Cheapest similar: <strong>${escapeHtml(data.cheapest_match.name)}</strong> ($${data.cheapest_match.price})</div>` : ''}
