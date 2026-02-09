@@ -257,7 +257,8 @@ try {
         'matched' => 0,
         'similarity' => 0
     ];
-    echo htmlentities(json_encode($fallback, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT), ENT_QUOTES|ENT_SUBSTITUTE, 'UTF-8');
+    if (ob_get_length()) ob_clean();
+    echo json_encode($fallback);
     exit;
 }
 
@@ -609,11 +610,13 @@ try {
         http_response_code(500);
         $msg = strip_tags($e->getMessage());
         if (stripos($msg,'max_allowed_packet')!==false) {
-            echo htmlentities(json_encode(['error' => 'DB insert failed: packet too large (max_allowed_packet). Use counts-only or reduce playlist size'], JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT), ENT_QUOTES|ENT_SUBSTITUTE, 'UTF-8');
-        } else {
-            echo htmlentities(json_encode(['error' => 'DB insert failed'], JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT), ENT_QUOTES|ENT_SUBSTITUTE, 'UTF-8');
-        }
-        exit;
+                if (ob_get_length()) ob_clean();
+                echo json_encode(['error' => 'DB insert failed: packet too large (max_allowed_packet). Use counts-only or reduce playlist size']);
+            } else {
+                if (ob_get_length()) ob_clean();
+                echo json_encode(['error' => 'DB insert failed']);
+            }
+            exit;
     }
     } catch (Exception $e) {
         @file_put_contents(__DIR__ . '/submit_debug.log', date('c') . " migration error: " . $e->getMessage() . "\n", FILE_APPEND);
@@ -688,7 +691,7 @@ try {
 }
 
 if (ob_get_length()) ob_clean();
-echo htmlentities(json_encode([
+echo json_encode([
     'id'=>$id,
     'db_inserted' => (!empty($id) ? true : false),
     'channels'=>$channel_count,
@@ -705,4 +708,4 @@ echo htmlentities(json_encode([
     'match_groups_text'=>$match_groups_text,
     'cheapest_match' => isset($cheapest_match) ? $cheapest_match : null,
     'similarity'=>round($similarity,2)
-], JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT), ENT_QUOTES|ENT_SUBSTITUTE, 'UTF-8');
+]);
