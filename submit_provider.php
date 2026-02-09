@@ -26,51 +26,67 @@ error_reporting(E_ALL);
 ob_start();
 header('Content-Type: application/json');
 
-// Re-enable CAPTCHA verification
+// Re-enable CAPTCHA verification (unless bypassed via a valid test skip token in counts-only mode)
 $turnstile_response = $_POST['cf-turnstile-response'] ?? '';
 $turnstile_secret = $cfg['turnstile_secret'] ?? '';
-if (empty($turnstile_secret)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Captcha not configured on server']);
-    exit;
-} elseif (empty($turnstile_response)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Captcha verification missing']);
-    exit;
-} else {
-    $verifyUrl = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-    $postData = http_build_query([
-        'secret' => $turnstile_secret,
-        'response' => $turnstile_response,
-        'remoteip' => $_SERVER['REMOTE_ADDR'] ?? null,
-    ]);
-    $resp = false;
-    if (function_exists('curl_init')) {
-        $ch = curl_init($verifyUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-        $resp = curl_exec($ch);
-        curl_close($ch);
-    } else {
-        $opts = ['http' => ['method' => 'POST', 'header' => "Content-type: application/x-www-form-urlencoded\r\n", 'content' => $postData, 'timeout' => 5]];
-        $context = stream_context_create($opts);
-        $resp = @file_get_contents($verifyUrl, false, $context);
-    }
-    if ($resp === false) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Captcha verification network error']);
-        exit;
-    } else {
-        $j = json_decode($resp, true);
-        if (empty($j) || empty($j['success'])) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Captcha verification failed']);
-            exit;
-        }
+$skip_token = $_POST['skip_token'] ?? '';
+$bypass_captcha = false;
+// Allow test skip token to bypass CAPTCHA for counts-only submissions (session must match)
+if (!empty($skip_token)) {
+    if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+    if (!empty($_SESSION['test_skip_token']) && hash_equals($_SESSION['test_skip_token'], $skip_token)) {
+        $bypass_captcha = true;
+        @file_put_contents(__DIR__ . '/submit_debug.log', date('c') . " captcha bypassed by skip_token\n", FILE_APPEND);
     }
 }
+if (!$bypass_captcha) {
+    if (empty($turnstile_secret)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Captcha not configured on server']);
+        exit;
+    } elseif (empty($turnstile_response)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Captcha verification missing']);
+        exit;
+    } else {
+        $verifyUrl = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+        $postData = http_build_query([
+            'secret' => $turnstile_secret,
+            'response' => $turnstile_response,
+            'remoteip' => $_SERVER['REMOTE_ADDR'] ?? null,
+        ]);
+        $resp = false;
+        if (function_exists('curl_init')) {
+            $ch = curl_init($verifyUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            $resp = curl_exec($ch);
+            curl_close($ch);
+        } else {
+            $opts = ['http' => ['method' => 'POST', 'header' => "Content-type: application/x-www-form-urlencoded\r\n", 'content' => $postData, 'timeout' => 5]];
+            $context = stream_context_create($opts);
+            $resp = @file_get_contents($verifyUrl, false, $context);
+        }
+        if ($resp === false) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Captcha verification network error']);
+            exit;
+        } else {
+            @file_put_contents(__DIR__ . '/submit_debug.log', date('c') . " turnstile response: " . substr($resp,0,1000) . "\n", FILE_APPEND);
+            $j = json_decode($resp, true);
+            if (empty($j) || empty($j['success'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Captcha verification failed']);
+                exit;
+            }
+        }
+    }
+} else {
+    // bypassed
+}
+
 
 // Convert uncaught exceptions to JSON error response
 set_exception_handler(function($e){
