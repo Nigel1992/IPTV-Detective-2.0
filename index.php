@@ -951,6 +951,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
         const vodRow = document.getElementById('vod_streams_row'); if (vodRow) vodRow.style.display = vodVal > 0 ? '' : 'none';
       } catch (ex) {}
       let compareHtml = '';
+      // If server reports a match, show it directly
       if (data.matched) {
         const diff = (data.match_price_diff !== null && data.match_price_diff !== undefined) ? Number(data.match_price_diff) : null;
         const diffText = diff === null ? '' : (diff < 0 ? `<span class='text-success fw-bold'>Cheaper by $${Math.abs(diff)}</span>` : `<span class='text-danger fw-bold'>More expensive by $${diff}</span>`);
@@ -970,9 +971,43 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
             </div>
           </div>`;
       } else if (data.similarity && data.similarity > 0) {
+        // Show a 'Similar' card if server returned a similarity score
         compareHtml = `<div class="match-card warn"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-exclamation-triangle-fill"></i><div class="match-title">Similar</div></div><div class="text-muted small">Similarity: <strong>${data.similarity}%</strong></div></div><div class="mt-2 small text-muted">Likely similar package — please review manually.</div></div>`;
       } else {
-        compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">Likely private or not enough data</div></div>`;
+        // No match returned by submit; check server-side comparisons endpoint as a fallback to catch recently-inserted exact matches
+        if (data.id) {
+          try {
+            const cRes = await fetch('get_comparisons.php?id=' + encodeURIComponent(data.id));
+            if (cRes.ok) {
+              const cJ = await cRes.json();
+              if (cJ && Array.isArray(cJ.matches) && cJ.matches.length > 0) {
+                const best = cJ.matches[0];
+                const diff = (best.price !== null && best.price !== undefined) ? (best.price < data.price ? ` <span class='text-success fw-bold'>Cheaper by $${(data.price - best.price).toFixed(2)}</span>` : (best.price > data.price ? ` <span class='text-danger fw-bold'>More expensive by $${(best.price - data.price).toFixed(2)}</span>` : '')) : '';
+                const visit = best.link ? ` <a class="visit-inline" href="${escapeHtml(best.link)}" target="_blank">Visit</a>` : '';
+                compareHtml = `
+                  <div class="match-card success">
+                    <div class="match-header">
+                      <div class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill fs-5"></i><div class="match-title">Match</div></div>
+                      <div class="text-muted small">Similarity: <strong>${best.similarity}%</strong></div>
+                    </div>
+                    <div class="mt-2">
+                      <div><strong>${escapeHtml(best.name || 'Matched provider')}</strong> <span class="text-muted">($${best.price !== null && best.price !== undefined ? best.price : 'N/A'})</span>${diff}${visit}</div>
+                      ${best.match_details && best.match_details.length ? `<div class="small text-muted mt-2">${escapeHtml(best.match_details.map(m=>m.field+': '+m.percentage+'%').join('; '))}</div>` : ''}
+                    </div>
+                  </div>`;
+              } else {
+                compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">Likely private or not enough data</div></div>`;
+              }
+            } else {
+              compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">Likely private or not enough data</div></div>`;
+            }
+          } catch (ex) {
+            console.warn('get_comparisons fallback failed', ex);
+            compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">Likely private or not enough data</div></div>`;
+          }
+        } else {
+          compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">Likely private or not enough data</div></div>`;
+        }
       }
       const rCompareEl = document.getElementById('r_compare'); if (rCompareEl) rCompareEl.innerHTML = compareHtml;
       const resultsEl = document.getElementById('results');
