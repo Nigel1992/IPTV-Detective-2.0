@@ -25,8 +25,9 @@ Options -Indexes
 
 	# --- Maintenance mode: create a file named MAINTENANCE in document root to enable ---
 	# When enabled, all requests (except maintenance assets) will be served /maintenance.html (internal rewrite, HTTP 200)
-	# Allow bypass from admin IPs. Add more SetEnvIf lines to allow additional IPs.
-	SetEnvIf Remote_Addr "^92\.108\.85\.65$" MAINT_BYPASS=1
+	# Allow bypass from admin IPs. Replace placeholder before uploading; do NOT commit real IP to GitHub.
+	# Example: SetEnvIf Remote_Addr "^YOUR_ADMIN_IP$" MAINT_BYPASS=1
+	SetEnvIf Remote_Addr "^YOUR_ADMIN_IP$" MAINT_BYPASS=1
 	RewriteCond %{DOCUMENT_ROOT}/MAINTENANCE -f
 	# Skip maintenance rewrite when MAINT_BYPASS is set
 	RewriteCond %{ENV:MAINT_BYPASS} !=1
