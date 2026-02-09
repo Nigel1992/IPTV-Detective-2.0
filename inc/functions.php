@@ -56,7 +56,8 @@ function fetch_url($url, $timeout = 60) {
 // Sanitize URLs by removing userinfo and redacting sensitive query params
 function sanitize_url($u) {
     $sensitive_pattern = '/(user|username|pass|password|token|auth|session|sig|key|pwd)/i';
-    $clean = '[redacted]';
+    // default to empty string so we don't expose '[redacted]' literals in UI
+    $clean = '';
     $parts = @parse_url($u);
     if ($parts !== false && isset($parts['host'])) {
         $scheme = isset($parts['scheme']) ? $parts['scheme'] . '://' : '';
@@ -67,11 +68,16 @@ function sanitize_url($u) {
         if (isset($parts['query'])) {
             parse_str($parts['query'], $qarr);
             foreach ($qarr as $k => $v) {
+                // blank-out sensitive query values instead of inserting a visible placeholder
                 if (preg_match($sensitive_pattern, $k) || preg_match('/[:@]/', (string)$v)) {
-                    $qarr[$k] = '[REDACTED]';
+                    $qarr[$k] = '';
                 }
             }
-            $qs = '?' . http_build_query($qarr);
+            // remove empty query params to keep URL tidy
+            $qarr = array_filter($qarr, function($v){ return $v !== '' && $v !== null; });
+            if (!empty($qarr)) {
+                $qs = '?' . http_build_query($qarr);
+            }
         }
         $clean = $scheme . $host . $port . $path . $qs;
     }
