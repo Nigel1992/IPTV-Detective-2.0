@@ -21,7 +21,7 @@
       <p>IPTV Detective analyzes a provider's playlist and compares it to public submissions to identify identical or highly similar packages — useful for spotting resellers and finding better prices.</p>
 
       <h5 class="mt-3">Fetch &amp; analyze in-browser</h5>
-      <p>The primary workflow now uses Xtream/portal credentials: when you enter valid Xtream fields the browser fetches the playlist directly from the panel (using the player API endpoints) and parses it locally. This avoids uploading full playlists to the server for most checks. (The previous provider-URL input has been removed from the main page; counts-only submissions and test flows are still supported where appropriate.)</p>
+      <p>The primary workflow now uses Xtream/portal credentials: when you enter valid Xtream fields the browser fetches the playlist directly from the panel (using the player API endpoints) and parses it locally. This avoids uploading full playlists to the server for most checks. (The previous provider-URL input has been removed from the main page. The primary workflow requires Xtream credentials; test/debug flows exist only for development and do not provide full analysis.)</p>
 
       <h5 class="mt-3">What is sent to the server</h5>
       <p>Only small numeric metrics (counts) are sent to the server for comparison. Your Xtream credentials are used in-memory by your browser for the fetch and are <strong>never stored</strong> or written to disk on the server. Submissions may include optional metadata or links for admin review, but credentials will not be saved with submissions.</p>
@@ -48,7 +48,7 @@
       <h4 class="mt-3">Tips</h4>
       <ul>
         <li>For the primary flow, use the Xtream credentials fields (host, optional port, username, password) — the site fetches and parses the playlist in your browser.</li>
-        <li>Large playlists take longer to fetch — use counts-only submission if fetch fails.</li>
+        <li>Large playlists take longer to fetch — if a fetch fails, try again or use the test/debug flows (these are limited and intended for development only).</li>
         <li>Do not paste credentials into any URL fields; use the dedicated Xtream fields.</li>
         <li>Refreshing the page may be required if site verification (anti-bot) appears.</li>
       </ul>
