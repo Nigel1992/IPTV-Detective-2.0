@@ -1,44 +1,53 @@
 # IPTV Detective 2.1
 
-## What is IPTV Detective?
+IPTV Detective is a focused web application for analyzing, comparing and moderating IPTV provider data. Built for researchers, moderators and community-curated collections, the app makes it easy to submit provider data, run similarity comparisons, and manage submissions from a secure admin interface.
 
-IPTV Detective is a web-based tool for analyzing, comparing, and managing IPTV provider data. It allows users to submit IPTV provider information, compare provider details, and manage submissions through an admin dashboard. The platform is designed for research, moderation, and community-driven IPTV data collection.
+Live demo: https://astrolume.infinityfreeapp.com/IPTV%20Detective/
 
-### Key Features
-- Submit and store IPTV provider details using Xtream credentials
-- Compare providers and group similar entries
-- Admin dashboard for reviewing and moderating submissions
-- Health and progress monitoring pages
-- Secure admin login with CAPTCHA support
- - Choose a Seller source and provide optional Seller info (username or profile URL) when submitting providers; this metadata is stored with submissions and is visible in the admin dashboard and API.
+## Highlights
 
-## Setup Instructions
+- Clean provider submission flow with optional seller metadata
+- Automated similarity scoring and grouping (tunable thresholds)
+- Admin dashboard for fast moderation and bulk actions
+- Deploy tooling (`deploy.sh`) with Semgrep pre-flight checks
+- Security-minded defaults: .htaccess protections, logging disabled by default
 
-1. **Configure your database and credentials:**
+## Quickstart
 
-1. **Configure your database and credentials:**
-    - Copy `inc/config.example.php` to `inc/config.php`.
-    - Edit `inc/config.php` and fill in your own database host, name, user, password, and Turnstile CAPTCHA keys.
-    - Do NOT commit your real config.php to version control or share it publicly.
-    - Set up your MySQL database and import any required schema (see `inc/db.php` for table expectations).
-3. **Rename the admin dashboard:**
-	- For security, rename `admin.php` to something unique (e.g., `admin_xyz123.php`).
+1. Copy the example config and fill in secrets:
+	- Copy `inc/config.example.php` to `inc/config.php` and edit database and Turnstile keys.
+	- Never commit `inc/config.php` to source control.
 
-4. **Deploy to your web server:**
-	- Upload the files to your PHP-enabled web server.
-	- Ensure the `logs/` directory is writable if you want to keep logs.	- If using the provided `deploy.sh`, keep a local `.deploy.env` (gitignored) with your FTP credentials and never commit it. `deploy.sh` stages code with `rsync` and **purges `.deploy.env`**, and the uploader uses `lftp mirror` with `--exclude-glob ".deploy.env" --exclude-glob ".env"` as a last line of defense to avoid uploading local secrets.
-5. **Access the site:**
-	- Visit the main page (`index.html`) to use the submission and comparison features.
-	- Use your renamed admin dashboard to moderate and review submissions.
+2. Run a local sanity check before deploying:
+	- Ensure PHP syntax is valid: `find . -name "*.php" -exec php -l {} \;`
+	- Run the included `deploy.sh` which performs Semgrep scans and uploads via `lftp`.
 
-## Security Notice
+3. Deploy safely:
+	- Use the `deploy.sh` script (it stages, scans, and uploads only production files).
+	- Keep a local `.deploy.env` (gitignored) for FTP credentials; `deploy.sh` excludes `.deploy.env` from uploads.
 
-**Always rename the admin dashboard file and keep your credentials private.**
+4. Protect sensitive files on shared hosts (InfinityFree):
+	- Upload the supplied `.htaccess` to the webroot to block access to `.git`, `*.log`, `.deploy.env`, and debug files.
+	- If possible, move any `.git` or secret files outside the webroot via FTP or the host control panel.
 
+## Security Notes
 
-**Never commit inc/config.php with real credentials to any public repository. Use inc/config.example.php as a template.**
-## .gitignore
-Sensitive files like `inc/config.php` and logs are excluded from version control.
+- Logging is disabled by default. Enable logging only after moving the `logs/` directory outside webroot and reviewing permissions.
+- Always rename the admin entry point for added obscurity and protect it with Basic Auth or IP restrictions.
+- `deploy.sh` runs an early Semgrep scan to block commits/uploads containing secrets or risky patterns.
 
-## License
-See LICENSE file if present.
+## Files of Interest
+
+- `index.php` — main UI and client-side logic
+- `submit.php`, `submit_provider.php` — submission endpoints
+- `get_comparisons.php`, `get_grouped_matches.php` — matching logic
+- `inc/config.php` — site configuration (do not commit real values)
+- `.htaccess` — recommended HTTP protections (already included)
+
+## Want to help or contribute?
+
+Contributions, bug reports and feature requests are welcome. Please open an issue or submit a pull request. When contributing, avoid committing secrets or local `.env` files.
+
+---
+
+Made with care — keep your deployment and credentials safe.
