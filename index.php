@@ -245,10 +245,10 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
               <div class="mb-2 d-inline-block" style="transform:translateY(-10px);">
                 <div class="cf-turnstile" data-sitekey="<?php echo htmlspecialchars($siteKey); ?>" style="display:inline-block;"></div>
               </div>
-              <div class="d-flex align-items-center">
+              <div class="d-flex flex-column align-items-end">
                 <button class="btn btn-primary btn-lg" type="submit"><i class="bi bi-search"></i> Check &amp; Compare</button>
-                <div class="ms-3">
-                  <span class="badge bg-danger text-white shadow-sm" style="font-size:0.85rem; padding:0.5rem 0.6rem; line-height:1.1;">
+                <div class="mt-2 text-end">
+                  <span class="badge bg-danger text-white shadow-sm" style="font-size:0.85rem; padding:0.45rem 0.6rem; line-height:1.1;">
                     <i class="bi bi-exclamation-triangle-fill me-1"></i>
                     Refresh page after each submission
                   </span>
