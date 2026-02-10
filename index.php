@@ -245,12 +245,15 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
               <div class="mb-2 d-inline-block" style="transform:translateY(-10px);">
                 <div class="cf-turnstile" data-sitekey="<?php echo htmlspecialchars($siteKey); ?>" style="display:inline-block;"></div>
               </div>
-              <div>
+              <div class="d-flex align-items-center">
                 <button class="btn btn-primary btn-lg" type="submit"><i class="bi bi-search"></i> Check &amp; Compare</button>
-              </div>
-              <div class="alert alert-danger mt-3 fw-bold text-center shadow" style="font-size:1.15rem; border-width:2px;">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                For security, you <u>must refresh the page after each submission</u> to receive a new captcha. Submitting without refreshing will cause errors or failed verification. <b>Always reload the page before each new submission!</b>
+                <div class="ms-3">
+                  <span class="badge bg-danger text-white shadow-sm" style="font-size:0.85rem; padding:0.5rem 0.6rem; line-height:1.1;">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    Refresh page after each submission
+                  </span>
+                  <div class="small text-danger mt-1" style="font-size:0.75rem;">Reload to get a new captcha before the next submission.</div>
+                </div>
               </div>
             </div>
           </div>
