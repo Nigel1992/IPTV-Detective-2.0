@@ -41,7 +41,8 @@ $matches = [];
 // Now find similar (non-exact) candidates based on available metrics (return only high-confidence matches)
 if ($has_live_categories || $has_live_streams || $has_series || $has_series_categories || $has_vod_categories) {
     // Minimum similarity required for a candidate to appear (percent)
-    $minSimilarity = 85.0;
+    // tightened to 95% to only treat very high-overlap providers as matches
+    $minSimilarity = 95.0;
 
     // fetch a reasonable candidate set — limit to recent 1000 for performance
     // build candidate select dynamically (avoid selecting missing columns)

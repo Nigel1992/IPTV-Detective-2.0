@@ -427,8 +427,8 @@ require_once __DIR__ . '/inc/maintenance.php';
 
           <h6>3) Thresholds and labels used by the site</h6>
           <ul class="help-list">
-            <li><strong>Match (stored as matched)</strong>: similarity &gt;= 85% — very likely the same package.</li>
-            <li><strong>Strong partial</strong>: 70%–85% — high overlap, worth manual review.</li>
+            <li><strong>Match (stored as matched)</strong>: similarity &gt;= 95% — very likely the same package.</li>
+            <li><strong>Strong partial</strong>: 75%–95% — high overlap, worth manual review.</li>
             <li><strong>Partial</strong>: 50%–70% — some overlap but likely different.</li>
             <li><strong>No match</strong>: &lt; 50% — different package.</li>
           </ul>
@@ -1166,10 +1166,10 @@ require_once __DIR__ . '/inc/maintenance.php';
             if (cRes.ok) {
               const cJ = await cRes.json();
               if (cJ && Array.isArray(cJ.matches) && cJ.matches.length > 0) {
-                // Only show matches with similarity >= 85%
-                const matchesFiltered = cJ.matches.filter(m => parseFloat(m.similarity) >= 85);
+                // Only show matches with similarity >= 95%
+                const matchesFiltered = cJ.matches.filter(m => parseFloat(m.similarity) >= 95);
                 if (!matchesFiltered.length) {
-                  compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">No strong matches (>=85%) found</div></div>`;
+                  compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">No strong matches (>=95%) found</div></div>`;
                 } else {
                   // Render filtered matches
                   compareHtml = '<div class="match-list">';
@@ -1411,8 +1411,8 @@ require_once __DIR__ . '/inc/maintenance.php';
             if (m.match_details && Array.isArray(m.match_details)) {
                 for (let detail of m.match_details) {
                   const simVal = parseFloat(detail.percentage);
-                  const matchIcon = simVal >= 85 ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>';
-                  const matchClass = simVal >= 85 ? 'text-success' : 'text-danger';
+                  const matchIcon = simVal >= 95 ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>';
+                  const matchClass = simVal >= 95 ? 'text-success' : 'text-danger';
                   detailLines.push(`<div class='small ${matchClass}'>${matchIcon} ${escapeHtml(detail.field)}: ${detail.percentage}%</div>`);
                 }
             } else {

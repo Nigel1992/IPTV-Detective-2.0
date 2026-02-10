@@ -394,8 +394,8 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
 
           <h6>3) Thresholds and labels used by the site</h6>
           <ul class="help-list">
-            <li><strong>Match (stored as matched)</strong>: similarity &gt;= 85% — very likely the same package.</li>
-            <li><strong>Strong partial</strong>: 70%–85% — high overlap, worth manual review.</li>
+            <li><strong>Match (stored as matched)</strong>: similarity &gt;= 95% — very likely the same package.</li>
+            <li><strong>Strong partial</strong>: 75%–95% — high overlap, worth manual review.</li>
             <li><strong>Partial</strong>: 50%–70% — some overlap but likely different.</li>
             <li><strong>No match</strong>: &lt; 50% — different package.</li>
           </ul>

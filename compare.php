@@ -54,7 +54,7 @@ try {
         'channels_match' => $p1['channels'] == $p2['channels'],
         'groups_match' => $p1['groups'] == $p2['groups']
     ];
-    $verdict = $similarity >= 85 ? 'Similar' : 'Different';
+    $verdict = $similarity >= 95 ? 'Similar' : 'Different';
     $jsonErrorSent = true;
     echo json_encode([
         'provider1' => ['id' => $p1['id'], 'name' => $p1['name'], 'price' => $p1['price']],

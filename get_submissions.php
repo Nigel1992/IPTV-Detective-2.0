@@ -76,8 +76,8 @@ for ($i = 0; $i < $n; $i++) {
     $series_categories_values[$i] = $p['series_categories'] ?? '';
     $vod_categories_values[$i] = $p['vod_categories'] ?? '';
 }
-// Use weighted similarity for grouping (threshold 85%)
-$minSimilarity = 85.0;
+// Use weighted similarity for grouping (threshold 95%)
+$minSimilarity = 95.0;
 $metricCols = ['live_streams'=>0.30,'live_categories'=>0.20,'series'=>0.20,'series_categories'=>0.15,'vod_categories'=>0.05];
 for ($i = 0; $i < $n; $i++) {
     for ($j = $i+1; $j < $n; $j++) {
