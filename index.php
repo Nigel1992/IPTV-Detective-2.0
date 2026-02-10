@@ -702,8 +702,10 @@ require_once __DIR__ . '/inc/maintenance.php';
 
       const fetchApiAction = async (action) => {
         const url = makeApiUrl(action);
-        // Request full response (may be large) — we ask proxy for full response up to server caps
-        const proxyUrl = 'inc/proxy.php?url=' + encodeURIComponent(url) + '&full=1&timeout=60&max_mb=50';
+        // Request count-only from proxy for metric endpoints where possible (more reliable/faster)
+        const countOnlyActions = new Set(['get_live_categories','get_live_streams','get_series','get_series_categories','get_vod_categories']);
+        const debugParam = (action === 'get_series') ? '&debug_snippet=1' : '';
+        const proxyUrl = 'inc/proxy.php?url=' + encodeURIComponent(url) + (countOnlyActions.has(action) ? '&count_only=1' : '&full=1') + debugParam + '&timeout=60&max_mb=50';
         try {
           const r = await fetchWithRetries(proxyUrl, { signal: (new AbortController()).signal }, 3);
           if (!r.ok) {

@@ -70,6 +70,7 @@ foreach ($ips as $rec) {
 }
 
 $countOnly = isset($_GET['count_only']) && $_GET['count_only'] == '1';
+$debugSnippet = isset($_GET['debug_snippet']) && $_GET['debug_snippet'] == '1';
 // If caller requests full response, allow streaming up to hard caps (be cautious)
 $streamFull = isset($_GET['full']) && $_GET['full'] == '1';
 
@@ -156,10 +157,17 @@ $escape = false;
 $depth = 0;
 $found_array = false;
 $finished = false;
+// buffer for debug snippet capture when requested (small, capped)
+$debug_buf = '';
 
 if ($countOnly) {
-    curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $chunk) use (&$received, &$maxBytes, &$truncated, &$items_count, &$items_sample, $sampleLimit, &$in_array, &$collecting, &$buf, &$in_string, &$escape, &$depth, &$finished) {
+    curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $chunk) use (&$received, &$maxBytes, &$truncated, &$items_count, &$items_sample, $sampleLimit, &$in_array, &$collecting, &$buf, &$in_string, &$escape, &$depth, &$finished, &$debug_buf, &$debugSnippet) {
         $len = strlen($chunk);
+        // capture a small raw snippet for debugging when requested (cap 4096 bytes)
+        if (!empty($debugSnippet) && strlen($debug_buf) < 4096) {
+            $need = 4096 - strlen($debug_buf);
+            $debug_buf .= substr($chunk, 0, $need);
+        }
         $received += $len;
         if ($received > $maxBytes) {
             $truncated = true;
@@ -313,7 +321,13 @@ if ($err) {
 if ($countOnly) {
     // completed fully
     header('Content-Type: application/json');
-    echo json_encode(['count' => $items_count, 'sample' => $items_sample, 'truncated' => false]);
+    $out = ['count' => $items_count, 'sample' => $items_sample, 'truncated' => false];
+    if ($debugSnippet && isset($debug_buf) && strlen($debug_buf) > 0) {
+        $out['snippet_b64'] = base64_encode(substr($debug_buf, 0, 4096));
+        // also write a short log for quick server-side inspection
+        @file_put_contents(__DIR__ . '/proxy_debug.log', date('c') . " debug_snippet url=" . preg_replace('/[\r\n]+/', '', (isset($url)?$url:'')) . " bytes=" . strlen($debug_buf) . "\n", FILE_APPEND);
+    }
+    echo json_encode($out);
     exit;
 }
 
