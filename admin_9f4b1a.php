@@ -192,16 +192,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['maintenance_action'])
         $action = ($_POST['maintenance_action'] === 'enable') ? 'enable' : 'disable';
         $flagFile = __DIR__ . '/MAINTENANCE';
         if ($action === 'enable') {
-            if (@file_put_contents($flagFile, 'Maintenance enabled at ' . date('c') . " by " . ($_SESSION['admin_user'] ?? 'admin') . "\n") === false) {
+            $written = @file_put_contents($flagFile, 'Maintenance enabled at ' . date('c') . " by " . ($_SESSION['admin_user'] ?? 'admin') . "\n");
+            if ($written === false) {
                 $action_err = 'Failed to enable maintenance mode (could not write flag file)';
             } else {
                 $action_msg = 'Maintenance mode enabled';
+                // Notify Discord webhook if configured
+                if (!empty($cfg['discord_webhook'])) {
+                    $msg = "**Maintenance enabled**\nUser: " . ($_SESSION['admin_user'] ?? 'admin') . "\nTime: " . date('c') . "\n" . trim(@file_get_contents($flagFile) ?: '');
+                    // send in background if possible (non-blocking)
+                    try {
+                        $ch = curl_init($cfg['discord_webhook']);
+                        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                        curl_setopt($ch, CURLOPT_POST, true);
+                        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['content' => $msg]));
+                        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                        curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+                        $resp = curl_exec($ch);
+                        $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                        curl_close($ch);
+                    } catch (Throwable $_e) {
+                        // ignore notification errors
+                    }
+                }
             }
         } else {
             if (file_exists($flagFile) && !@unlink($flagFile)) {
                 $action_err = 'Failed to disable maintenance mode (could not remove flag file)';
             } else {
                 $action_msg = 'Maintenance mode disabled';
+                if (!empty($cfg['discord_webhook'])) {
+                    $msg = "**Maintenance disabled**\nUser: " . ($_SESSION['admin_user'] ?? 'admin') . "\nTime: " . date('c') . "\n";
+                    try {
+                        $ch = curl_init($cfg['discord_webhook']);
+                        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                        curl_setopt($ch, CURLOPT_POST, true);
+                        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['content' => $msg]));
+                        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                        curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+                        $resp = curl_exec($ch);
+                        $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                        curl_close($ch);
+                    } catch (Throwable $_e) {}
+                }
             }
         }
     }
