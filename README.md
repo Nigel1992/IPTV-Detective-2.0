@@ -14,9 +14,33 @@ Live demo: https://astrolume.infinityfreeapp.com/IPTV%20Detective/
 
 ## Quickstart
 
-1. Copy the example config and fill in secrets:
-	- Copy `inc/config.example.php` to `inc/config.php` and edit database and Turnstile keys.
-	- Never commit `inc/config.php` to source control.
+## Configuration: Secure Setup
+
+1. **Create your config file:**
+	- Copy `inc/config example.php` to `inc/config.php` (note the space in the filename).
+	- Open `inc/config.php` and fill in your real database host, name, user, password, Turnstile keys, and Discord webhook/channel if used.
+	- Example:
+	  ```php
+	  // inc/config.php
+	  return [
+			'host' => 'your-db-host',
+			'port' => 3306,
+			'dbname' => 'your-db-name',
+			'user' => 'your-db-user',
+			'pass' => 'your-db-password',
+			'charset' => 'utf8mb4',
+			'turnstile_site_key' => 'your-turnstile-site-key',
+			'turnstile_secret' => 'your-turnstile-secret',
+			'discord_webhook' => 'your-discord-webhook-url',
+			'discord_channel' => 'your-discord-channel-id'
+	  ];
+	  ```
+	- **Never commit `inc/config.php` with real secrets to GitHub or any public repo.**
+	- The example config uses placeholders; always keep your real config private.
+
+2. **Run a local sanity check before deploying:**
+	- Ensure PHP syntax is valid: `find . -name "*.php" -exec php -l {} \;`
+	- Run the included `deploy.sh` which performs Semgrep scans and uploads via `lftp`.
 
 2. Run a local sanity check before deploying:
 	- Ensure PHP syntax is valid: `find . -name "*.php" -exec php -l {} \;`
