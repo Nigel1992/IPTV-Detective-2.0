@@ -242,6 +242,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
               <div class="small text-muted">Tip: reload page if site verification prompts appear.</div>
               <div class="small text-warning" style="max-width:320px;">
                 <strong>Captcha:</strong> If you see errors or the captcha fails, <u>refresh the page</u> to get a new captcha before submitting again. This helps avoid issues with expired or invalid captchas.
+                              <strong>Captcha:</strong> For security, you <b>must refresh the page after each submission</b> to receive a new captcha. Submitting without refreshing may result in errors or failed verification. Always reload the page before each new submission to ensure your request is processed smoothly.
               </div>
             </div>
             <div class="text-end">
