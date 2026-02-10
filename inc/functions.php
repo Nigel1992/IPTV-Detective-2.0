@@ -95,7 +95,12 @@ function count_field_items($v) {
     // try JSON decode first
     $d = @json_decode($s, true);
     if (is_array($d)) return count($d);
-    // common compact JSON fragments: '}{' or '},{' indicate multiple objects
+    // common compact JSON fragments: detect multiple objects separated by commas
+    // handle separators with optional whitespace/newlines like '}, {' or '},\n{'
+    if (preg_match_all('/}\s*,\s*{/', $s, $matches) && !empty($matches[0])) {
+        return count($matches[0]) + 1;
+    }
+    // fallback to simple literal checks
     if (strpos($s, '},{') !== false) return substr_count($s, '},{') + 1;
     if (strpos($s, '}{') !== false) return substr_count($s, '}{') + 1;
     // comma-separated simple lists fallback
