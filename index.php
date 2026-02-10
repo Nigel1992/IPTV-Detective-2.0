@@ -248,11 +248,10 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
               <div class="d-flex flex-column align-items-end">
                 <button class="btn btn-primary btn-lg" type="submit"><i class="bi bi-search"></i> Check &amp; Compare</button>
                 <div class="mt-2 text-end">
-                  <span class="badge bg-danger text-white shadow-sm" style="font-size:0.85rem; padding:0.45rem 0.6rem; line-height:1.1;">
-                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                    Refresh page after each submission
-                  </span>
-                  <div class="small text-danger mt-1" style="font-size:0.75rem;">Reload to get a new captcha before the next submission.</div>
+                  <div class="p-2 rounded shadow-sm" style="border:2px solid #d9534f; background:rgba(217,83,79,0.06); max-width:360px;">
+                    <div class="fw-bold text-danger" style="font-size:0.95rem;"><i class="bi bi-exclamation-triangle-fill me-1"></i> Refresh page after each submission</div>
+                    <div class="small text-muted mt-1" style="font-size:0.78rem;">Reload to get a new captcha before the next submission.</div>
+                  </div>
                 </div>
               </div>
             </div>
