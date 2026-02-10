@@ -184,6 +184,29 @@ $user = $_SESSION['admin_user'];
 $total_providers = $pdo->query('SELECT COUNT(*) FROM providers')->fetchColumn();
 $recent_submissions = $pdo->query('SELECT COUNT(*) FROM providers WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)')->fetchColumn();
 $matched_providers = 0;
+// Handle maintenance toggle from admin (create/remove MAINTENANCE flag file)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['maintenance_action'])) {
+    if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        $action_err = 'Invalid request (security token mismatch)';
+    } else {
+        $action = ($_POST['maintenance_action'] === 'enable') ? 'enable' : 'disable';
+        $flagFile = __DIR__ . '/MAINTENANCE';
+        if ($action === 'enable') {
+            if (@file_put_contents($flagFile, 'Maintenance enabled at ' . date('c') . " by " . ($_SESSION['admin_user'] ?? 'admin') . "\n") === false) {
+                $action_err = 'Failed to enable maintenance mode (could not write flag file)';
+            } else {
+                $action_msg = 'Maintenance mode enabled';
+            }
+        } else {
+            if (file_exists($flagFile) && !@unlink($flagFile)) {
+                $action_err = 'Failed to disable maintenance mode (could not remove flag file)';
+            } else {
+                $action_msg = 'Maintenance mode disabled';
+            }
+        }
+    }
+}
+
 try {
     $stmtCols = $pdo->prepare("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=? AND TABLE_NAME='providers'");
     $cfg = include __DIR__ . '/inc/config.php';
@@ -827,6 +850,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <div class="stats-number text-info"><?php echo $unmatched_providers > 0 ? number_format($unmatched_providers) : '0'; ?></div>
                             <div class="stats-label">Unmatched</div>
                             <i class="bi bi-question-circle position-absolute top-50 end-0 translate-middle-y me-3 opacity-25" style="font-size:2rem;"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Maintenance toggle row -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex align-items-center">
+                                <i class="bi bi-shield-exclamation me-2"></i>Site Maintenance Mode
+                            </div>
+                            <div class="card-body">
+                                <?php
+                                $flagFile = __DIR__ . '/MAINTENANCE';
+                                $isMaint = file_exists($flagFile);
+                                if (isset($action_msg)) echo '<div class="alert alert-success">' . htmlspecialchars($action_msg) . '</div>';
+                                if (isset($action_err)) echo '<div class="alert alert-danger">' . htmlspecialchars($action_err) . '</div>';
+                                ?>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <p class="mb-0">Status: <strong><?php echo $isMaint ? '<span class="text-danger">Enabled</span>' : '<span class="text-success">Disabled</span>'; ?></strong></p>
+                                        <p class="small text-muted mb-0">When enabled, non-admin visitors will see a maintenance page. Admins can still access the dashboard.</p>
+                                    </div>
+                                    <div>
+                                        <form method="post" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                            <?php if ($isMaint): ?>
+                                                <button type="submit" name="maintenance_action" value="disable" class="btn btn-outline-light">Disable Maintenance</button>
+                                            <?php else: ?>
+                                                <button type="submit" name="maintenance_action" value="enable" class="btn btn-danger">Enable Maintenance</button>
+                                            <?php endif; ?>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

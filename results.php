@@ -6,6 +6,7 @@ header('Pragma: no-cache');
 header('Expires: 0');
 require_once __DIR__ . '/inc/db.php';
 require_once __DIR__ . '/inc/functions.php';
+require_once __DIR__ . '/inc/maintenance.php';
 $pdo = get_db();
 
 $id = intval($_GET['snapshot_id'] ?? 0);

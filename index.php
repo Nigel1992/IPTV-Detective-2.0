@@ -17,6 +17,9 @@ if (!is_array($cfg)) {
     $cfg = [ 'turnstile_site_key' => 'PLACEHOLDER_TURNSTILE_SITE_KEY', 'turnstile_secret' => 'PLACEHOLDER_TURNSTILE_SECRET' ];
 }
 $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cfg['turnstile_site_key'] : 'PLACEHOLDER_TURNSTILE_SITE_KEY';
+
+// Maintenance mode check (shows maintenance page if MAINTENANCE flag file exists and visitor is not admin)
+require_once __DIR__ . '/inc/maintenance.php';
 ?>
 <!doctype html>
 <html lang="en">

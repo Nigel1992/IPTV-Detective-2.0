@@ -12,6 +12,7 @@ $debug_log = __DIR__ . '/submit_debug.log';
 
 require_once __DIR__ . '/inc/db.php';
 require_once __DIR__ . '/inc/functions.php';
+require_once __DIR__ . '/inc/maintenance.php';
 $pdo = get_db();
 
 header('Content-Type: application/json');
