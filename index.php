@@ -22,7 +22,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>IPTV Detective 2.1</title>
+  <title>IPTV Detective v2.1.3</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" href="favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -238,7 +238,12 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
           </div>
 
           <div class="d-flex justify-content-between align-items-center mt-3">
-            <div class="small text-muted">Tip: reload page if site verification prompts appear.</div>
+            <div>
+              <div class="small text-muted">Tip: reload page if site verification prompts appear.</div>
+              <div class="small text-warning" style="max-width:320px;">
+                <strong>Captcha:</strong> If you see errors or the captcha fails, <u>refresh the page</u> to get a new captcha before submitting again. This helps avoid issues with expired or invalid captchas.
+              </div>
+            </div>
             <div class="text-end">
               <div class="mb-2 d-inline-block" style="transform:translateY(-10px);">
                 <div class="cf-turnstile" data-sitekey="<?php echo htmlspecialchars($siteKey); ?>" style="display:inline-block;"></div>
@@ -1021,23 +1026,25 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
         const diff = (data.match_price_diff !== null && data.match_price_diff !== undefined) ? Number(data.match_price_diff) : null;
         const diffText = diff === null ? '' : (diff < 0 ? `<span class='text-success fw-bold'>Cheaper by $${Math.abs(diff)}</span>` : `<span class='text-danger fw-bold'>More expensive by $${diff}</span>`);
         // Attempt to fetch seller info for this matched provider (if available) and include it in the card
-        let sellerHtml = '';
-        let sellerInline = '';
-        if (data.match_id) {
-          try {
-            const mcRes = await fetch('get_comparisons.php?id=' + encodeURIComponent(data.match_id));
-            if (mcRes.ok) {
-              const mcJ = await mcRes.json();
-              const t = mcJ && mcJ.target ? mcJ.target : null;
-              if (t && (t.seller_source || t.seller_info)) {
-                const sText = escapeHtml(t.seller_source || '') + (t.seller_info ? ' — ' + escapeHtml(t.seller_info) : '');
-                sellerHtml = `<div class="small text-muted mt-1">Seller: ${sText}</div>`;
-                sellerInline = `<span class="small text-muted ms-2">Seller: ${sText}</span>`;
-              }
+        // Seller info as plain text next to provider name and price
+        let sellerText = '';
+        if (data.seller_source || data.seller_info) {
+          sellerText = escapeHtml(data.seller_source || '');
+          if (data.seller_info) {
+            // If seller_info looks like a URL, make it clickable
+            const info = data.seller_info.trim();
+            if (/^https?:\/\//i.test(info)) {
+              sellerText += ' — <a href="' + escapeHtml(info) + '" target="_blank" rel="noopener" class="text-info text-decoration-underline">' + escapeHtml(info) + '</a>';
+            } else {
+              sellerText += ' — ' + escapeHtml(info);
             }
-          } catch (ex) { /* ignore errors */ }
+          }
         }
-
+        let badges = [];
+        if (data.match_details && Array.isArray(data.match_details)) {
+          badges = data.match_details.map(m=>`<span class=\"badge bg-dark text-info py-1 px-2\">${escapeHtml(m.field)}: ${escapeHtml(String(m.percentage))}%</span>`);
+        }
+        const detailsHtml = badges.length ? ('<div class=\"small text-muted mt-2\"><div class=\"d-flex flex-wrap gap-2\">' + badges.join('') + '</div></div>') : '';
         compareHtml = `
           <div class="match-card success">
             <div class="match-header">
@@ -1045,10 +1052,13 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
               <div class="text-muted small">Similarity: <strong>${data.similarity}%</strong></div>
             </div>
             <div class="mt-2">
-              <div><strong>${escapeHtml(data.match_name || 'Matched provider')}</strong> <span class="text-muted">($${data.match_price !== null && data.match_price !== undefined ? data.match_price : 'N/A'})</span> ${diffText}</div>
-              ${sellerHtml}
-              ${data.match_channels_text ? `<div class="small text-muted mt-2">${escapeHtml(data.match_channels_text)}</div>` : ''}
-              ${data.match_groups_text ? `<div class="small text-muted">${escapeHtml(data.match_groups_text)}</div>` : ''}
+              <div class="d-flex align-items-center gap-2">
+                <strong>${escapeHtml(data.match_name || 'Matched provider')}</strong>
+                <span class="text-muted">($${data.match_price !== null && data.match_price !== undefined ? data.match_price : 'N/A'})</span>
+                ${sellerText ? `<span class="small text-muted ms-2">${sellerText}</span>` : ''}
+                ${diffText}
+              </div>
+              ${detailsHtml}
               ${data.cheapest_match && data.cheapest_match.name ? `<div class="small mt-2">Cheapest similar: <strong>${escapeHtml(data.cheapest_match.name)}</strong> ($${data.cheapest_match.price})</div>` : ''}
             </div>
           </div>`;
@@ -1072,8 +1082,35 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                   compareHtml = '<div class="match-list">';
                   for (const best of matchesFiltered) {
                     const diff = (best.price !== null && best.price !== undefined) ? (best.price < data.price ? ` <span class="text-success fw-bold">Cheaper by $${(data.price - best.price).toFixed(2)}</span>` : (best.price > data.price ? ` <span class="text-danger fw-bold">More expensive by $${(best.price - data.price).toFixed(2)}</span>` : '')) : '';
-                    const detailsHtml = (best.match_details && best.match_details.length) ? ('<div class="small text-muted mt-2"><div class="d-flex flex-wrap gap-2">' + best.match_details.map(m=>`<span class="badge bg-dark text-info py-1 px-2">${escapeHtml(m.field)}: ${escapeHtml(String(m.percentage))}%</span>`).join('') + '</div></div>') : '';
-                    const sellerInline = (best.seller_source || best.seller_info) ? `<span class="small text-muted ms-2">Seller: ${escapeHtml(best.seller_source || '')}${best.seller_info ? ' — ' + escapeHtml(best.seller_info) : ''}</span>` : '';
+                                    const diffVal = (best.price !== null && best.price !== undefined) ? (data.price - best.price) : null;
+                                    let diffHtml = '';
+                                    if (diffVal !== null) {
+                                      if (diffVal > 0) {
+                                        diffHtml = ` <span class="text-success fw-bold">Cheaper by $${Math.abs(diffVal).toFixed(2)}</span>`;
+                                      } else if (diffVal < 0) {
+                                        diffHtml = ` <span class="text-danger fw-bold">More expensive by $${Math.abs(diffVal).toFixed(2)}</span>`;
+                                      } else {
+                                        diffHtml = ` <span class="text-primary fw-bold">Same price</span>`;
+                                      }
+                                    }
+                            let diffText = diffHtml;
+                    let badges = [];
+                    if (best.match_details && best.match_details.length) {
+                      badges = best.match_details.map(m=>`<span class=\"badge bg-dark text-info py-1 px-2\">${escapeHtml(m.field)}: ${escapeHtml(String(m.percentage))}%</span>`);
+                    }
+                    let sellerSource = best.seller_source || (cJ.target && cJ.target.seller_source) || '';
+                    let sellerInfo = best.seller_info || (cJ.target && cJ.target.seller_info) || '';
+                    let s = escapeHtml(sellerSource);
+                    if (sellerInfo) {
+                      const info = sellerInfo.trim();
+                      if (/^https?:\/\//i.test(info)) {
+                        s += ' — <a href="' + escapeHtml(info) + '" target="_blank" rel="noopener" class="text-info text-decoration-underline">' + escapeHtml(info) + '</a>';
+                      } else {
+                        s += ' — ' + escapeHtml(info);
+                      }
+                    }
+                    // Show seller info as plain text next to provider name/price
+                    const detailsHtml = badges.length ? ('<div class=\"small text-muted mt-2\"><div class=\"d-flex flex-wrap gap-2\">' + badges.join('') + '</div></div>') : '';
                     compareHtml += `
                       <div class="match-card success mb-2">
                         <div class="match-header">
@@ -1081,7 +1118,12 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                           <div class="text-muted small">Similarity: <strong>${best.similarity}%</strong></div>
                         </div>
                         <div class="mt-2">
-                          <div><strong>${escapeHtml(best.name || 'Matched provider')}</strong> <span class="text-muted">($${best.price !== null && best.price !== undefined ? best.price : 'N/A'})</span>${sellerInline}${diff}</div>
+                          <div class="d-flex align-items-center gap-2">
+                            <strong>${escapeHtml(best.name || 'Matched provider')}</strong>
+                            <span class="text-muted">($${best.price !== null && best.price !== undefined ? best.price : 'N/A'})</span>
+                            ${s ? `<span class="small text-muted ms-2">${s}</span>` : ''}
+                            ${diff}
+                          </div>
                           ${detailsHtml}
                         </div>
                       </div>`;
@@ -1258,7 +1300,14 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
             } else {
             let out = '<div class="row g-3">';
             for (let m of highSimilarityMatches) {
-              const cheaperBadge = m.cheaper ? `<div class="text-success">Cheaper by $${Math.abs(m.price_diff)}</div>` : `<div class="text-muted">More expensive by $${Math.abs(m.price_diff)}</div>`;
+              let cheaperBadge = '';
+              if (m.price_diff < 0) {
+                cheaperBadge = `<div class="text-success">Cheaper by $${Math.abs(m.price_diff)}</div>`;
+              } else if (m.price_diff > 0) {
+                cheaperBadge = `<div class="text-danger">More expensive by $${Math.abs(m.price_diff)}</div>`;
+              } else {
+                cheaperBadge = `<div class="text-primary">Same price</div>`;
+              }
               const bestBadge = (data.best_cheaper && data.best_cheaper.id == m.id) ? `<span class="badge bg-success ms-2">Best cheaper</span>` : '';
 
             const pct = m.similarity ? parseFloat(m.similarity).toFixed(2) : '0.00';
@@ -1268,9 +1317,10 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
             let detailLines = [];
             if (m.match_details && Array.isArray(m.match_details)) {
                 for (let detail of m.match_details) {
-                    const matchIcon = detail.matches ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>';
-                    const matchClass = detail.matches ? 'text-success' : 'text-danger';
-                    detailLines.push(`<div class='small ${matchClass}'>${matchIcon} ${escapeHtml(detail.field)}: ${detail.percentage}%</div>`);
+                  const simVal = parseFloat(detail.percentage);
+                  const matchIcon = simVal >= 85 ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>';
+                  const matchClass = simVal >= 85 ? 'text-success' : 'text-danger';
+                  detailLines.push(`<div class='small ${matchClass}'>${matchIcon} ${escapeHtml(detail.field)}: ${detail.percentage}%</div>`);
                 }
             } else {
                 // Fallback to old format
@@ -1297,7 +1347,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                       <div>
                         <div class="fw-bold">${escapeHtml(m.name)} ${bestBadge}</div>
                         <div class="text-muted small">${escapeHtml(m.link)}</div>
-                        ${m.seller_source || m.seller_info ? `<div class="small text-muted mt-1">Seller: ${escapeHtml(m.seller_source || '')}${m.seller_info ? ' — ' + escapeHtml(m.seller_info) : ''}</div>` : ''}
+                        ${m.seller_source || m.seller_info ? `<div class="small text-muted mt-1">Seller: ${escapeHtml(m.seller_source || '')}${m.seller_info ? (() => { const info = m.seller_info.trim(); return /^https?:\/\//i.test(info) ? ' — <a href="' + escapeHtml(info) + '" target="_blank" rel="noopener" class="text-info text-decoration-underline">' + escapeHtml(info) + '</a>' : ' — ' + escapeHtml(info); })() : ''}</div>` : ''}
                       </div>
                       <div class="text-end">
                         <div class="fw-bold">$${m.price} / year</div>
@@ -1305,9 +1355,6 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                       </div>
                     </div>
                     <div class="mt-3">${simBar}</div>
-                    <div class="mt-2">
-                      
-                    </div>
                   </div>
                 </div>
               </div>`;
@@ -1569,8 +1616,8 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
 
         <div class="col-md-4 text-md-end">
           <h6 class="mb-3 text-uppercase fw-bold" style="color: #00d4ff;"><i class="bi bi-code-slash me-2"></i>Version</h6>
-          <div class="mb-1 fs-5">v <strong style="color: #00d4ff;">2.1</strong></div>
-          <div class="small text-muted">build <span id="buildDate">2026-02-08</span></div>
+          <div class="mb-1 fs-5">v <strong style="color: #00d4ff;">2.1.3</strong></div>
+          <div class="small text-muted">build <span id="buildDate">2026-02-10</span></div>
           <div class="mt-3"><small class="text-muted">© 2024–2026 IPTV Detective</small></div>
         </div>
       </div>
@@ -1603,21 +1650,52 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <strong>Version 2.1 — 2026-02-08</strong>
+          <strong>Version 2.1.3 — 2026-02-10</strong>
           <ul>
-            <li>Added Seller Source and Seller Info to submissions and admin UI.</li>
-            <li>Made Xtream credentials processing in-browser by default; improved privacy wording.</li>
-            <li>Updated admin provider list to show seller and improved edit modal.</li>
-            <li>Documentation and help updated to explain credential handling and comparison logic.</li>
+            <li>Updated the changelog and site modal to use simple, clear language.</li>
+            <li>Made sure the changelog is easy for everyone to read, not just developers.</li>
+            <li>Fixed issues with duplicate or confusing changelog entries.</li>
+            <li>Added retry option if channel count is 0, so users can try again easily.</li>
+            <li>Improved error handling and logging for fetch failures and internal errors.</li>
+            <li>Clarified UI and scripts to show submission requirements and retry options.</li>
+          </ul>
+        </div>
+        <div class="mb-3">
+          <strong>Version 2.1.2 — 2026-02-09</strong>
+          <ul>
+            <li>You can now only use Xtream login for comparisons; M3U file uploads are no longer supported.</li>
+            <li>Changed the layout so the CAPTCHA fits better on the homepage.</li>
+            <li>Improved login and provider submission security with server checks.</li>
+            <li>The site form and scripts were updated to only accept channel counts, not full playlists.</li>
+            <li>Fixed a bug in provider count checking and made loading settings more reliable.</li>
+            <li>Updated the help text to make it clearer how the site works and what info is private.</li>
+            <li>Made sensitive files safer by changing file permissions and adding protection rules.</li>
+            <li>Improved some button text and loading messages to make things clearer.</li>
+            <li>Uploaded these updates to the live site.</li>
+          </ul>
+        </div>
+        <div class="mb-3">
+          <strong>Version 2.1.1 — 2026-02-08</strong>
+          <ul>
+            <li>Added a security check (CAPTCHA) to the homepage and admin login to help block bots.</li>
+            <li>Changed the layout so the CAPTCHA fits better on the homepage.</li>
+            <li>Improved login and provider submission security with server checks.</li>
+            <li>You can no longer upload M3U files; now you just enter channel counts for comparisons.</li>
+            <li>The site form and scripts were updated to only accept channel counts, not full playlists.</li>
+            <li>Fixed a bug in provider count checking and made loading settings more reliable.</li>
+            <li>Updated the help text to make it clearer how the site works and what info is private.</li>
+            <li>Made sensitive files safer by changing file permissions and adding protection rules.</li>
+            <li>Improved some button text and loading messages to make things clearer.</li>
+            <li>Uploaded these updates to the live site.</li>
           </ul>
         </div>
         <div class="mb-3">
           <strong>Version 2.0 — (previous)</strong>
           <ul>
-            <li>Initial public release base features: provider submission, comparison, admin dashboard.</li>
+            <li>First public release: submit providers, compare packages, use admin dashboard.</li>
           </ul>
         </div>
-        <p class="small text-muted">This changelog is a short summary. For detailed history, check the repository tags or contact the site administrator.</p>
+        <p class="small text-muted">This changelog is written for everyone. For more details, ask the site admin.</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>

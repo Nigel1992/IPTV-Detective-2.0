@@ -1,17 +1,22 @@
-## Changelog
 
-All changes below are high-level and do not include any sensitive information (no keys, passwords, or server details).
+# Changelog
 
-### 2026-02-08 — v2.1.1
-- Enabled and standardized Cloudflare Turnstile CAPTCHA on the public homepage and admin login (keys loaded from `config.php`).
-- Moved and adjusted the Turnstile widget position on the homepage so it fits within the form layout.
-- Re-enabled server-side Turnstile verification for admin logins and provider submissions.
-- Removed M3U file upload/parse support from the UI and server: submissions now rely on client-provided counts and server-side comparisons.
-- Updated `submit_provider.php` and related client JS to accept counts-only submissions and avoid accepting raw playlist uploads.
-- Fixed a syntax/brace issue in `get_counts.php` and improved its configuration loading behavior.
-- Updated help text in the site help modal to match `help.html` (clarifies how the site works and privacy notes).
-- Tightened file permissions for sensitive files and added `.htaccess` rules to reduce risk of accidental exposure.
-- Minor UI text and loading-state improvements (removed references to M3U in button text, etc.).
-- Deployed updates to the configured FTP server.
+This changelog is written for everyone, not just developers. It explains what changed in simple terms.
 
-If you want a more detailed developer-oriented changelog (with file-level diffs), I can prepare that separately — it will exclude any secrets.
+
+## 2026-02-10 — v2.1.2
+- Added a warning next to the captcha on the main form, telling users to refresh the page if the captcha fails or expires to avoid issues.
+
+## 2026-02-08 — v2.1.1
+- Added a security check (CAPTCHA) to the homepage and admin login to help block bots.
+- Changed the layout so the CAPTCHA fits better on the homepage.
+- Improved login and provider submission security with server checks.
+- You can no longer upload M3U files; now you just enter channel counts for comparisons.
+- The site form and scripts were updated to only accept channel counts, not full playlists.
+- Fixed a bug in provider count checking and made loading settings more reliable.
+- Updated the help text to make it clearer how the site works and what info is private.
+- Made sensitive files safer by changing file permissions and adding protection rules.
+- Improved some button text and loading messages to make things clearer.
+- Uploaded these updates to the live site.
+
+If you need a more technical changelog, just ask!
