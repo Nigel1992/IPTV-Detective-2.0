@@ -1616,7 +1616,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
 
         <div class="col-md-4 text-md-end">
           <h6 class="mb-3 text-uppercase fw-bold" style="color: #00d4ff;"><i class="bi bi-code-slash me-2"></i>Version</h6>
-          <div class="mb-1 fs-5">v <strong style="color: #00d4ff;">2.1.3</strong></div>
+          <div class="mb-1 fs-5">v <strong style="color: #00d4ff;">2.1.2</strong></div>
           <div class="small text-muted">build <span id="buildDate">2026-02-10</span></div>
           <div class="mt-3"><small class="text-muted">© 2024–2026 IPTV Detective</small></div>
         </div>
@@ -1650,28 +1650,9 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <strong>Version 2.1.3 — 2026-02-10</strong>
+          <strong>Version 2.1.2 — 2026-02-10</strong>
           <ul>
-            <li>Updated the changelog and site modal to use simple, clear language.</li>
-            <li>Made sure the changelog is easy for everyone to read, not just developers.</li>
-            <li>Fixed issues with duplicate or confusing changelog entries.</li>
-            <li>Added retry option if channel count is 0, so users can try again easily.</li>
-            <li>Improved error handling and logging for fetch failures and internal errors.</li>
-            <li>Clarified UI and scripts to show submission requirements and retry options.</li>
-          </ul>
-        </div>
-        <div class="mb-3">
-          <strong>Version 2.1.2 — 2026-02-09</strong>
-          <ul>
-            <li>You can now only use Xtream login for comparisons; M3U file uploads are no longer supported.</li>
-            <li>Changed the layout so the CAPTCHA fits better on the homepage.</li>
-            <li>Improved login and provider submission security with server checks.</li>
-            <li>The site form and scripts were updated to only accept channel counts, not full playlists.</li>
-            <li>Fixed a bug in provider count checking and made loading settings more reliable.</li>
-            <li>Updated the help text to make it clearer how the site works and what info is private.</li>
-            <li>Made sensitive files safer by changing file permissions and adding protection rules.</li>
-            <li>Improved some button text and loading messages to make things clearer.</li>
-            <li>Uploaded these updates to the live site.</li>
+            <li>Added a warning next to the captcha on the main form, telling users to refresh the page if the captcha fails or expires to avoid issues.</li>
           </ul>
         </div>
         <div class="mb-3">
