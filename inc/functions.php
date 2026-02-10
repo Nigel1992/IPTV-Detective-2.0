@@ -85,4 +85,25 @@ function sanitize_url($u) {
 }
 
 // M3U parsing removed; uploads/files are no longer supported by the UI.
+
+// Count items in fields that may be numeric, JSON arrays, or compact object lists
+function count_field_items($v) {
+    if ($v === null || $v === '') return 0;
+    if (is_int($v) || is_float($v)) return intval($v);
+    if (is_numeric($v)) return intval($v);
+    $s = trim((string)$v);
+    // try JSON decode first
+    $d = @json_decode($s, true);
+    if (is_array($d)) return count($d);
+    // common compact JSON fragments: '}{' or '},{' indicate multiple objects
+    if (strpos($s, '},{') !== false) return substr_count($s, '},{') + 1;
+    if (strpos($s, '}{') !== false) return substr_count($s, '}{') + 1;
+    // comma-separated simple lists fallback
+    if (strpos($s, ',') !== false) {
+        $parts = array_filter(array_map('trim', explode(',', $s)), function($x){ return $x !== ''; });
+        return count($parts);
+    }
+    // otherwise assume single item
+    return 1;
+}
 ?>

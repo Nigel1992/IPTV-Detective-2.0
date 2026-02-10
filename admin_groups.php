@@ -78,9 +78,15 @@ if (!$has) {
         $p = $providers[$i];
         $live_streams_counts[$i] = intval($p['live_streams'] ?? 0);
         $live_categories_counts[$i] = intval($p['live_categories'] ?? 0);
-        $series_counts[$i] = intval($p['series'] ?? 0);
-        $series_categories_counts[$i] = intval($p['series_categories'] ?? 0);
-        $vod_categories_counts[$i] = intval($p['vod_categories'] ?? 0);
+        if (function_exists('count_field_items')) {
+            $series_counts[$i] = count_field_items($p['series'] ?? '');
+            $series_categories_counts[$i] = count_field_items($p['series_categories'] ?? '');
+            $vod_categories_counts[$i] = count_field_items($p['vod_categories'] ?? '');
+        } else {
+            $series_counts[$i] = intval($p['series'] ?? 0);
+            $series_categories_counts[$i] = intval($p['series_categories'] ?? 0);
+            $vod_categories_counts[$i] = intval($p['vod_categories'] ?? 0);
+        }
     }
     $threshold = 80.0;
     for ($i = 0; $i < $n; $i++) {

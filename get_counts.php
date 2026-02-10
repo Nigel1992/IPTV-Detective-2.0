@@ -48,16 +48,29 @@ try {
         $adj = array_fill(0, $n, []);
         $live_categories_values = [];
         $live_streams_values = [];
-        $series_values = [];
-        $series_categories_values = [];
-        $vod_categories_values = [];
+        $series_values_raw = [];
+        $series_categories_values_raw = [];
+        $vod_categories_values_raw = [];
+        $series_counts = [];
+        $series_categories_counts = [];
+        $vod_counts = [];
         for ($i = 0; $i < $n; $i++) {
             $p = $providers[$i];
             $live_categories_values[$i] = $p['live_categories'] ?? '';
             $live_streams_values[$i] = $p['live_streams'] ?? '';
-            $series_values[$i] = $p['series'] ?? '';
-            $series_categories_values[$i] = $p['series_categories'] ?? '';
-            $vod_categories_values[$i] = $p['vod_categories'] ?? '';
+            $series_values_raw[$i] = $p['series'] ?? '';
+            $series_categories_values_raw[$i] = $p['series_categories'] ?? '';
+            $vod_categories_values_raw[$i] = $p['vod_categories'] ?? '';
+            // robust counts for fallback/matching
+            if (function_exists('count_field_items')) {
+                $series_counts[$i] = count_field_items($series_values_raw[$i]);
+                $series_categories_counts[$i] = count_field_items($series_categories_values_raw[$i]);
+                $vod_counts[$i] = count_field_items($vod_categories_values_raw[$i]);
+            } else {
+                $series_counts[$i] = is_numeric($p['series'] ?? '') ? intval($p['series']) : 0;
+                $series_categories_counts[$i] = is_numeric($p['series_categories'] ?? '') ? intval($p['series_categories']) : 0;
+                $vod_counts[$i] = is_numeric($p['vod_categories'] ?? '') ? intval($p['vod_categories']) : 0;
+            }
         }
 
         // exact matching function
@@ -65,13 +78,27 @@ try {
         for ($i = 0; $i < $n; $i++) {
             for ($j = $i+1; $j < $n; $j++) {
                 // Check exact matches on all available fields
-                $field_matches = [
-                    ($live_categories_values[$i] === $live_categories_values[$j] && !empty($live_categories_values[$i])),
-                    ($live_streams_values[$i] === $live_streams_values[$j] && !empty($live_streams_values[$i])),
-                    ($series_values[$i] === $series_values[$j] && !empty($series_values[$i])),
-                    ($series_categories_values[$i] === $series_categories_values[$j] && !empty($series_categories_values[$i])),
-                    ($vod_categories_values[$i] === $vod_categories_values[$j] && !empty($vod_categories_values[$i]))
-                ];
+                // For each field prefer exact raw equality; if raw is not reliable, fall back to counts when >1
+                $field_matches = [];
+                // live_categories exact match
+                $field_matches[] = ($live_categories_values[$i] === $live_categories_values[$j] && !empty($live_categories_values[$i]));
+                // live_streams exact match
+                $field_matches[] = ($live_streams_values[$i] === $live_streams_values[$j] && !empty($live_streams_values[$i]));
+                // series: prefer raw equality, else if both have >1 items and equal counts consider match
+                $series_match = false;
+                if (!empty($series_values_raw[$i]) && $series_values_raw[$i] === $series_values_raw[$j]) $series_match = true;
+                else if (!empty($series_counts[$i]) && !empty($series_counts[$j]) && $series_counts[$i] > 1 && $series_counts[$i] === $series_counts[$j]) $series_match = true;
+                $field_matches[] = $series_match;
+                // series_categories: same tactic
+                $sc_match = false;
+                if (!empty($series_categories_values_raw[$i]) && $series_categories_values_raw[$i] === $series_categories_values_raw[$j]) $sc_match = true;
+                else if (!empty($series_categories_counts[$i]) && !empty($series_categories_counts[$j]) && $series_categories_counts[$i] > 1 && $series_categories_counts[$i] === $series_categories_counts[$j]) $sc_match = true;
+                $field_matches[] = $sc_match;
+                // vod categories
+                $vod_match = false;
+                if (!empty($vod_categories_values_raw[$i]) && $vod_categories_values_raw[$i] === $vod_categories_values_raw[$j]) $vod_match = true;
+                else if (!empty($vod_counts[$i]) && !empty($vod_counts[$j]) && $vod_counts[$i] > 1 && $vod_counts[$i] === $vod_counts[$j]) $vod_match = true;
+                $field_matches[] = $vod_match;
                 
                 // All available fields must match exactly
                 $available_fields = 0;
