@@ -1,3 +1,35 @@
+# .htaccess to block access to sensitive files including logs
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Block any URI containing .git
+  RewriteRule (^|/)\.git - [F,L,NC]
+  # Block direct access to logs
+  RewriteRule (^|/).*\.log$ - [F,L,NC]
+  RewriteRule (^|/).*_debug\.log$ - [F,L,NC]
+  # Block files with .remote suffix
+  RewriteRule (^|/).*\.remote$ - [F,L,NC]
+</IfModule>
+
+<IfModule mod_authz_core.c>
+  <FilesMatch "(\.deploy\.env|\.env|\.gitignore|temp\.txt|response\.json|.*\.remote$|.*_debug\.log$|.*\.log$)">
+    Require all denied
+  </FilesMatch>
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+  <FilesMatch "(\.deploy\.env|\.env|\.gitignore|temp\.txt|response\.json|.*\.remote$|.*_debug\.log$|.*\.log$)">
+    Order allow,deny
+    Deny from all
+  </FilesMatch>
+</IfModule>
+
+# Optional: protect any admin helper by Basic Auth (enable and set path to .htpasswd)
+#<Files "admin_fix_permissions.php">
+#  AuthType Basic
+#  AuthName "Site Maintenance"
+#  AuthUserFile /home/you/.htpasswd
+#  Require valid-user
+#</Files>
 
 DirectoryIndex index.html index.php
 

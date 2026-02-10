@@ -10,6 +10,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 $debug_log = __DIR__ . '/submit_debug.log';
 
+require_once __DIR__ . '/inc/logging.php';
 require_once __DIR__ . '/inc/db.php';
 require_once __DIR__ . '/inc/functions.php';
 require_once __DIR__ . '/inc/maintenance.php';
@@ -66,7 +67,7 @@ try {
 
 } catch (Exception $e) {
     $msg = date('c') . ' Exception: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() . "\n";
-    @file_put_contents($debug_log, $msg, FILE_APPEND);
+    safe_log($msg, $debug_log);
     http_response_code(500);
     echo json_encode(['error' => 'Server error']);
     exit;

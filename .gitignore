@@ -17,3 +17,4 @@ logs/
 .env
 *.sh
 temp.txt
+local test/

@@ -2,11 +2,12 @@
 // get_comparisons.php?id=PROVIDER_ID
 ini_set('display_errors', 0);
 require_once __DIR__ . '/inc/db.php';
+require_once __DIR__ . '/inc/logging.php';
 header('Content-Type: application/json');
 $debugLog = __DIR__ . '/get_comparisons_debug.log';
 try {
     // Log that this endpoint was invoked (helps diagnose 500s caused by early failures)
-    @file_put_contents($debugLog, date('c') . " - Invoked from " . ($_SERVER['REMOTE_ADDR'] ?? 'cli') . " REQUEST: " . json_encode($_REQUEST) . "\n", FILE_APPEND);
+    safe_logf($debugLog, date('c') . " - Invoked from %s REQUEST: %s\n", ($_SERVER['REMOTE_ADDR'] ?? 'cli'), json_encode($_REQUEST));
     $pid = isset($_GET['id']) ? intval($_GET['id']) : 0;
     if (!$pid) { http_response_code(400); echo json_encode(['error'=>'Missing id']); exit; }
     $pdo = get_db();
@@ -133,12 +134,12 @@ $out = [
     'best_cheaper'=>$best_cheaper,
     'target_is_cheapest' => $best_cheaper === null
 ];
-@file_put_contents($debugLog, date('c') . " - Success: returning " . count($matches) . " matches for provider {$target['id']}\n", FILE_APPEND);
+safe_logf($debugLog, date('c') . " - Success: returning %d matches for provider %s\n", count($matches), $target['id']);
 echo json_encode($out);
 } catch (Throwable $e) {
     // log to disk for postmortem and return a limited error detail for debugging
     $msg = date('c') . " - Exception: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\nREQUEST: " . json_encode($_GET) . "\n\n";
-    @file_put_contents($debugLog, $msg, FILE_APPEND);
+    safe_log($msg, $debugLog);
     http_response_code(500);
     echo json_encode(['error'=>'Internal server error','detail'=>substr($e->getMessage(),0,200)]);
     exit;

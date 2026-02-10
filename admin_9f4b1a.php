@@ -212,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['maintenance_action'])
                         ['name' => 'Details', 'value' => substr($details, 0, 1024), 'inline' => false]
                     ]
                 ];
-                $payload = ['content' => '@everyone', 'embeds' => [$embed]];
+                $payload = ['embeds' => [$embed]];
                 try {
                     $ch = curl_init($cfg['discord_webhook']);
                     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
@@ -244,7 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['maintenance_action'])
                         ['name' => 'Time', 'value' => date('c'), 'inline' => true]
                     ]
                 ];
-                $payload = ['content' => '@everyone', 'embeds' => [$embed]];
+                $payload = ['embeds' => [$embed]];
                 try {
                     $ch = curl_init($cfg['discord_webhook']);
                     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
@@ -401,6 +401,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // Handle edit action
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit' && !empty($_POST['id'])) {
     $editId = intval($_POST['id']);
+    // Ensure tagging columns exist
+    try {
+        $pdo->exec("ALTER TABLE providers ADD COLUMN IF NOT EXISTS is_baseline TINYINT(1) DEFAULT 0, ADD COLUMN IF NOT EXISTS is_confirmed_source TINYINT(1) DEFAULT 0");
+    } catch (Exception $e) {
+        // ignore - ALTER may not support IF NOT EXISTS on all MySQL/MariaDB versions
+        try {
+            $stmtCols = $pdo->prepare("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='providers' AND COLUMN_NAME IN ('is_baseline','is_confirmed_source')");
+            $stmtCols->execute();
+            $cols = $stmtCols->fetchAll(PDO::FETCH_COLUMN);
+            $need = [];
+            if (!in_array('is_baseline', $cols, true)) $need[] = "ADD COLUMN is_baseline TINYINT(1) DEFAULT 0";
+            if (!in_array('is_confirmed_source', $cols, true)) $need[] = "ADD COLUMN is_confirmed_source TINYINT(1) DEFAULT 0";
+            if (!empty($need)) $pdo->exec('ALTER TABLE providers ' . implode(', ', $need));
+        } catch (Exception $e2) {
+            // ignore
+        }
+    }
     $fields = [
         'name' => $_POST['name'] ?? '',
         'link' => $_POST['link'] ?? '',
@@ -411,7 +428,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         'live_streams' => $_POST['live_streams'] ?? '',
         'series' => $_POST['series'] ?? '',
         'series_categories' => $_POST['series_categories'] ?? '',
-        'vod_categories' => $_POST['vod_categories'] ?? ''
+        'vod_categories' => $_POST['vod_categories'] ?? '',
+        'is_baseline' => isset($_POST['is_baseline']) ? 1 : 0,
+        'is_confirmed_source' => isset($_POST['is_confirmed_source']) ? 1 : 0
     ];
     $set = [];
     $params = [];
@@ -1160,17 +1179,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             $cfg = include __DIR__ . '/inc/config.php';
                             $stmtCols->execute([$cfg['dbname']]);
                             $available = $stmtCols->fetchAll(PDO::FETCH_COLUMN);
-                            $selectCols = ['id','name','link','price','channels','groups','seller_source','seller_info','live_categories','live_streams','series','series_categories','vod_categories','created_at','is_public'];
+                            $selectCols = ['id','name','link','price','channels','groups','seller_source','seller_info','live_categories','live_streams','series','series_categories','vod_categories','created_at','is_public','is_baseline','is_confirmed_source'];
                             $selectCols = array_values(array_unique($selectCols));
                             $selectCols = array_filter($selectCols, function($c) use ($available){ return in_array($c, $available, true); });
                             $sql = 'SELECT ' . implode(',', $selectCols) . ' FROM providers ORDER BY created_at DESC';
                             $stmt = $pdo->query($sql);
                             while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                $rowId = 'prov-' . htmlspecialchars($r['id']);
-                                $statusBadge = isset($r['is_public']) && $r['is_public'] ? '<span class="badge bg-success">Public</span>' : '<span class="badge bg-secondary">Private</span>';
-                                  echo '<tr id="' . $rowId . '" data-name="' . htmlspecialchars(strtolower($r['name'] ?? '')) . '" data-status="' . (isset($r['is_public']) && $r['is_public'] ? 'public' : 'private') . '">';
-                                  echo '<td><code>' . htmlspecialchars($r['id']) . '</code></td>';
-                                  echo '<td><strong>' . htmlspecialchars($r['name'] ?? '') . '</strong> ' . $statusBadge . '</td>';
+                                                                $rowId = 'prov-' . htmlspecialchars($r['id']);
+                                                                    echo '<tr id="' . $rowId . '" data-name="' . htmlspecialchars(strtolower($r['name'] ?? '')) . '" data-status="' . (isset($r['is_public']) && $r['is_public'] ? 'public' : 'private') . '">';
+                                                                    echo '<td><code>' . htmlspecialchars($r['id']) . '</code></td>';
+                                                                    $tagBadges = '';
+                                                                            if (!empty($r['is_baseline'])) $tagBadges .= ' <span class="badge bg-info">Baseline</span>';
+                                                                            if (!empty($r['is_confirmed_source'])) $tagBadges .= ' <span class="badge bg-primary">Confirmed</span>';
+                                                                            echo '<td><strong>' . htmlspecialchars($r['name'] ?? '') . '</strong>' . $tagBadges . '</td>';
                                   // Seller column
                                   $sellerLabel = '-';
                                   if (!empty($r['seller_source']) || !empty($r['seller_info'])) {
@@ -1198,20 +1219,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                   echo '<td><small class="text-muted">' . htmlspecialchars($r['created_at'] ?? '') . '</small></td>';
                                                                     echo '<td>';
                                                                     echo '<div class="btn-group btn-group-sm" role="group" style="gap:6px;">';
-                                                                    // Prepare JS-safe values
-                                                                    $js_id = json_encode($r['id']);
-                                                                    $js_name = json_encode($r['name'] ?? '');
-                                                                    $js_link = json_encode($r['link'] ?? '');
-                                                                    $js_price = json_encode($r['price'] ?? '');
-                                                                    $js_live_categories = json_encode($r['live_categories'] ?? '');
-                                                                    $js_live_streams = json_encode($r['live_streams'] ?? '');
-                                                                    $js_series = json_encode($r['series'] ?? '');
-                                                                    $js_series_categories = json_encode($r['series_categories'] ?? '');
-                                                                    $js_vod_categories = json_encode($r['vod_categories'] ?? '');
-                                                                    $js_seller_source = json_encode($r['seller_source'] ?? '');
-                                                                    $js_seller_info = json_encode($r['seller_info'] ?? '');
-                                                                    $onclick = 'openEditModal(' . $js_id . ', ' . $js_name . ', ' . $js_link . ', ' . $js_price . ', ' . $js_live_categories . ', ' . $js_live_streams . ', ' . $js_series . ', ' . $js_series_categories . ', ' . $js_vod_categories . ', ' . $js_seller_source . ', ' . $js_seller_info . ');';
-                                                                    echo '<button class="btn btn-outline-info d-flex align-items-center justify-content-center" style="width:38px;height:38px;padding:0;" onclick="' . htmlspecialchars($onclick, ENT_QUOTES, 'UTF-8') . '" title="Edit"><i class="bi bi-pencil"></i></button>';
+                                                                    // Add data attributes to avoid inline JSON in onclick (safer)
+                                                                    $data_attrs = '';
+                                                                    $data_attrs .= ' data-id="' . htmlspecialchars($r['id']) . '"';
+                                                                    $data_attrs .= ' data-name="' . htmlspecialchars($r['name'] ?? '') . '"';
+                                                                    $data_attrs .= ' data-link="' . htmlspecialchars($r['link'] ?? '') . '"';
+                                                                    $data_attrs .= ' data-price="' . htmlspecialchars($r['price'] ?? '') . '"';
+                                                                    $data_attrs .= ' data-live-categories="' . htmlspecialchars($r['live_categories'] ?? '') . '"';
+                                                                    $data_attrs .= ' data-live-streams="' . htmlspecialchars($r['live_streams'] ?? '') . '"';
+                                                                    $data_attrs .= ' data-series="' . htmlspecialchars($r['series'] ?? '') . '"';
+                                                                    $data_attrs .= ' data-series-categories="' . htmlspecialchars($r['series_categories'] ?? '') . '"';
+                                                                    $data_attrs .= ' data-vod-categories="' . htmlspecialchars($r['vod_categories'] ?? '') . '"';
+                                                                    $data_attrs .= ' data-seller-source="' . htmlspecialchars($r['seller_source'] ?? '') . '"';
+                                                                    $data_attrs .= ' data-seller-info="' . htmlspecialchars($r['seller_info'] ?? '') . '"';
+                                                                    $data_attrs .= ' data-is-baseline="' . intval($r['is_baseline'] ?? 0) . '"';
+                                                                    $data_attrs .= ' data-is-confirmed-source="' . intval($r['is_confirmed_source'] ?? 0) . '"';
+                                                                    echo '<button class="btn btn-outline-info btn-edit-provider d-flex align-items-center justify-content-center" style="width:38px;height:38px;padding:0;" onclick="openEditModalFromButton(this)"' . $data_attrs . ' title="Edit"><i class="bi bi-pencil"></i></button>';
                                                                     echo '<form method="post" style="display:inline" onsubmit="return confirm(\'Delete this provider?\');">';
                                                                     echo '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'] ?? '') . '">';
                                                                     echo '<input type="hidden" name="action" value="delete">';
@@ -1314,35 +1337,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                     </div>
                                 </div>
                             </div>
-                            <div class="mb-3">
-                                <label for="editProviderLink" class="form-label">
-                                    <i class="bi bi-link-45deg me-1"></i>Website Link
-                                </label>
-                                <input type="url" class="form-control" name="link" id="editProviderLink" placeholder="https://example.com">
-                            </div>
+                            <!-- Website Link removed from admin edit modal per request -->
                             <div class="row">
                                 <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="editSellerSource" class="form-label"><i class="bi bi-people me-1"></i>Seller Source</label>
-                                        <select class="form-select" name="seller_source" id="editSellerSource">
-                                            <option value="iptv_website">IPTV Website</option>
-                                            <option value="z2u">Z2U</option>
-                                            <option value="g2g">G2G</option>
-                                            <option value="made_in_china">Made-in-China</option>
-                                            <option value="alibaba">Alibaba</option>
-                                            <option value="independent_reseller">Independent Reseller</option>
-                                            <option value="reddit_seller">Reddit Seller</option>
-                                            <option value="discord_seller">Discord Seller</option>
-                                            <option value="other">Other</option>
-                                        </select>
-                                    </div>
-                                </div>
+                                                    <div class="mb-3">
+                                                        <label for="editSellerSource" class="form-label"><i class="bi bi-people me-1"></i>Seller Source</label>
+                                                        <select class="form-select" name="seller_source" id="editSellerSource">
+                                                            <option value="iptv_website">IPTV Website</option>
+                                                            <option value="z2u">Z2U</option>
+                                                            <option value="g2g">G2G</option>
+                                                            <option value="made_in_china">Made-in-China</option>
+                                                            <option value="alibaba">Alibaba</option>
+                                                            <option value="independent_reseller">Independent Reseller</option>
+                                                            <option value="reddit_seller">Reddit Seller</option>
+                                                            <option value="discord_seller">Discord Seller</option>
+                                                            <option value="other">Other</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="editSellerInfo" class="form-label"><i class="bi bi-info-circle me-1"></i>Seller Info</label>
                                         <input type="text" class="form-control" name="seller_info" id="editSellerInfo" placeholder="username, profile URL, order id">
                                     </div>
                                 </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="1" id="editIsBaseline" name="is_baseline">
+                                        <label class="form-check-label" for="editIsBaseline">Tag as <strong>Baseline</strong></label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="1" id="editIsConfirmedSource" name="is_confirmed_source">
+                                        <label class="form-check-label" for="editIsConfirmedSource">Tag as <strong>Confirmed Source</strong></label>
+                                    </div>
+                                </div>
+                            </div>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -1498,11 +1531,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
 
         // Modal edit logic
-        function openEditModal(id, name, link, price, live_categories, live_streams, series, series_categories, vod_categories, seller_source, seller_info) {
+        function openEditModal(id, name, link, price, live_categories, live_streams, series, series_categories, vod_categories, seller_source, seller_info, is_baseline, is_confirmed_source) {
             // Ensure elements exist before attempting to set values
             const setVal = (sel, val) => {
                 const el = document.getElementById(sel);
                 if (!el) return;
+                // Handle checkboxes
+                if (el.type === 'checkbox') {
+                    el.checked = (val === 1 || val === '1' || val === true || String(val).toLowerCase() === 'true');
+                    return;
+                }
+                // If it's a select, try to match by option value first, then by option text
+                if (el.tagName === 'SELECT') {
+                    if (val === null || val === undefined || val === '') { el.selectedIndex = -1; return; }
+                    const sval = String(val).trim();
+                    const norm = sval.replace(/[^a-z0-9]/gi,'').toLowerCase();
+                    // Debug: log incoming value and normalized form
+                    try { console.log('openEditModal: setting select', sel, 'value=', sval, 'norm=', norm); } catch(e){}
+                    // First try exact value match
+                    for (let i = 0; i < el.options.length; i++) {
+                        if (el.options[i].value === sval) { el.selectedIndex = i; return; }
+                    }
+                    // Then try exact text match (case-insensitive)
+                    for (let i = 0; i < el.options.length; i++) {
+                        if (el.options[i].text.trim().toLowerCase() === sval.toLowerCase()) { el.selectedIndex = i; return; }
+                    }
+                    // Then try normalized match (strip non-alnum, lowercase)
+                    for (let i = 0; i < el.options.length; i++) {
+                        const otext = (el.options[i].text || '').replace(/[^a-z0-9]/gi,'').toLowerCase();
+                        const oval = (el.options[i].value || '').replace(/[^a-z0-9]/gi,'').toLowerCase();
+                        if (otext === norm || oval === norm) { el.selectedIndex = i; return; }
+                    }
+                    // Nothing matched — add a temporary option so the passed value is visible
+                    const tmpVal = '__tmp_passed_value__';
+                    // Remove existing tmp if present
+                    for (let i = el.options.length - 1; i >= 0; i--) {
+                        if (el.options[i].value === tmpVal) el.remove(i);
+                    }
+                    try {
+                        const opt = document.createElement('option');
+                        opt.value = tmpVal;
+                        opt.text = 'Passed: ' + sval;
+                        el.insertBefore(opt, el.firstChild);
+                        el.selectedIndex = 0;
+                    } catch(e) {
+                        el.selectedIndex = -1;
+                    }
+                    return;
+                }
                 el.value = (val === null || val === undefined) ? '' : val;
             };
 
@@ -1517,12 +1593,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             setVal('editSeries', series);
             setVal('editSeriesCategories', series_categories);
             setVal('editVodCategories', vod_categories);
+            setVal('editIsBaseline', is_baseline);
+            setVal('editIsConfirmedSource', is_confirmed_source);
 
             const modalEl = document.getElementById('editProviderModal');
             if (modalEl) {
                 const modal = new bootstrap.Modal(modalEl);
                 modal.show();
             }
+        }
+
+        // Helper to open modal from a button's data-* attributes (safer than inline JSON args)
+        function openEditModalFromButton(btn) {
+            if (!btn) return;
+            const d = btn.dataset || {};
+            const id = d.id || '';
+            const name = d.name || '';
+            const link = d.link || '';
+            const price = d.price || '';
+            const live_categories = d.liveCategories || d['live-categories'] || d['liveCategories'] || d['liveCategories'] || '';
+            const live_streams = d.liveStreams || d['live-streams'] || d['liveStreams'] || '';
+            const series = d.series || '';
+            const series_categories = d.seriesCategories || d['series-categories'] || d['seriesCategories'] || '';
+            const vod_categories = d.vodCategories || d['vod-categories'] || d['vodCategories'] || '';
+            const seller_source = d.sellerSource || d['seller-source'] || '';
+            const seller_info = d.sellerInfo || d['seller-info'] || '';
+            const is_baseline = (d.isBaseline || d['is-baseline'] || '0');
+            const is_confirmed_source = (d.isConfirmedSource || d['is-confirmed-source'] || '0');
+            openEditModal(id, name, link, price, live_categories, live_streams, series, series_categories, vod_categories, seller_source, seller_info, is_baseline, is_confirmed_source);
         }
 
         // Chart initialization
@@ -1714,6 +1812,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             });
         }
 
+    </script>
+    <script>
+        // Ensure Save Changes is clickable when modal opens (defensive fix)
+        (function(){
+            const modalEl = document.getElementById('editProviderModal');
+            if (!modalEl) return;
+            modalEl.addEventListener('shown.bs.modal', function(){
+                try {
+                    const submit = modalEl.querySelector('button[type="submit"]');
+                    if (submit) {
+                        submit.disabled = false;
+                        submit.style.pointerEvents = 'auto';
+                        submit.style.zIndex = 2000;
+                    }
+                    // Remove any temporary 'Passed:' option placeholders that might block clicks
+                    const sel = document.getElementById('editSellerSource');
+                    if (sel) {
+                        for (let i = sel.options.length - 1; i >= 0; i--) {
+                            if (sel.options[i].value === '__tmp_passed_value__') sel.remove(i);
+                        }
+                    }
+                } catch (e) { console.warn(e); }
+            });
+            modalEl.addEventListener('hidden.bs.modal', function(){
+                try {
+                    const sel = document.getElementById('editSellerSource');
+                    if (sel) {
+                        for (let i = sel.options.length - 1; i >= 0; i--) {
+                            if (sel.options[i].value === '__tmp_passed_value__') sel.remove(i);
+                        }
+                    }
+                } catch(e){}
+            });
+        })();
     </script>
 </body>
 </html>

@@ -31,6 +31,29 @@ require_once __DIR__ . '/inc/maintenance.php';
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <script>
+    // Initialize Turnstile widget into #cfWidget and provide helpers
+    window._turnstileWid = null;
+    function initTurnstile(){
+      try{
+        if (window.turnstile && !window._turnstileWid) {
+          var el = document.getElementById('cfWidget');
+          if (el) {
+            window._turnstileWid = turnstile.render(el, {sitekey: '<?php echo htmlspecialchars($siteKey); ?>'});
+          }
+        }
+      } catch(e){}
+    }
+    function getTurnstileResponse(){
+      try{
+        if (window.turnstile && window._turnstileWid) return turnstile.getResponse(window._turnstileWid);
+        var inp = document.querySelector('input[name="cf-turnstile-response"]');
+        return inp ? inp.value : '';
+      } catch(e){ return ''; }
+    }
+    function resetTurnstile(){ try{ if (window.turnstile && window._turnstileWid) turnstile.reset(window._turnstileWid); } catch(e){} }
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(initTurnstile, 300); });
+  </script>
   <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.2/dist/darkly/bootstrap.min.css" rel="stylesheet" integrity="sha384-qkU2zAXgyuetMWO55YBTK4SZzn3b91PYt/YIaQDoJWr0wpkJdglBZxwVjfN5KyR1" crossorigin="anonymous">
   <!-- Tech fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
@@ -245,8 +268,8 @@ require_once __DIR__ . '/inc/maintenance.php';
               <div class="small text-muted">Tip: reload page if site verification prompts appear.</div>
             </div>
             <div class="text-end">
-              <div class="mb-2 d-inline-block" style="transform:translateY(-10px);">
-                <div class="cf-turnstile" data-sitekey="<?php echo htmlspecialchars($siteKey); ?>" style="display:inline-block;"></div>
+                <div class="mb-2 d-inline-block" style="transform:translateY(-10px);">
+                <div id="cfWidget" style="display:inline-block;"></div>
               </div>
               <div class="d-flex flex-column align-items-end">
                 <button class="btn btn-primary btn-lg" type="submit"><i class="bi bi-search"></i> Check &amp; Compare</button>
@@ -615,10 +638,12 @@ require_once __DIR__ . '/inc/maintenance.php';
         return;
       }
       // Captcha check
-      const turnstileResponse = form['cf-turnstile-response'].value;
+      const turnstileResponse = getTurnstileResponse();
       if (!turnstileResponse) {
         alert('Please complete the captcha.');
         if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; }
+        // attempt to re-init widget
+        try{ initTurnstile(); } catch(e){}
         return;
       }
       // (Server-side verification removed) continue if token present
@@ -822,53 +847,61 @@ require_once __DIR__ . '/inc/maintenance.php';
 
         // Helper: try to recover and count items from non-standard JSON/text payloads
         function parseBrokenJsonString(txt) {
-          // Primary JSON parsing
+          // If already an array, just count it
+          if (Array.isArray(txt)) {
+            return { count: txt.length, sample: txt.slice(0, 10) };
+          }
+          let maxCount = 0, bestSample = [];
+          // 1. Primary JSON parsing
           try {
             const j = JSON.parse(txt);
-            if (Array.isArray(j)) return { count: j.length, sample: j.slice(0,10) };
+            if (Array.isArray(j)) { maxCount = j.length; bestSample = j.slice(0,10); }
             // find array inside object
             const arr = j && typeof j === 'object' ? (j.categories || j.playlist || j.streams || j.items || j.data) : null;
-            if (Array.isArray(arr)) return { count: arr.length, sample: arr.slice(0,10) };
-          } catch (e) {
-            // continue to other heuristics
-          }
-
-          // Try wrapping as array (single-line arrays without brackets)
-          try {
-            const j2 = JSON.parse('[' + txt.replace(/\r?\n/g,'') + ']');
-            if (Array.isArray(j2)) return { count: j2.length, sample: j2.slice(0,10) };
+            if (Array.isArray(arr) && arr.length > maxCount) { maxCount = arr.length; bestSample = arr.slice(0,10); }
           } catch (e) {}
 
-          // Try to fix concatenated objects like '}{' or '},{' missing outer brackets
+          // 2. Try wrapping as array (single-line arrays without brackets)
+          try {
+            const j2 = JSON.parse('[' + txt.replace(/\r?\n/g,'') + ']');
+            if (Array.isArray(j2) && j2.length > maxCount) { maxCount = j2.length; bestSample = j2.slice(0,10); }
+          } catch (e) {}
+
+          // 3. Try to fix concatenated objects like '}{' or '},{' missing outer brackets
           try {
             const fixed = '[' + txt.replace(/}\s*,?\s*\{/g, '},{') + ']';
             const j3 = JSON.parse(fixed);
-            if (Array.isArray(j3)) return { count: j3.length, sample: j3.slice(0,10) };
+            if (Array.isArray(j3) && j3.length > maxCount) { maxCount = j3.length; bestSample = j3.slice(0,10); }
           } catch (e) {}
 
-          // Heuristic: numeric-only strings
+          // 4. Heuristic: numeric-only strings
           const trimmed = String(txt).trim();
-          if (/^\d+$/.test(trimmed)) return { count: Number(trimmed), sample: [] };
-
-          // Heuristic: compact object separators like '},{' or '}{'
-          const sepCount1 = (trimmed.match(/},\s*\{/g) || []).length;
-          if (sepCount1 > 0) return { count: sepCount1 + 1, sample: [] };
-          const sepCount2 = (trimmed.match(/}\s*\{/g) || []).length;
-          if (sepCount2 > 0) return { count: sepCount2 + 1, sample: [] };
-
-          // Comma-separated simple lists fallback (e.g., 'a,b,c')
-          if (trimmed.indexOf(',') !== -1) {
-            const parts = trimmed.split(',').map(s => s.trim()).filter(Boolean);
-            if (parts.length > 1) return { count: parts.length, sample: parts.slice(0,10) };
+          if (/^\d+$/.test(trimmed)) {
+            const n = Number(trimmed);
+            if (n > maxCount) { maxCount = n; bestSample = []; }
           }
 
-          // Count repeated keys commonly found inside series items (more specific than just "id")
-          const idMatches = trimmed.match(/"series_id"\s*:\s*\d+|"num"\s*:\s*\d+|"season_number"\s*:\s*\d+|"episode_count"\s*:\s*\d+|"name"\s*:\s*"[^\"]+"/g);
-          if (idMatches && idMatches.length) return { count: idMatches.length, sample: [] };
+          // 5. Heuristic: compact object separators like '},{' or '}{'
+          const sepCount1 = (trimmed.match(/},\s*\{/g) || []).length;
+          if (sepCount1 + 1 > maxCount) { maxCount = sepCount1 + 1; bestSample = []; }
+          const sepCount2 = (trimmed.match(/}\s*\{/g) || []).length;
+          if (sepCount2 + 1 > maxCount) { maxCount = sepCount2 + 1; bestSample = []; }
 
-          // Final fallback: count non-empty lines
+          // 6. Comma-separated simple lists fallback (e.g., 'a,b,c')
+          if (trimmed.indexOf(',') !== -1) {
+            const parts = trimmed.split(',').map(s => s.trim()).filter(Boolean);
+            if (parts.length > maxCount) { maxCount = parts.length; bestSample = parts.slice(0,10); }
+          }
+
+          // 7. Count repeated keys commonly found inside series items (more specific than just "id")
+          const idMatches = trimmed.match(/"series_id"\s*:\s*\d+|"num"\s*:\s*\d+|"season_number"\s*:\s*\d+|"episode_count"\s*:\s*\d+|"name"\s*:\s*"[^\"]+"/g);
+          if (idMatches && idMatches.length > maxCount) { maxCount = idMatches.length; bestSample = []; }
+
+          // 8. Final fallback: count non-empty lines
           const lines = String(txt).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-          return { count: lines.length, sample: lines.slice(0,10) };
+          if (lines.length > maxCount) { maxCount = lines.length; bestSample = lines.slice(0,10); }
+
+          return { count: maxCount, sample: bestSample };
         }
 
         const promises = Object.entries(apiActions).map(async ([k, act]) => {
