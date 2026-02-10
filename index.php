@@ -815,6 +815,36 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
           progressLabel.textContent = `Fetching data (0/${totalActions})`;
         }
 
+        // Helper: try to recover and count items from non-standard JSON/text payloads
+        function parseBrokenJsonString(txt) {
+          try {
+            const j = JSON.parse(txt);
+            if (Array.isArray(j)) return { count: j.length, sample: j.slice(0,10) };
+            // find array inside object
+            const arr = j && typeof j === 'object' ? (j.categories || j.playlist || j.streams || j.items || j.data) : null;
+            if (Array.isArray(arr)) return { count: arr.length, sample: arr.slice(0,10) };
+          } catch (e) {
+            // continue to other heuristics
+          }
+          // Try wrapping as array
+          try {
+            const j2 = JSON.parse('[' + txt.replace(/\r?\n/g,'') + ']');
+            if (Array.isArray(j2)) return { count: j2.length, sample: j2.slice(0,10) };
+          } catch (e) {}
+          // Try to fix concatenated objects like '}{' or '},{' missing outer brackets
+          try {
+            const fixed = '[' + txt.replace(/}\s*,?\s*\{/g, '},{') + ']';
+            const j3 = JSON.parse(fixed);
+            if (Array.isArray(j3)) return { count: j3.length, sample: j3.slice(0,10) };
+          } catch (e) {}
+          // Fallback: count likely object entries by looking for season/object markers
+          const idMatches = txt.match(/"season_number"\s*:\s*\d+|"id"\s*:\s*\d+|"episode_count"\s*:\s*\d+/g);
+          if (idMatches && idMatches.length) return { count: idMatches.length, sample: [] };
+          // Final fallback: count non-empty lines
+          const lines = String(txt).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+          return { count: lines.length, sample: lines.slice(0,10) };
+        }
+
         const promises = Object.entries(apiActions).map(async ([k, act]) => {
           const res = await fetchApiAction(act);
           let count = null; let sample = [];
@@ -851,8 +881,8 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                 if (Array.isArray(arr2)) { count = arr2.length; sample = arr2.slice(0,10); }
               }
             } else if (typeof body === 'string') {
-              const lines = body.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-              count = lines.length; sample = lines.slice(0,10);
+              const parsed = parseBrokenJsonString(body);
+              count = parsed.count; sample = parsed.sample || [];
             }
             apiCounts[k] = { count, sample };
           }
@@ -916,8 +946,8 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                   if (Array.isArray(arr2)) { count = arr2.length; sample = arr2.slice(0,10); }
                 }
               } else if (typeof body === 'string') {
-                const lines = body.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-                count = lines.length; sample = lines.slice(0,10);
+                const parsed = parseBrokenJsonString(body);
+                count = parsed.count; sample = parsed.sample || [];
               }
             }
             apiCounts[k] = { count, sample };
