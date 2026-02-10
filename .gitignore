@@ -16,3 +16,4 @@ logs/
 *.sql
 .env
 *.sh
+temp.txt
