@@ -74,11 +74,13 @@ if ($has_live_categories || $has_live_streams || $has_series || $has_series_cate
             $match_details[] = ['field'=>'Groups','percentage'=>round($group_count_sim,2)];
         } else {
             $metricScore = 0.0;
+            $weightSum = array_sum($availableMetrics);
             foreach ($availableMetrics as $col => $baseW) {
                 $valA = isset($target[$col]) ? intval($target[$col]) : 0;
                 $valB = isset($r[$col]) ? intval($r[$col]) : 0;
                 $sim = ($valA || $valB) ? (1.0 - abs($valA - $valB) / max(1, max($valA, $valB))) * 100.0 : 0.0;
-                $metricScore += $sim * $baseW;
+                $normW = ($weightSum > 0) ? ($baseW / $weightSum) : 0;
+                $metricScore += $sim * $normW;
                 $match_details[] = ['field'=>ucwords(str_replace('_',' ',$col)),'percentage'=>round($sim,2)];
             }
             $similarity = $metricScore;

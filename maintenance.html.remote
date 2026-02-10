@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Site Maintenance — IPTV Detective</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.2/dist/darkly/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <style>body{background:#061023;color:#e6eef8;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,system-ui,Arial} .card{max-width:720px;padding:2rem;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,0.6)}</style>
+</head>
+<body>
+  <div class="card text-center">
+    <h1 class="mb-3">We'll be right back</h1>
+    <p class="lead">IPTV Detective is temporarily offline for scheduled maintenance or updates.</p>
+    <p class="mb-1">We're working to improve the site — please check back in a little while.</p>
+    <p class="small text-muted">If you need urgent access, contact the site admin or join our Discord: <a href="https://discord.gg/zxUq3afdn8">https://discord.gg/zxUq3afdn8</a></p>
+    <hr>
+    <p class="text-muted">Status: <strong>Maintenance mode</strong> — Enabled by placing a <code>MAINTENANCE</code> file in the site root.</p>
+  </div>
+</body>
+</html>

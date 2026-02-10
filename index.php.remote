@@ -22,7 +22,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>IPTV Detective v2.1.3</title>
+  <title>IPTV Detective 2.1</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" href="favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -238,21 +238,13 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
           </div>
 
           <div class="d-flex justify-content-between align-items-center mt-3">
-            <div>
-              <div class="small text-muted">Tip: reload page if site verification prompts appear.</div>
-            </div>
+            <div class="small text-muted">Tip: reload page if site verification prompts appear.</div>
             <div class="text-end">
               <div class="mb-2 d-inline-block" style="transform:translateY(-10px);">
                 <div class="cf-turnstile" data-sitekey="<?php echo htmlspecialchars($siteKey); ?>" style="display:inline-block;"></div>
               </div>
-              <div class="d-flex flex-column align-items-end">
+              <div>
                 <button class="btn btn-primary btn-lg" type="submit"><i class="bi bi-search"></i> Check &amp; Compare</button>
-                <div class="mt-2 text-end">
-                  <div class="p-2 rounded shadow-sm" style="border:2px solid #d9534f; background:rgba(217,83,79,0.06); max-width:360px;">
-                    <div class="fw-bold text-danger" style="font-size:0.95rem;"><i class="bi bi-exclamation-triangle-fill me-1"></i> Refresh page after each submission</div>
-                    <div class="small text-muted mt-1" style="font-size:0.78rem;">Reload to get a new captcha before the next submission.</div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -266,6 +258,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                 <div class="col-md-6">
                   <div class="info-card">
                     <div class="info-row"><div class="info-label">Provider</div><div class="info-value" id="r_name">&nbsp;</div></div>
+                    <div class="info-row"><div class="info-label">Link</div><div class="info-value"><a id="r_link" href="#" target="_blank" class="text-decoration-none text-info">&nbsp;</a></div></div>
                     <div class="info-row"><div class="info-label">Price / year</div><div class="info-value" id="r_price">&nbsp;</div></div>
                     <div class="info-row"><div class="info-label">Seller</div><div class="info-value" id="r_seller">&nbsp;</div></div>
                     <div class="mt-2 small text-muted">Results are approximate and depend on available public submissions.</div>
@@ -618,7 +611,6 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
         if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; }
         return;
       }
-      // (Server-side verification removed) continue if token present
       // Additional client-side validation
       // Ensure required fields contain non-whitespace values
       if (!name || name.trim().length === 0) { alert('Please enter the provider name.'); form.classList.add('was-validated'); if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; } return; }
@@ -668,7 +660,10 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
       try {
         const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.style.display = '';
         const nameEl = document.getElementById('r_name'); if (nameEl) nameEl.textContent = name;
-        // Link display removed from results dialog (we don't expose provider link here)
+        const linkElNow = document.getElementById('r_link'); if (linkElNow) {
+          if (link) { linkElNow.textContent = link; linkElNow.href = link; linkElNow.target = '_blank'; }
+          else { linkElNow.textContent = '—'; linkElNow.href = '#'; linkElNow.removeAttribute('target'); }
+        }
         const priceElNow = document.getElementById('r_price'); if (priceElNow) priceElNow.textContent = price.toFixed(2);
           const sellerElNow = document.getElementById('r_seller'); if (sellerElNow) sellerElNow.textContent = (sellerSource || sellerInfo) ? (sellerSource + (sellerInfo ? ' — ' + sellerInfo : '')) : '—';
         ['r_live_cats','r_live_streams','r_series_count','r_series_cats_count','r_vod_cats_count','r_vod_streams_count'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='—'; });
@@ -866,72 +861,6 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
           }
         });
         await Promise.all(promises);
-        // If any important counts are zero, retry fetching until they are non-zero (with backoff) up to maxAttempts
-        const importantKeys = ['live_categories','live_streams','series','series_categories','vod_categories'];
-        const anyZero = () => importantKeys.some(k => apiCounts[k] && (apiCounts[k].count === null || apiCounts[k].count === 0));
-        const maxAttempts = 6;
-        let attempt = 1;
-        const rCompareEl = document.getElementById('r_compare');
-        if (anyZero()) {
-          if (rCompareEl) rCompareEl.innerHTML = `<div class="match-card warn"><div class="match-header"><div class="match-title">Retrying data fetch</div></div><div class="mt-2 small text-muted">Some counts returned 0; will retry up to ${maxAttempts} times...</div></div>`;
-          // Keep progress UI visible while retrying
-          if (progressWrap && progressBar && progressLabel) {
-            progressBar.classList.add('progress-bar-striped','progress-bar-animated');
-            progressWrap.style.display = '';
-          }
-        }
-        while (anyZero() && attempt < maxAttempts) {
-          attempt++;
-          if (rCompareEl) rCompareEl.innerHTML = `<div class="match-card warn"><div class="match-header"><div class="match-title">Retrying data fetch</div></div><div class="mt-2 small text-muted">Some counts returned 0; retrying (${attempt}/${maxAttempts})...</div></div>`;
-          // exponential backoff with a cap
-          await new Promise(r => setTimeout(r, Math.min(1500 * attempt, 8000)));
-
-          // Re-fetch each action and re-parse counts
-          let completedActionsRetry = 0;
-          const totalActionsRetry = Object.keys(apiActions).length;
-          const retryPromises = Object.keys(apiActions).map(async (k) => {
-            const res = await fetchApiAction(apiActions[k]);
-            let count = null, sample = [];
-            if (res && res.ok) {
-              const body = res.body;
-              if (body && typeof body === 'object' && body.count !== undefined) {
-                count = Number(body.count) || 0;
-                sample = Array.isArray(body.sample) ? body.sample.slice(0,10) : [];
-              } else if (Array.isArray(body)) { count = body.length; sample = body.slice(0,10); }
-              else if (typeof body === 'object' && body !== null) {
-                const arr = body.categories || body.playlist || body.streams || body.items || body.data || null;
-                if (Array.isArray(arr)) { count = arr.length; sample = arr.slice(0,10); }
-                else {
-                  const findArray = obj => {
-                    if (!obj || typeof obj !== 'object') return null;
-                    for (const key in obj) {
-                      if (Array.isArray(obj[key])) return obj[key];
-                      if (typeof obj[key] === 'object') {
-                        const r = findArray(obj[key]); if (r) return r;
-                      }
-                    }
-                    return null;
-                  };
-                  const arr2 = findArray(body);
-                  if (Array.isArray(arr2)) { count = arr2.length; sample = arr2.slice(0,10); }
-                }
-              } else if (typeof body === 'string') {
-                const lines = body.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-                count = lines.length; sample = lines.slice(0,10);
-              }
-            }
-            apiCounts[k] = { count, sample };
-            completedActionsRetry++;
-            if (progressBar && progressLabel) {
-              const pct = Math.round((completedActionsRetry / totalActionsRetry) * 100);
-              progressBar.style.width = pct + '%';
-              progressBar.textContent = pct + '%';
-              progressLabel.textContent = `Retrying counts (${completedActionsRetry}/${totalActionsRetry})`;
-            }
-          });
-          await Promise.all(retryPromises);
-        }
-
         // hide progress UI
         if (progressWrap && progressBar && progressLabel) {
           progressBar.classList.remove('progress-bar-striped','progress-bar-animated');
@@ -1015,7 +944,8 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
       if (data.error) { alert('Error: ' + data.error); return; }
       const setIf = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
       setIf('r_name', name);
-      // Link display removed from results per user request (no link shown here)
+      // Link element content and href
+      const linkEl = document.getElementById('r_link'); if (linkEl) { linkEl.textContent = link; linkEl.href = link; }
       setIf('r_price', price.toFixed(2));
       setIf('r_channels', data.channels);
       setIf('r_groups', data.groups);
@@ -1025,30 +955,11 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
         const vodRow = document.getElementById('vod_streams_row'); if (vodRow) vodRow.style.display = vodVal > 0 ? '' : 'none';
       } catch (ex) {}
       let compareHtml = '';
-      // If server reports a match, show it directly
       if (data.matched) {
         const diff = (data.match_price_diff !== null && data.match_price_diff !== undefined) ? Number(data.match_price_diff) : null;
         const diffText = diff === null ? '' : (diff < 0 ? `<span class='text-success fw-bold'>Cheaper by $${Math.abs(diff)}</span>` : `<span class='text-danger fw-bold'>More expensive by $${diff}</span>`);
-        // Attempt to fetch seller info for this matched provider (if available) and include it in the card
-        // Seller info as plain text next to provider name and price
-        let sellerText = '';
-        if (data.seller_source || data.seller_info) {
-          sellerText = escapeHtml(data.seller_source || '');
-          if (data.seller_info) {
-            // If seller_info looks like a URL, make it clickable
-            const info = data.seller_info.trim();
-            if (/^https?:\/\//i.test(info)) {
-              sellerText += ' — <a href="' + escapeHtml(info) + '" target="_blank" rel="noopener" class="text-info text-decoration-underline">' + escapeHtml(info) + '</a>';
-            } else {
-              sellerText += ' — ' + escapeHtml(info);
-            }
-          }
-        }
-        let badges = [];
-        if (data.match_details && Array.isArray(data.match_details)) {
-          badges = data.match_details.map(m=>`<span class=\"badge bg-dark text-info py-1 px-2\">${escapeHtml(m.field)}: ${escapeHtml(String(m.percentage))}%</span>`);
-        }
-        const detailsHtml = badges.length ? ('<div class=\"small text-muted mt-2\"><div class=\"d-flex flex-wrap gap-2\">' + badges.join('') + '</div></div>') : '';
+        const visit = data.match_link ? ` <a class="visit-inline" href="${escapeHtml(data.match_link)}" target="_blank">Visit</a>` : '';
+
         compareHtml = `
           <div class="match-card success">
             <div class="match-header">
@@ -1056,97 +967,16 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
               <div class="text-muted small">Similarity: <strong>${data.similarity}%</strong></div>
             </div>
             <div class="mt-2">
-              <div class="d-flex align-items-center gap-2">
-                <strong>${escapeHtml(data.match_name || 'Matched provider')}</strong>
-                <span class="text-muted">($${data.match_price !== null && data.match_price !== undefined ? data.match_price : 'N/A'})</span>
-                ${sellerText ? `<span class="small text-muted ms-2">${sellerText}</span>` : ''}
-                ${diffText}
-              </div>
-              ${detailsHtml}
-              ${data.cheapest_match && data.cheapest_match.name ? `<div class="small mt-2">Cheapest similar: <strong>${escapeHtml(data.cheapest_match.name)}</strong> ($${data.cheapest_match.price})</div>` : ''}
+              <div><strong>${escapeHtml(data.match_name || 'Matched provider')}</strong> <span class="text-muted">($${data.match_price !== null && data.match_price !== undefined ? data.match_price : 'N/A'})</span> ${diffText}${visit}</div>
+              ${data.match_channels_text ? `<div class="small text-muted mt-2">${escapeHtml(data.match_channels_text)}</div>` : ''}
+              ${data.match_groups_text ? `<div class="small text-muted">${escapeHtml(data.match_groups_text)}</div>` : ''}
+              ${data.cheapest_match && data.cheapest_match.name ? `<div class="small mt-2">Cheapest similar: <strong>${escapeHtml(data.cheapest_match.name)}</strong> ($${data.cheapest_match.price}) ${data.cheapest_match.link ? ` — <a href="${escapeHtml(data.cheapest_match.link)}" target="_blank">Visit</a>` : ''}</div>` : ''}
             </div>
           </div>`;
       } else if (data.similarity && data.similarity > 0) {
-        // Show a 'Similar' card if server returned a similarity score
         compareHtml = `<div class="match-card warn"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-exclamation-triangle-fill"></i><div class="match-title">Similar</div></div><div class="text-muted small">Similarity: <strong>${data.similarity}%</strong></div></div><div class="mt-2 small text-muted">Likely similar package — please review manually.</div></div>`;
       } else {
-        // No match returned by submit; check server-side comparisons endpoint as a fallback to catch recently-inserted exact matches
-        if (data.id) {
-          try {
-            const cRes = await fetch('get_comparisons.php?id=' + encodeURIComponent(data.id));
-            if (cRes.ok) {
-              const cJ = await cRes.json();
-              if (cJ && Array.isArray(cJ.matches) && cJ.matches.length > 0) {
-                // Only show matches with similarity >= 85%
-                const matchesFiltered = cJ.matches.filter(m => parseFloat(m.similarity) >= 85);
-                if (!matchesFiltered.length) {
-                  compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">No strong matches (>=85%) found</div></div>`;
-                } else {
-                  // Render filtered matches
-                  compareHtml = '<div class="match-list">';
-                  for (const best of matchesFiltered) {
-                    const diff = (best.price !== null && best.price !== undefined) ? (best.price < data.price ? ` <span class="text-success fw-bold">Cheaper by $${(data.price - best.price).toFixed(2)}</span>` : (best.price > data.price ? ` <span class="text-danger fw-bold">More expensive by $${(best.price - data.price).toFixed(2)}</span>` : '')) : '';
-                                    const diffVal = (best.price !== null && best.price !== undefined) ? (data.price - best.price) : null;
-                                    let diffHtml = '';
-                                    if (diffVal !== null) {
-                                      if (diffVal > 0) {
-                                        diffHtml = ` <span class="text-success fw-bold">Cheaper by $${Math.abs(diffVal).toFixed(2)}</span>`;
-                                      } else if (diffVal < 0) {
-                                        diffHtml = ` <span class="text-danger fw-bold">More expensive by $${Math.abs(diffVal).toFixed(2)}</span>`;
-                                      } else {
-                                        diffHtml = ` <span class="text-primary fw-bold">Same price</span>`;
-                                      }
-                                    }
-                            let diffText = diffHtml;
-                    let badges = [];
-                    if (best.match_details && best.match_details.length) {
-                      badges = best.match_details.map(m=>`<span class=\"badge bg-dark text-info py-1 px-2\">${escapeHtml(m.field)}: ${escapeHtml(String(m.percentage))}%</span>`);
-                    }
-                    let sellerSource = best.seller_source || (cJ.target && cJ.target.seller_source) || '';
-                    let sellerInfo = best.seller_info || (cJ.target && cJ.target.seller_info) || '';
-                    let s = escapeHtml(sellerSource);
-                    if (sellerInfo) {
-                      const info = sellerInfo.trim();
-                      if (/^https?:\/\//i.test(info)) {
-                        s += ' — <a href="' + escapeHtml(info) + '" target="_blank" rel="noopener" class="text-info text-decoration-underline">' + escapeHtml(info) + '</a>';
-                      } else {
-                        s += ' — ' + escapeHtml(info);
-                      }
-                    }
-                    // Show seller info as plain text next to provider name/price
-                    const detailsHtml = badges.length ? ('<div class=\"small text-muted mt-2\"><div class=\"d-flex flex-wrap gap-2\">' + badges.join('') + '</div></div>') : '';
-                    compareHtml += `
-                      <div class="match-card success mb-2">
-                        <div class="match-header">
-                          <div class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill fs-5"></i><div class="match-title">${escapeHtml(best.name || 'Matched provider')}</div></div>
-                          <div class="text-muted small">Similarity: <strong>${best.similarity}%</strong></div>
-                        </div>
-                        <div class="mt-2">
-                          <div class="d-flex align-items-center gap-2">
-                            <strong>${escapeHtml(best.name || 'Matched provider')}</strong>
-                            <span class="text-muted">($${best.price !== null && best.price !== undefined ? best.price : 'N/A'})</span>
-                            ${s ? `<span class="small text-muted ms-2">${s}</span>` : ''}
-                            ${diff}
-                          </div>
-                          ${detailsHtml}
-                        </div>
-                      </div>`;
-                  }
-                  compareHtml += '</div>';
-                }
-              } else {
-                compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">Likely private or not enough data</div></div>`;
-              }
-            } else {
-              compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">Likely private or not enough data</div></div>`;
-            }
-          } catch (ex) {
-            console.warn('get_comparisons fallback failed', ex);
-            compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">Likely private or not enough data</div></div>`;
-          }
-        } else {
-          compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">Likely private or not enough data</div></div>`;
-        }
+        compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">Likely private or not enough data</div></div>`;
       }
       const rCompareEl = document.getElementById('r_compare'); if (rCompareEl) rCompareEl.innerHTML = compareHtml;
       const resultsEl = document.getElementById('results');
@@ -1229,7 +1059,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
             <div class="d-flex justify-content-between align-items-center py-1">
               <div>
                 <strong>${escapeHtml(p.name)}</strong>
-                <div class="small text-muted">$${p.price}/yr</div>
+                <div class="small text-muted">$${p.price}/yr${p.link ? ' — <a href="'+escapeHtml(p.link)+'" target="_blank">Visit</a>' : ''}</div>
               </div>
               <div><button class="btn btn-sm btn-action more-info small-btn view-details" data-id="${p.id}" title="More info">More info</button></div>
             </div>
@@ -1245,7 +1075,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                   </div>
                   <div class="text-end">
                     <div class="fw-bold">Cheapest: $${cheapest.price}</div>
-                    
+                    <a href="${escapeHtml(cheapest.link)}" target="_blank" class="btn btn-sm btn-primary ms-2">Visit</a>
                   </div>
                 </div>
                 <hr>
@@ -1287,7 +1117,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
             compEl.innerHTML = `<div class="alert alert-success"><strong>This is the cheapest known listing for this playlist.</strong></div>`;
           } else if (data.best_cheaper && parseFloat(data.best_cheaper.similarity || 0) >= 80) {
             const b = data.best_cheaper;
-            const bcHtml = `<div class="alert alert-warning"><strong>Cheaper provider found:</strong> ${escapeHtml(b.name)} — $${b.price} / year (save $${b.savings})</div>`;
+            const bcHtml = `<div class="alert alert-warning"><strong>Cheaper provider found:</strong> ${escapeHtml(b.name)} — $${b.price} / year (save $${b.savings}) <a href="${escapeHtml(b.link)}" target="_blank" class="ms-2 btn btn-sm btn-outline-light">Visit</a></div>`;
             compEl.innerHTML = bcHtml;
           } else {
             compEl.innerHTML = '';
@@ -1304,14 +1134,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
             } else {
             let out = '<div class="row g-3">';
             for (let m of highSimilarityMatches) {
-              let cheaperBadge = '';
-              if (m.price_diff < 0) {
-                cheaperBadge = `<div class="text-success">Cheaper by $${Math.abs(m.price_diff)}</div>`;
-              } else if (m.price_diff > 0) {
-                cheaperBadge = `<div class="text-danger">More expensive by $${Math.abs(m.price_diff)}</div>`;
-              } else {
-                cheaperBadge = `<div class="text-primary">Same price</div>`;
-              }
+              const cheaperBadge = m.cheaper ? `<div class="text-success">Cheaper by $${Math.abs(m.price_diff)}</div>` : `<div class="text-muted">More expensive by $${Math.abs(m.price_diff)}</div>`;
               const bestBadge = (data.best_cheaper && data.best_cheaper.id == m.id) ? `<span class="badge bg-success ms-2">Best cheaper</span>` : '';
 
             const pct = m.similarity ? parseFloat(m.similarity).toFixed(2) : '0.00';
@@ -1321,10 +1144,9 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
             let detailLines = [];
             if (m.match_details && Array.isArray(m.match_details)) {
                 for (let detail of m.match_details) {
-                  const simVal = parseFloat(detail.percentage);
-                  const matchIcon = simVal >= 85 ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>';
-                  const matchClass = simVal >= 85 ? 'text-success' : 'text-danger';
-                  detailLines.push(`<div class='small ${matchClass}'>${matchIcon} ${escapeHtml(detail.field)}: ${detail.percentage}%</div>`);
+                    const matchIcon = detail.matches ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-x-circle-fill text-danger"></i>';
+                    const matchClass = detail.matches ? 'text-success' : 'text-danger';
+                    detailLines.push(`<div class='small ${matchClass}'>${matchIcon} ${escapeHtml(detail.field)}: ${detail.percentage}%</div>`);
                 }
             } else {
                 // Fallback to old format
@@ -1351,7 +1173,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                       <div>
                         <div class="fw-bold">${escapeHtml(m.name)} ${bestBadge}</div>
                         <div class="text-muted small">${escapeHtml(m.link)}</div>
-                        ${m.seller_source || m.seller_info ? `<div class="small text-muted mt-1">Seller: ${escapeHtml(m.seller_source || '')}${m.seller_info ? (() => { const info = m.seller_info.trim(); return /^https?:\/\//i.test(info) ? ' — <a href="' + escapeHtml(info) + '" target="_blank" rel="noopener" class="text-info text-decoration-underline">' + escapeHtml(info) + '</a>' : ' — ' + escapeHtml(info); })() : ''}</div>` : ''}
+                        ${m.seller_source || m.seller_info ? `<div class="small text-muted mt-1">Seller: ${escapeHtml(m.seller_source || '')}${m.seller_info ? ' — ' + escapeHtml(m.seller_info) : ''}</div>` : ''}
                       </div>
                       <div class="text-end">
                         <div class="fw-bold">$${m.price} / year</div>
@@ -1359,6 +1181,9 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
                       </div>
                     </div>
                     <div class="mt-3">${simBar}</div>
+                    <div class="mt-2">
+                      <a class="btn btn-sm btn-primary" href="${escapeHtml(m.link)}" target="_blank">Visit</a>
+                    </div>
                   </div>
                 </div>
               </div>`;
@@ -1620,8 +1445,8 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
 
         <div class="col-md-4 text-md-end">
           <h6 class="mb-3 text-uppercase fw-bold" style="color: #00d4ff;"><i class="bi bi-code-slash me-2"></i>Version</h6>
-          <div class="mb-1 fs-5">v <strong style="color: #00d4ff;">2.1.2</strong></div>
-          <div class="small text-muted">build <span id="buildDate">2026-02-10</span></div>
+          <div class="mb-1 fs-5">v <strong style="color: #00d4ff;">2.1</strong></div>
+          <div class="small text-muted">build <span id="buildDate">2026-02-08</span></div>
           <div class="mt-3"><small class="text-muted">© 2024–2026 IPTV Detective</small></div>
         </div>
       </div>
@@ -1654,33 +1479,21 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <strong>Version 2.1.2 — 2026-02-10</strong>
+          <strong>Version 2.1 — 2026-02-08</strong>
           <ul>
-            <li>Added a warning next to the captcha on the main form, telling users to refresh the page if the captcha fails or expires to avoid issues.</li>
-          </ul>
-        </div>
-        <div class="mb-3">
-          <strong>Version 2.1.1 — 2026-02-08</strong>
-          <ul>
-            <li>Added a security check (CAPTCHA) to the homepage and admin login to help block bots.</li>
-            <li>Changed the layout so the CAPTCHA fits better on the homepage.</li>
-            <li>Improved login and provider submission security with server checks.</li>
-            <li>You can no longer upload M3U files; now you just enter channel counts for comparisons.</li>
-            <li>The site form and scripts were updated to only accept channel counts, not full playlists.</li>
-            <li>Fixed a bug in provider count checking and made loading settings more reliable.</li>
-            <li>Updated the help text to make it clearer how the site works and what info is private.</li>
-            <li>Made sensitive files safer by changing file permissions and adding protection rules.</li>
-            <li>Improved some button text and loading messages to make things clearer.</li>
-            <li>Uploaded these updates to the live site.</li>
+            <li>Added Seller Source and Seller Info to submissions and admin UI.</li>
+            <li>Made Xtream credentials processing in-browser by default; improved privacy wording.</li>
+            <li>Updated admin provider list to show seller and improved edit modal.</li>
+            <li>Documentation and help updated to explain credential handling and comparison logic.</li>
           </ul>
         </div>
         <div class="mb-3">
           <strong>Version 2.0 — (previous)</strong>
           <ul>
-            <li>First public release: submit providers, compare packages, use admin dashboard.</li>
+            <li>Initial public release base features: provider submission, comparison, admin dashboard.</li>
           </ul>
         </div>
-        <p class="small text-muted">This changelog is written for everyone. For more details, ask the site admin.</p>
+        <p class="small text-muted">This changelog is a short summary. For detailed history, check the repository tags or contact the site administrator.</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>

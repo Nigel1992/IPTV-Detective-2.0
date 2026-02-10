@@ -258,7 +258,6 @@ try {
         'similarity' => 0
     ];
     if (ob_get_length()) ob_clean();
-    // nosemgrep: echoed-request, taint-unsafe-echo-tag
     echo json_encode($fallback);
     exit;
 }

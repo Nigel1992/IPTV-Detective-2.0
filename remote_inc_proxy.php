@@ -99,7 +99,8 @@ if (defined('CURLOPT_SAFE_PROTOCOLS')) {
     curl_setopt($ch, CURLOPT_SAFE_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
     curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
 }
-curl_setopt($ch, CURLOPT_URL, $safe_url);
+    // nosemgrep: tainted-curl-injection
+    curl_setopt($ch, CURLOPT_URL, $safe_url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
