@@ -199,21 +199,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['maintenance_action'])
                 $action_msg = 'Maintenance mode enabled';
                 // Notify Discord webhook if configured
                 if (!empty($cfg['discord_webhook'])) {
-                    $msg = "**Maintenance enabled**\nUser: " . ($_SESSION['admin_user'] ?? 'admin') . "\nTime: " . date('c') . "\n" . trim(@file_get_contents($flagFile) ?: '');
-                    // send in background if possible (non-blocking)
-                    try {
-                        $ch = curl_init($cfg['discord_webhook']);
-                        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                        curl_setopt($ch, CURLOPT_POST, true);
-                        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['content' => $msg]));
-                        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                        curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-                        $resp = curl_exec($ch);
-                        $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                        curl_close($ch);
-                    } catch (Throwable $_e) {
-                        // ignore notification errors
-                    }
+                    // Build a nicer Discord embed with @everyone mention
+                $adminUser = ($_SESSION['admin_user'] ?? 'admin');
+                $details = trim(@file_get_contents($flagFile) ?: 'No additional details provided.');
+                $embed = [
+                    'title' => 'IPTV Detective — Maintenance Enabled',
+                    'description' => "The website is temporarily offline while we apply fixes and address issues. We will notify when the site is back online.",
+                    'color' => 15158332, // red
+                    'fields' => [
+                        ['name' => 'Enabled by', 'value' => $adminUser, 'inline' => true],
+                        ['name' => 'Time', 'value' => date('c'), 'inline' => true],
+                        ['name' => 'Details', 'value' => substr($details, 0, 1024), 'inline' => false]
+                    ]
+                ];
+                $payload = ['content' => '@everyone', 'embeds' => [$embed]];
+                try {
+                    $ch = curl_init($cfg['discord_webhook']);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                    curl_setopt($ch, CURLOPT_POST, true);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+                    $resp = curl_exec($ch);
+                    $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+                } catch (Throwable $_e) {
+                    // ignore notification errors
+                }
                 }
             }
         } else {
@@ -222,18 +234,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['maintenance_action'])
             } else {
                 $action_msg = 'Maintenance mode disabled';
                 if (!empty($cfg['discord_webhook'])) {
-                    $msg = "**Maintenance disabled**\nUser: " . ($_SESSION['admin_user'] ?? 'admin') . "\nTime: " . date('c') . "\n";
-                    try {
-                        $ch = curl_init($cfg['discord_webhook']);
-                        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                        curl_setopt($ch, CURLOPT_POST, true);
-                        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['content' => $msg]));
-                        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                        curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-                        $resp = curl_exec($ch);
-                        $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                        curl_close($ch);
-                    } catch (Throwable $_e) {}
+                    $adminUser = ($_SESSION['admin_user'] ?? 'admin');
+                $embed = [
+                    'title' => 'IPTV Detective — Maintenance Disabled',
+                    'description' => "The website is back online. Maintenance has been completed or paused. If issues persist, please follow up.",
+                    'color' => 3066993, // green
+                    'fields' => [
+                        ['name' => 'Disabled by', 'value' => $adminUser, 'inline' => true],
+                        ['name' => 'Time', 'value' => date('c'), 'inline' => true]
+                    ]
+                ];
+                $payload = ['content' => '@everyone', 'embeds' => [$embed]];
+                try {
+                    $ch = curl_init($cfg['discord_webhook']);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                    curl_setopt($ch, CURLOPT_POST, true);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+                    $resp = curl_exec($ch);
+                    $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+                } catch (Throwable $_e) {}
                 }
             }
         }
