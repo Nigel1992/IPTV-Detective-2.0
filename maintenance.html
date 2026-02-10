@@ -5,16 +5,51 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Site Maintenance — IPTV Detective</title>
   <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.2/dist/darkly/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-  <style>body{background:#061023;color:#e6eef8;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,system-ui,Arial} .card{max-width:720px;padding:2rem;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,0.6)}</style>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root{--accent:#00c2ff;--accent-2:#7cf6ff;--bg-1:#061023;--glass:rgba(15,23,36,0.6)}
+    html,body{height:100%;}
+    body{font-family:Inter,system-ui,Arial;background:radial-gradient(1200px 600px at 10% 10%, rgba(10,20,40,0.12), transparent), linear-gradient(120deg,var(--bg-1),#081428);color:#e6eef8;display:flex;align-items:center;justify-content:center}
+    .maint-card{width:100%;max-width:960px;padding:2rem;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));border:1px solid rgba(255,255,255,0.03);box-shadow:0 20px 60px rgba(0,0,0,0.6);}
+    .maint-hero{display:flex;gap:1.5rem;align-items:center}
+    .maint-illustration{width:90px;height:90px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#032935;font-size:2.25rem;font-weight:700;box-shadow:0 10px 30px rgba(0,194,255,0.08)}
+    h1{font-family:Orbitron, sans-serif;color:var(--accent);margin:0;font-size:1.75rem}
+    .lead{color:#bcdff0;margin-top:6px}
+    .muted{color:#9fb9c9}
+    .small-card{margin-top:1rem;padding:0.8rem;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.02)}
+    .cta{margin-top:1.25rem}
+    .disclaimer{margin-top:0.6rem;color:#9fb9c9;font-size:0.9rem}
+    @media (max-width:576px){ .maint-hero{flex-direction:column;align-items:flex-start} .maint-illustration{width:72px;height:72px;font-size:1.6rem} }
+  </style>
 </head>
 <body>
-  <div class="card text-center">
-    <h1 class="mb-3">We'll be right back</h1>
-    <p class="lead">IPTV Detective is temporarily offline for scheduled maintenance or updates.</p>
-    <p class="mb-1">We're working to improve the site — please check back in a little while.</p>
-    <p class="small text-muted">If you need urgent access, contact the site admin or join our Discord: <a href="https://discord.gg/zxUq3afdn8">https://discord.gg/zxUq3afdn8</a></p>
-    <hr>
-    <p class="text-muted">Status: <strong>Maintenance mode</strong> — Enabled by placing a <code>MAINTENANCE</code> file in the site root.</p>
+  <div class="maint-card">
+    <div class="maint-hero">
+      <div class="maint-illustration"><i class="bi bi-tools"></i></div>
+      <div>
+        <h1>We'll be right back</h1>
+        <p class="lead">IPTV Detective is temporarily offline for maintenance or updates.</p>
+        <p class="muted">We're applying improvements and will restore service shortly. Thank you for your patience.</p>
+      </div>
+    </div>
+
+    <div class="small-card d-flex justify-content-between align-items-center">
+      <div>
+        <div class="fw-bold">Status: <span class="text-danger">Maintenance mode</span></div>
+        <div class="disclaimer">This site is currently unavailable to the public. Admins can still access the dashboard.</div>
+      </div>
+      <div class="text-end">
+        <a href="https://discord.gg/zxUq3afdn8" class="btn btn-outline-light">Contact / Status</a>
+      </div>
+    </div>
+
+    <div class="small-card mt-3">
+      <div class="fw-bold mb-1">Details</div>
+      <pre id="maintMsg" style="white-space:pre-wrap;background:transparent;border:none;padding:0;margin:0;color:#cfeefb">{{MAINTENANCE_MSG}}</pre>
+    </div>
+
+    <div class="text-muted mt-3 small">If you need urgent access, contact the site admin or join our Discord.</div>
   </div>
 </body>
 </html>

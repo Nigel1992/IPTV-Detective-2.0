@@ -10,8 +10,15 @@ if (file_exists($flagFile) && !$isAdminCookie && stripos($uri, 'admin_') === fal
     http_response_code(503);
     // Serve maintenance page if available, else output simple message
     $maintPath = __DIR__ . '/../maintenance.html';
+    $msg = '';
+    if (is_file($flagFile)) {
+        $msg = @file_get_contents($flagFile) ?: '';
+    }
     if (is_file($maintPath)) {
-        echo file_get_contents($maintPath);
+        $html = file_get_contents($maintPath);
+        // Inject maintenance flag content into placeholder
+        $html = str_replace('{{MAINTENANCE_MSG}}', htmlspecialchars($msg), $html);
+        echo $html;
     } else {
         echo "<html><head><title>Maintenance</title></head><body><h1>Site under maintenance</h1><p>Please check back later.</p></body></html>";
     }
