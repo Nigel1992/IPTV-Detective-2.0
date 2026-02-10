@@ -37,8 +37,11 @@ if (!$target) { http_response_code(404); echo json_encode(['error'=>'Provider no
 $matches = [];
 // MD5 matching removed - not used anymore
 
-// Now find similar (non-exact) candidates based on available metrics (return many matches with similarity scores)
+// Now find similar (non-exact) candidates based on available metrics (return only high-confidence matches)
 if ($has_live_categories || $has_live_streams || $has_series || $has_series_categories || $has_vod_categories) {
+    // Minimum similarity required for a candidate to appear (percent)
+    $minSimilarity = 85.0;
+
     // fetch a reasonable candidate set — limit to recent 1000 for performance
     // build candidate select dynamically (avoid selecting missing columns)
     $candCols = ['id','name','link','price','seller_source','seller_info'];
@@ -86,8 +89,8 @@ if ($has_live_categories || $has_live_streams || $has_series || $has_series_cate
             $similarity = $metricScore;
         }
 
-        // Only include candidates with any similarity (>=1%)
-        if ($similarity <= 0) continue;
+        // Only include candidates with similarity >= minimum threshold
+        if ($similarity < $minSimilarity) continue;
 
         $price_diff = floatval($r['price']) - floatval($target['price']);
 

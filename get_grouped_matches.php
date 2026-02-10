@@ -58,36 +58,22 @@ try {
         $vod_categories_values[$i] = $p['vod_categories'] ?? '';
     }
 
-    // exact matching function
-    $threshold = 100.0; // Exact matches only
+    // Use weighted similarity for grouping (threshold 85%)
+    $minSimilarity = 85.0;
+    $metricCols = ['live_streams'=>0.30,'live_categories'=>0.20,'series'=>0.20,'series_categories'=>0.15,'vod_categories'=>0.05];
     for ($i = 0; $i < $n; $i++) {
         for ($j = $i+1; $j < $n; $j++) {
-            // Check exact matches on all available fields
-            $exact_match = true;
-            $field_matches = [
-                ($live_categories_values[$i] === $live_categories_values[$j] && !empty($live_categories_values[$i])),
-                ($live_streams_values[$i] === $live_streams_values[$j] && !empty($live_streams_values[$i])),
-                ($series_values[$i] === $series_values[$j] && !empty($series_values[$i])),
-                ($series_categories_values[$i] === $series_categories_values[$j] && !empty($series_categories_values[$i])),
-                ($vod_categories_values[$i] === $vod_categories_values[$j] && !empty($vod_categories_values[$i]))
-            ];
-            
-            // All available fields must match exactly
-            $available_fields = 0;
-            $matching_fields = 0;
-            foreach ($field_matches as $matches) {
-                if ($matches !== false) { // field is available (not empty)
-                    $available_fields++;
-                    if ($matches) {
-                        $matching_fields++;
-                    }
-                }
+            $weightSum = 0.0;
+            $metricScore = 0.0;
+            foreach ($metricCols as $col => $baseW) {
+                $valA = isset($providers[$i][$col]) ? intval($providers[$i][$col]) : 0;
+                $valB = isset($providers[$j][$col]) ? intval($providers[$j][$col]) : 0;
+                $sim = ($valA || $valB) ? (1.0 - abs($valA - $valB) / max(1, max($valA, $valB))) * 100.0 : 0.0;
+                $weightSum += $baseW;
+                $metricScore += $sim * $baseW;
             }
-            
-            // If all available fields match, it's 100%, otherwise 0%
-            $overall = ($available_fields > 0 && $matching_fields == $available_fields) ? 100.0 : 0.0;
-
-            if ($overall >= $threshold) {
+            $similarity = ($weightSum > 0) ? ($metricScore / $weightSum) : 0.0;
+            if ($similarity >= $minSimilarity) {
                 $adj[$i][] = $j;
                 $adj[$j][] = $i;
             }
