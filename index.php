@@ -820,6 +820,7 @@ require_once __DIR__ . '/inc/maintenance.php';
 
         // Helper: try to recover and count items from non-standard JSON/text payloads
         function parseBrokenJsonString(txt) {
+          // Primary JSON parsing
           try {
             const j = JSON.parse(txt);
             if (Array.isArray(j)) return { count: j.length, sample: j.slice(0,10) };
@@ -829,20 +830,40 @@ require_once __DIR__ . '/inc/maintenance.php';
           } catch (e) {
             // continue to other heuristics
           }
-          // Try wrapping as array
+
+          // Try wrapping as array (single-line arrays without brackets)
           try {
             const j2 = JSON.parse('[' + txt.replace(/\r?\n/g,'') + ']');
             if (Array.isArray(j2)) return { count: j2.length, sample: j2.slice(0,10) };
           } catch (e) {}
+
           // Try to fix concatenated objects like '}{' or '},{' missing outer brackets
           try {
             const fixed = '[' + txt.replace(/}\s*,?\s*\{/g, '},{') + ']';
             const j3 = JSON.parse(fixed);
             if (Array.isArray(j3)) return { count: j3.length, sample: j3.slice(0,10) };
           } catch (e) {}
-          // Fallback: count likely object entries by looking for season/object markers
-          const idMatches = txt.match(/"season_number"\s*:\s*\d+|"id"\s*:\s*\d+|"episode_count"\s*:\s*\d+/g);
+
+          // Heuristic: numeric-only strings
+          const trimmed = String(txt).trim();
+          if (/^\d+$/.test(trimmed)) return { count: Number(trimmed), sample: [] };
+
+          // Heuristic: compact object separators like '},{' or '}{'
+          const sepCount1 = (trimmed.match(/},\s*\{/g) || []).length;
+          if (sepCount1 > 0) return { count: sepCount1 + 1, sample: [] };
+          const sepCount2 = (trimmed.match(/}\s*\{/g) || []).length;
+          if (sepCount2 > 0) return { count: sepCount2 + 1, sample: [] };
+
+          // Comma-separated simple lists fallback (e.g., 'a,b,c')
+          if (trimmed.indexOf(',') !== -1) {
+            const parts = trimmed.split(',').map(s => s.trim()).filter(Boolean);
+            if (parts.length > 1) return { count: parts.length, sample: parts.slice(0,10) };
+          }
+
+          // Count repeated keys commonly found inside series items (more specific than just "id")
+          const idMatches = trimmed.match(/"series_id"\s*:\s*\d+|"num"\s*:\s*\d+|"season_number"\s*:\s*\d+|"episode_count"\s*:\s*\d+|"name"\s*:\s*"[^\"]+"/g);
           if (idMatches && idMatches.length) return { count: idMatches.length, sample: [] };
+
           // Final fallback: count non-empty lines
           const lines = String(txt).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
           return { count: lines.length, sample: lines.slice(0,10) };
