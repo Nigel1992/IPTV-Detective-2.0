@@ -708,7 +708,7 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
             return { ok: false, status: r.status };
           }
           const body = await (async () => {
-            try { return await r.json(); } catch (e) { const txt = await r.text(); try { return JSON.parse(txt); } catch(e2) { return txt; } }
+            try { return await r.clone().json(); } catch (e) { const txt = await r.clone().text(); try { return JSON.parse(txt); } catch(e2) { return txt; } }
           })();
           // If proxy returned count object, honor it
           if (body && typeof body === 'object' && (body.count !== undefined || body.error !== undefined)) {
