@@ -84,20 +84,20 @@ try {
                 $field_matches[] = ($live_categories_values[$i] === $live_categories_values[$j] && !empty($live_categories_values[$i]));
                 // live_streams exact match
                 $field_matches[] = ($live_streams_values[$i] === $live_streams_values[$j] && !empty($live_streams_values[$i]));
-                // series: prefer raw equality, else if both have >1 items and equal counts consider match
+                // series: prefer raw equality, else if counts equal consider match
                 $series_match = false;
                 if (!empty($series_values_raw[$i]) && $series_values_raw[$i] === $series_values_raw[$j]) $series_match = true;
-                else if (!empty($series_counts[$i]) && !empty($series_counts[$j]) && $series_counts[$i] > 1 && $series_counts[$i] === $series_counts[$j]) $series_match = true;
+                else if ($series_counts[$i] === $series_counts[$j]) $series_match = true;
                 $field_matches[] = $series_match;
                 // series_categories: same tactic
                 $sc_match = false;
                 if (!empty($series_categories_values_raw[$i]) && $series_categories_values_raw[$i] === $series_categories_values_raw[$j]) $sc_match = true;
-                else if (!empty($series_categories_counts[$i]) && !empty($series_categories_counts[$j]) && $series_categories_counts[$i] > 1 && $series_categories_counts[$i] === $series_categories_counts[$j]) $sc_match = true;
+                else if ($series_categories_counts[$i] === $series_categories_counts[$j]) $sc_match = true;
                 $field_matches[] = $sc_match;
                 // vod categories
                 $vod_match = false;
                 if (!empty($vod_categories_values_raw[$i]) && $vod_categories_values_raw[$i] === $vod_categories_values_raw[$j]) $vod_match = true;
-                else if (!empty($vod_counts[$i]) && !empty($vod_counts[$j]) && $vod_counts[$i] > 1 && $vod_counts[$i] === $vod_counts[$j]) $vod_match = true;
+                else if ($vod_counts[$i] === $vod_counts[$j]) $vod_match = true;
                 $field_matches[] = $vod_match;
                 
                 // All available fields must match exactly
