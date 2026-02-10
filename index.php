@@ -240,10 +240,6 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
           <div class="d-flex justify-content-between align-items-center mt-3">
             <div>
               <div class="small text-muted">Tip: reload page if site verification prompts appear.</div>
-              <div class="small text-warning" style="max-width:320px;">
-                <strong>Captcha:</strong> If you see errors or the captcha fails, <u>refresh the page</u> to get a new captcha before submitting again. This helps avoid issues with expired or invalid captchas.
-                              <strong>Captcha:</strong> For security, you <b>must refresh the page after each submission</b> to receive a new captcha. Submitting without refreshing may result in errors or failed verification. Always reload the page before each new submission to ensure your request is processed smoothly.
-              </div>
             </div>
             <div class="text-end">
               <div class="mb-2 d-inline-block" style="transform:translateY(-10px);">
@@ -251,6 +247,10 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
               </div>
               <div>
                 <button class="btn btn-primary btn-lg" type="submit"><i class="bi bi-search"></i> Check &amp; Compare</button>
+              </div>
+              <div class="alert alert-danger mt-3 fw-bold text-center shadow" style="font-size:1.15rem; border-width:2px;">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                For security, you <u>must refresh the page after each submission</u> to receive a new captcha. Submitting without refreshing will cause errors or failed verification. <b>Always reload the page before each new submission!</b>
               </div>
             </div>
           </div>
@@ -614,6 +614,24 @@ $siteKey = isset($cfg['turnstile_site_key']) && $cfg['turnstile_site_key'] ? $cf
       if (!turnstileResponse) {
         alert('Please complete the captcha.');
         if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; }
+        return;
+      }
+      // Verify captcha token with server before doing heavy work
+      try {
+        const verifyRes = await fetch('verify_turnstile.php', { method: 'POST', body: new URLSearchParams({ 'cf-turnstile-response': turnstileResponse }) });
+        const verifyJson = await verifyRes.json().catch(()=>null);
+        if (!verifyRes.ok || !verifyJson || !verifyJson.success) {
+          alert('Captcha verification failed. Please refresh the page and try again.');
+          if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; }
+          if (typeof turnstile !== 'undefined' && typeof turnstile.reset === 'function') {
+            try { turnstile.reset(); } catch(e) {}
+          }
+          return;
+        }
+      } catch (e) {
+        console.warn('Captcha verify error', e);
+        alert('Captcha verification error. Please refresh the page and try again.');
+        if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check &amp; Compare'; }
         return;
       }
       // Additional client-side validation
