@@ -2814,11 +2814,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
         // Find Duplicates Functionality
         (function(){
             const findDuplicatesBtn = document.getElementById('findDuplicatesBtn');
-            const duplicatesContent = document.getElementById('duplicatesContent');
-            const confirmDeleteBtn = document.getElementById('confirmDeleteDuplicates');
 
             findDuplicatesBtn.addEventListener('click', function(){
                 console.log('Find duplicates button clicked');
+                
+                // Get modal elements inside the click handler when DOM is ready
+                const duplicatesContent = document.getElementById('duplicatesContent');
+                const confirmDeleteBtn = document.getElementById('confirmDeleteDuplicates');
                 
                 // Check if modal element exists
                 const modalElement = document.getElementById('duplicatesModal');
@@ -2826,6 +2828,16 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                 
                 if (!modalElement) {
                     alert('Modal element not found. Please refresh the page.');
+                    return;
+                }
+                
+                if (!duplicatesContent) {
+                    alert('Modal content element not found. Please refresh the page.');
+                    return;
+                }
+                
+                if (!confirmDeleteBtn) {
+                    alert('Delete button not found. Please refresh the page.');
                     return;
                 }
                 
@@ -2959,6 +2971,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                     console.error('Modal initialization error:', error);
                     alert('Failed to initialize modal. Please refresh the page.');
                 }
+            });
+
+            // Add event listener for delete button
+            confirmDeleteBtn.addEventListener('click', function() {
+                // Show loading state
+                confirmDeleteBtn.disabled = true;
+                confirmDeleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Deleting...';
 
                 fetch('admin_9f4b1a.php?action=delete_duplicates', {
                     method: 'POST',
