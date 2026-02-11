@@ -849,6 +849,37 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
             border-bottom:2px solid var(--border-color);
             padding:0.75rem;
         }
+
+        /* Vertical dividers between columns for providers table */
+        #providersTable th, #providersTable td {
+            border-right: 1px solid rgba(255,255,255,0.06);
+        }
+        #providersTable th:last-child, #providersTable td:last-child {
+            border-right: none;
+        }
+        /* Add spacing for divider visibility on wider screens */
+        @media (min-width: 768px) {
+            #providersTable th, #providersTable td {
+                padding-right: 1rem;
+            }
+        }
+        /* On small screens use subtle '|' glyphs to separate columns instead of borders */
+        @media (max-width: 767.98px) {
+            #providersTable th, #providersTable td {
+                border-right: none;
+                padding-right: 0.6rem;
+                position: relative;
+            }
+            #providersTable td:not(:last-child)::after {
+                content: '|';
+                color: rgba(255,255,255,0.06);
+                position: absolute;
+                right: 0.4rem;
+                top: 50%;
+                transform: translateY(-50%);
+                font-weight: 700;
+            }
+        }
         .table td, .table th{
             vertical-align:middle;
             padding:0.75rem;
