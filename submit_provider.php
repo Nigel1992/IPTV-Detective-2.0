@@ -166,6 +166,13 @@ $vod_categories_count = isset($_POST['vod_categories_count']) ? intval($_POST['v
 // Allow counts-only submissions without Xtream credentials
 $counts_only = isset($_POST['counts_only']) && ($_POST['counts_only'] == '1' || $_POST['counts_only'] === 'true');
 
+// Defensive check: do not accept sentinel/invalid counts on the server (0 or '-') — require a positive channel count.
+if ($channel_count <= 0) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid channel_count']);
+    exit;
+}
+
 // xt_port is optional; require other fields depending on counts_only
 if ($counts_only) {
     $required = [
