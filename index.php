@@ -1090,9 +1090,11 @@ require_once __DIR__ . '/inc/maintenance.php';
 
       // Submit provider to server, retry if server returns invalid counts (0 or '-')
       let data = null;
+      let lastRes = null;
       const maxRetries = 3;
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         const res = await fetch('submit_provider.php', { method: 'POST', body: fd });
+        lastRes = res;
         const ctype = (res.headers.get('content-type') || '').toLowerCase();
         if (ctype.includes('application/json')) {
           try { data = await res.json(); } catch (e) { throw new Error('Invalid JSON from server'); }
@@ -1123,7 +1125,7 @@ require_once __DIR__ . '/inc/maintenance.php';
       }
 
       if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-search"></i> Check & Compare'; }
-      if (!res.ok) { alert('Error: ' + (data && data.error ? data.error : 'Server error')); return; }
+      if (!lastRes || !lastRes.ok) { alert('Error: ' + (data && data.error ? data.error : 'Server error')); return; }
       if (data.error) { alert('Error: ' + data.error); return; }
       const setIf = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
       setIf('r_name', name);
