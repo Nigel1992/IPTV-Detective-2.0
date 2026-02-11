@@ -686,6 +686,10 @@ require_once __DIR__ . '/inc/maintenance.php';
         vod_categories: null
       };
 
+      // Keys to check for valid counts and helper to detect invalid (zero/null) counts
+      const importantKeys = ['live_categories','live_streams','series','series_categories','vod_categories'];
+      const anyZero = () => importantKeys.some(k => apiCounts[k] && (apiCounts[k].count === null || apiCounts[k].count === 0));
+
       const apiActions = {
         live_categories: 'get_live_categories',
         live_streams: 'get_live_streams',
@@ -931,8 +935,7 @@ require_once __DIR__ . '/inc/maintenance.php';
         });
         await Promise.all(promises);
         // If any important counts are zero, retry fetching until they are non-zero (with backoff) up to maxAttempts
-        const importantKeys = ['live_categories','live_streams','series','series_categories','vod_categories'];
-        const anyZero = () => importantKeys.some(k => apiCounts[k] && (apiCounts[k].count === null || apiCounts[k].count === 0));
+        // use outer importantKeys/anyZero defined above
         const maxAttempts = 6;
         let attempt = 1;
         const rCompareEl = document.getElementById('r_compare');
