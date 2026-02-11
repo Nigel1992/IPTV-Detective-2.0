@@ -606,14 +606,18 @@ if (isset($_GET['action']) && $_GET['action'] === 'find_duplicates' && $_SERVER[
             throw new Exception('Invalid CSRF token');
         }
         
-        // Get all providers with key fields for duplicate detection
-        $stmt = $pdo->query("
-            SELECT id, name, link, price, channels, groups, live_streams, live_categories, 
-                   series, series_categories, vod_categories, seller_source, seller_info, 
-                   created_at
-            FROM providers 
-            ORDER BY created_at ASC
-        ");
+        // Determine available columns and select only those that exist to avoid SQL errors on older schemas
+        $desired = ['id','name','link','price','channels','groups','live_streams','live_categories','series','series_categories','vod_categories','seller_source','seller_info','created_at'];
+        $desc = $pdo->query("DESCRIBE providers")->fetchAll(PDO::FETCH_ASSOC);
+        $existingCols = array_column($desc, 'Field');
+        $selectCols = array_values(array_intersect($desired, $existingCols));
+        if (empty($selectCols)) {
+            // Fallback - at minimum select id
+            $selectCols = ['id'];
+        }
+        $select = implode(',', $selectCols);
+        $orderBy = in_array('created_at', $existingCols) ? 'created_at ASC' : 'id ASC';
+        $stmt = $pdo->query("SELECT $select FROM providers ORDER BY $orderBy");
         $providers = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Group by exact match criteria
@@ -2974,7 +2978,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
             });
 
             // Add event listener for delete button
-            confirmDeleteBtn.addEventListener('click', function() {
+            document.getElementById('confirmDeleteDuplicates')?.addEventListener('click', function() {
+                const confirmDeleteBtn = document.getElementById('confirmDeleteDuplicates');
+                if (!confirmDeleteBtn) return;
+
                 // Show loading state
                 confirmDeleteBtn.disabled = true;
                 confirmDeleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Deleting...';
