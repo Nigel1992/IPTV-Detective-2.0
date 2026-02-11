@@ -1107,6 +1107,30 @@ require_once __DIR__ . '/inc/maintenance.php';
           throw new Error('Invalid response from server: ' + snippet);
         }
 
+        // If server returned an HTTP error, handle CAPTCHA specially and treat other errors as retryable
+        if (!res.ok) {
+          const serverErr = (data && data.error) ? String(data.error) : ('Server error ' + res.status);
+          if (/captcha/i.test(serverErr)) {
+            // Captcha problems: ask user to retry captcha and do NOT count this as a "counts" attempt
+            if (btn) { btn.disabled = false; }
+            try { resetTurnstile(); } catch (e) {}
+            alert('Server rejected the CAPTCHA. Please complete the CAPTCHA again and resubmit. If this keeps happening, try reloading the page or join our Discord for help: https://discord.com/invite/zxUq3afdn8');
+            console.info('CAPTCHA failure (server):', serverErr);
+            return;
+          } else {
+            // Other server errors are treated as transient; retry up to maxRetries
+            if (attempt < maxRetries) {
+              console.warn(`submit_provider: attempt ${attempt} server error: ${serverErr}, retrying...`);
+              await new Promise(r => setTimeout(r, 700 * attempt));
+              continue;
+            } else {
+              if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-search"></i> Check & Compare'; }
+              alert('Submission failed after ' + maxRetries + ' attempts (server error). Please join our Discord to report this issue and include the provider name and time: https://discord.com/invite/zxUq3afdn8');
+              return;
+            }
+          }
+        }
+
         // Normalize channel/group values and check for invalid sentinel values
         const ch = (data && (data.channels !== undefined)) ? data.channels : null;
         const gr = (data && (data.groups !== undefined)) ? data.groups : null;
