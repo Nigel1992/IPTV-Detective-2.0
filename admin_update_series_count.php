@@ -10,11 +10,11 @@ require_once __DIR__ . '/inc/functions.php';
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 if (empty($_SESSION['admin_user']) && empty($_COOKIE['iptv_admin'])) {
     http_response_code(403);
-    echo json_encode(['error' => 'Admin login required']);
+    echo json_encode(['error' => 'Admin login required'], JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT);
     exit;
 }
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 $provider_id = isset($_POST['provider_id']) ? intval($_POST['provider_id']) : 0;
 $series_count = isset($_POST['series_count']) ? intval($_POST['series_count']) : null;
@@ -22,7 +22,7 @@ $recompute = isset($_POST['recompute']) ? (bool)$_POST['recompute'] : false;
 
 if (!$provider_id || $series_count === null) {
     http_response_code(400);
-    echo json_encode(['error' => 'Missing provider_id or series_count']);
+    echo json_encode(['error' => 'Missing provider_id or series_count'], JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT);
     exit;
 }
 
@@ -48,9 +48,9 @@ try {
         }
     }
 
-    echo json_encode($resp);
+    echo json_encode($resp, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT);
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode(['error' => $e->getMessage()], JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT);
 }
 ?>
