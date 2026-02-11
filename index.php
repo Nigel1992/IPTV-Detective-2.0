@@ -25,7 +25,7 @@ require_once __DIR__ . '/inc/maintenance.php';
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>IPTV Detective v2.1.3</title>
+  <title>IPTV Detective v2.1.4</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" href="favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -143,11 +143,6 @@ require_once __DIR__ . '/inc/maintenance.php';
     .match-header{display:flex;justify-content:space-between;align-items:center}
 
   </style>
-
-  <!-- Tutorial System -->
-  <link href="static/css/tutorial.css" rel="stylesheet">
-  <script src="static/js/tutorial.js"></script>
-  <script src="static/tutorials/provider-check.js"></script>
 </head>
 <body class="bg-dark text-light">
   <div id="adminStatus" class="position-absolute top-0 end-0 p-3" style="z-index:1050;display:none;"></div>
@@ -156,7 +151,6 @@ require_once __DIR__ . '/inc/maintenance.php';
       <h1 class="display-5 fw-bold mb-1"><span class="logo"><i class="bi bi-broadcast"></i> IPTV Detective</span></h1>
       <div class="lead">Find the cheapest provider offering the exact same IPTV package — detect resells and compare prices.</div>
       <div class="mt-3">
-        <button class="btn btn-outline-info me-2" id="tutorialBtn" title="Interactive tutorial for new users"><i class="bi bi-question-circle"></i> Tutorial</button>
         <button class="btn btn-outline-light" id="howItWorksBtn" title="How this site works" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="bi bi-info-circle"></i> How it works</button>
       </div>
     </div>
@@ -1652,16 +1646,6 @@ require_once __DIR__ . '/inc/maintenance.php';
         keyboard: true
       });
       loadSubmissionsCount();
-
-      // Tutorial button handler
-      const tutorialBtn = document.getElementById('tutorialBtn');
-      if (tutorialBtn) {
-        tutorialBtn.addEventListener('click', function() {
-          if (window.tutorial) {
-            window.tutorial.startTutorial('provider-check');
-          }
-        });
-      }
     });
   </script>
 
@@ -1737,7 +1721,7 @@ require_once __DIR__ . '/inc/maintenance.php';
 
         <div class="col-md-4 text-md-end">
           <h6 class="mb-3 text-uppercase fw-bold" style="color: #00d4ff;"><i class="bi bi-code-slash me-2"></i>Version</h6>
-          <div class="mb-1 fs-5">v <strong style="color: #00d4ff;">2.1.3</strong></div>
+          <div class="mb-1 fs-5">v <strong style="color: #00d4ff;">2.1.4</strong></div>
           <div class="small text-muted">build <span id="buildDate">2026-02-11</span></div>
           <div class="mt-3"><small class="text-muted">© 2024–2026 IPTV Detective</small></div>
         </div>
@@ -1770,6 +1754,12 @@ require_once __DIR__ . '/inc/maintenance.php';
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        <div class="mb-3">
+          <strong>Version 2.1.4 — 2026-02-11</strong>
+          <ul>
+            <li>Removed the interactive tutorial system to simplify the user experience and reduce page load time.</li>
+          </ul>
+        </div>
         <div class="mb-3">
           <strong>Version 2.1.3 — 2026-02-11</strong>
           <ul>
@@ -1869,11 +1859,6 @@ require_once __DIR__ . '/inc/maintenance.php';
     </div>
   </div>
 </div>
-
-<!-- Tutorial Restart Button (appears after tutorial completion) -->
-<button id="tutorialRestartBtn" class="btn btn-outline-info tutorial-restart-btn" style="display:none;" title="Restart the interactive tutorial" onclick="tutorial.restartTutorial()">
-  <i class="bi bi-question-circle"></i>
-</button>
 
 <?php require_once __DIR__ . '/inc/discord_fab.php'; ?>
 </body>

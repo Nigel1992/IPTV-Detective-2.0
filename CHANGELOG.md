@@ -3,7 +3,8 @@
 
 This changelog is written for everyone, not just developers. It explains what changed in simple terms.
 
-
+## 2026-02-11 — v2.1.4
+- Removed the interactive tutorial system to simplify the user experience and reduce page load time.
 ## 2026-02-10 — v2.1.2
 - Added a warning next to the captcha on the main form, telling users to refresh the page if the captcha fails or expires to avoid issues.
 
