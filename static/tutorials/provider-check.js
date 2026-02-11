@@ -17,28 +17,28 @@ window.tutorialDefinitions = {
             id: 'provider-name',
             title: 'Enter Your Provider Name',
             content: 'Start by entering the name of your IPTV provider or service. This helps us identify and categorize your submission.',
-            target: '#name',
+            target: 'input[name="name"]',
             position: 'bottom'
         },
         {
             id: 'provider-price',
             title: 'Set the Annual Price',
             content: 'Enter the yearly cost of your IPTV subscription. This information helps with price comparisons and value analysis.',
-            target: '#price',
+            target: 'input[name="price"]',
             position: 'bottom'
         },
         {
             id: 'xtream-server',
             title: 'Xtream Codes Server Details',
             content: 'Enter your Xtream Codes server hostname or IP address. This is required to connect and analyze your provider\'s content.',
-            target: '#xt_host',
+            target: 'input[name="xt_host"]',
             position: 'right'
         },
         {
             id: 'xtream-credentials',
             title: 'Login Credentials',
             content: 'Provide your Xtream Codes username and password. We use these securely to check your account details and content availability.',
-            target: '#xt_user',
+            target: 'input[name="xt_user"]',
             position: 'right'
         },
         {
