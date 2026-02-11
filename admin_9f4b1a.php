@@ -184,6 +184,15 @@ $user = $_SESSION['admin_user'];
 
 $total_providers = $pdo->query('SELECT COUNT(*) FROM providers')->fetchColumn();
 $recent_submissions = $pdo->query('SELECT COUNT(*) FROM providers WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)')->fetchColumn();
+
+// Exact duplicates (providers involved in MD5 duplicate groups) — aligns with public stats
+try {
+    $stmt_dup = $pdo->query("SELECT SUM(cnt) AS total_dup FROM (SELECT COUNT(*) AS cnt FROM providers WHERE md5 IS NOT NULL AND md5 != '' GROUP BY md5 HAVING COUNT(*) >= 2) t");
+    $exact_duplicates = intval($stmt_dup->fetchColumn());
+} catch (Throwable $e) {
+    $exact_duplicates = 0;
+}
+
 $matched_providers = 0;
 // Handle maintenance toggle from admin (create/remove MAINTENANCE flag file)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['maintenance_action'])) {
@@ -1265,6 +1274,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                     <div class="col-lg-3 col-md-6 mb-3">
                         <div class="stats-card h-100">
                             <div class="stats-number text-success"><?php echo number_format($matched_providers); ?></div>
+                            <div class="small text-muted">Exact duplicate providers: <strong><?php echo number_format($exact_duplicates); ?></strong></div>
                             <div class="stats-label">Matched Providers</div>
                             <i class="bi bi-check-circle position-absolute top-50 end-0 translate-middle-y me-3 opacity-25" style="font-size:2rem;"></i>
                         </div>
