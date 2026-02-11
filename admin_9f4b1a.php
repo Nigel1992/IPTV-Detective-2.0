@@ -3020,12 +3020,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                 }
             });
 
-            // Delete handler is attached when modal opens to ensure the element exists and avoid duplicate attachments.
-                    alert('Failed to delete duplicates. Please try again.');
-                    confirmDeleteBtn.disabled = false;
-                    confirmDeleteBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Delete Duplicates';
-                });
-            });
+
         })();
     </script>
 
