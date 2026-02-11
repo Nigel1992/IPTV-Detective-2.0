@@ -1085,18 +1085,38 @@ require_once __DIR__ . '/inc/maintenance.php';
       // Add captcha token
       fd.append('cf-turnstile-response', turnstileResponse);
 
-      const res = await fetch('submit_provider.php', { method: 'POST', body: fd });
-      let data;
-      const ctype = (res.headers.get('content-type') || '').toLowerCase();
-      if (ctype.includes('application/json')) {
-        try { data = await res.json(); } catch (e) { throw new Error('Invalid JSON from server'); }
-      } else {
-        const txt = await res.text();
-        if (/This site requires Javascript|slowAES|aes\.js/i.test(txt)) {
-          throw new Error('Server requires JavaScript/cookies (anti-bot). Please reload this page in your browser and try again.');
+      // Submit provider to server, retry if server returns invalid counts (0 or '-')
+      let data = null;
+      const maxRetries = 3;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const res = await fetch('submit_provider.php', { method: 'POST', body: fd });
+        const ctype = (res.headers.get('content-type') || '').toLowerCase();
+        if (ctype.includes('application/json')) {
+          try { data = await res.json(); } catch (e) { throw new Error('Invalid JSON from server'); }
+        } else {
+          const txt = await res.text();
+          if (/This site requires Javascript|slowAES|aes\.js/i.test(txt)) {
+            throw new Error('Server requires JavaScript/cookies (anti-bot). Please reload this page in your browser and try again.');
+          }
+          const snippet = txt.replace(/\s+/g,' ').slice(0,1000);
+          throw new Error('Invalid response from server: ' + snippet);
         }
-        const snippet = txt.replace(/\s+/g,' ').slice(0,1000);
-        throw new Error('Invalid response from server: ' + snippet);
+
+        // Normalize channel/group values and check for invalid sentinel values
+        const ch = (data && (data.channels !== undefined)) ? data.channels : null;
+        const gr = (data && (data.groups !== undefined)) ? data.groups : null;
+        const isBad = (ch === 0 || ch === '0' || ch === '-' || gr === 0 || gr === '0' || gr === '-');
+        if (!isBad) break; // valid response received
+
+        // If we will retry, wait a short backoff before next attempt
+        if (attempt < maxRetries) {
+          console.warn(`submit_provider: attempt ${attempt} returned invalid counts (channels=${ch} groups=${gr}), retrying...`);
+          await new Promise(r => setTimeout(r, 700 * attempt));
+          continue;
+        } else {
+          // final attempt failed — notify user but continue with returned data
+          alert('Warning: server returned unexpected counts (0 or -). Submission continued with returned values.');
+        }
       }
 
       if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-search"></i> Check & Compare'; }
