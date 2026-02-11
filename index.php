@@ -1247,7 +1247,7 @@ require_once __DIR__ . '/inc/maintenance.php';
           compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">Likely private or not enough data</div></div>`;
         }
       }
-      const rCompareEl = document.getElementById('r_compare'); if (rCompareEl) rCompareEl.innerHTML = compareHtml;
+      const rCompareElement = document.getElementById('r_compare'); if (rCompareElement) rCompareElement.innerHTML = compareHtml;
       const resultsEl = document.getElementById('results');
       if (resultsEl) {
         resultsEl.style.display = '';
