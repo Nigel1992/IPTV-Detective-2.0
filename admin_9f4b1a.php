@@ -596,6 +596,176 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action']) && iss
     }
 }
 
+// Handle find duplicates action (AJAX)
+if (isset($_GET['action']) && $_GET['action'] === 'find_duplicates' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json');
+    
+    try {
+        // Validate CSRF token
+        if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+            throw new Exception('Invalid CSRF token');
+        }
+        
+        // Get all providers with key fields for duplicate detection
+        $stmt = $pdo->query("
+            SELECT id, name, link, price, channels, groups, live_streams, live_categories, 
+                   series, series_categories, vod_categories, seller_source, seller_info, 
+                   created_at
+            FROM providers 
+            ORDER BY created_at ASC
+        ");
+        $providers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Group by exact match criteria
+        $groups = [];
+        foreach ($providers as $provider) {
+            // Create a hash of all the key identifying fields
+            $keyFields = [
+                $provider['name'] ?? '',
+                $provider['link'] ?? '',
+                $provider['price'] ?? '',
+                $provider['channels'] ?? '',
+                $provider['groups'] ?? '',
+                $provider['live_streams'] ?? '',
+                $provider['live_categories'] ?? '',
+                $provider['series'] ?? '',
+                $provider['series_categories'] ?? '',
+                $provider['vod_categories'] ?? '',
+                $provider['seller_source'] ?? '',
+                $provider['seller_info'] ?? ''
+            ];
+            
+            $hash = md5(implode('|', $keyFields));
+            
+            if (!isset($groups[$hash])) {
+                $groups[$hash] = [];
+            }
+            $groups[$hash][] = $provider;
+        }
+        
+        // Filter to only groups with duplicates
+        $duplicates = [];
+        $totalDuplicates = 0;
+        
+        foreach ($groups as $hash => $groupProviders) {
+            if (count($groupProviders) > 1) {
+                // Sort by created_at to keep oldest
+                usort($groupProviders, function($a, $b) {
+                    return strtotime($a['created_at']) - strtotime($b['created_at']);
+                });
+                
+                $duplicates[] = [
+                    'count' => count($groupProviders),
+                    'keep_id' => $groupProviders[0]['id'], // Keep oldest
+                    'submissions' => $groupProviders
+                ];
+                
+                $totalDuplicates += count($groupProviders) - 1; // Don't count the one we keep
+            }
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'duplicates' => $duplicates,
+            'total_duplicates' => $totalDuplicates
+        ]);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'error' => $e->getMessage()
+        ]);
+    }
+    exit;
+}
+
+// Handle delete duplicates action (AJAX)
+if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json');
+    
+    try {
+        // Validate CSRF token
+        if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+            throw new Exception('Invalid CSRF token');
+        }
+        
+        // Start transaction
+        $pdo->beginTransaction();
+        
+        // Get all providers with key fields
+        $stmt = $pdo->query("
+            SELECT id, name, link, price, channels, groups, live_streams, live_categories, 
+                   series, series_categories, vod_categories, seller_source, seller_info, 
+                   created_at
+            FROM providers 
+            ORDER BY created_at ASC
+        ");
+        $providers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Group by exact match criteria
+        $groups = [];
+        foreach ($providers as $provider) {
+            $keyFields = [
+                $provider['name'] ?? '',
+                $provider['link'] ?? '',
+                $provider['price'] ?? '',
+                $provider['channels'] ?? '',
+                $provider['groups'] ?? '',
+                $provider['live_streams'] ?? '',
+                $provider['live_categories'] ?? '',
+                $provider['series'] ?? '',
+                $provider['series_categories'] ?? '',
+                $provider['vod_categories'] ?? '',
+                $provider['seller_source'] ?? '',
+                $provider['seller_info'] ?? ''
+            ];
+            
+            $hash = md5(implode('|', $keyFields));
+            
+            if (!isset($groups[$hash])) {
+                $groups[$hash] = [];
+            }
+            $groups[$hash][] = $provider;
+        }
+        
+        // Delete duplicates, keeping the oldest in each group
+        $deletedCount = 0;
+        foreach ($groups as $hash => $groupProviders) {
+            if (count($groupProviders) > 1) {
+                // Sort by created_at and keep oldest
+                usort($groupProviders, function($a, $b) {
+                    return strtotime($a['created_at']) - strtotime($b['created_at']);
+                });
+                
+                // Delete all except the first (oldest)
+                $idsToDelete = array_slice(array_column($groupProviders, 'id'), 1);
+                
+                if (!empty($idsToDelete)) {
+                    $placeholders = str_repeat('?,', count($idsToDelete) - 1) . '?';
+                    $stmt = $pdo->prepare("DELETE FROM providers WHERE id IN ($placeholders)");
+                    $stmt->execute($idsToDelete);
+                    $deletedCount += count($idsToDelete);
+                }
+            }
+        }
+        
+        $pdo->commit();
+        
+        echo json_encode([
+            'success' => true,
+            'deleted_count' => $deletedCount
+        ]);
+        
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        echo json_encode([
+            'error' => $e->getMessage()
+        ]);
+    }
+    exit;
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1330,6 +1500,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action']) && iss
                         <span id="selectionCount" class="text-muted small ms-2">0 selected</span>
                     </div>
                     <div class="d-flex align-items-center" style="gap:6px;">
+                        <button id="findDuplicatesBtn" class="btn btn-outline-warning btn-sm" title="Find and remove exact duplicate submissions">
+                            <i class="bi bi-search me-1"></i>Find Duplicates
+                        </button>
                         <div class="dropdown">
                             <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false" disabled>
                                 <i class="bi bi-gear me-1"></i>Bulk Actions
@@ -2636,5 +2809,195 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action']) && iss
             updateBulkUI();
         })();
     </script>
+
+    <script>
+        // Find Duplicates Functionality
+        (function(){
+            const findDuplicatesBtn = document.getElementById('findDuplicatesBtn');
+            const duplicatesModal = new bootstrap.Modal(document.getElementById('duplicatesModal'));
+            const duplicatesContent = document.getElementById('duplicatesContent');
+            const confirmDeleteBtn = document.getElementById('confirmDeleteDuplicates');
+
+            findDuplicatesBtn.addEventListener('click', function(){
+                // Show loading state
+                duplicatesContent.innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="loading-spinner mx-auto mb-3"></div>
+                        <div>Scanning for exact duplicates...</div>
+                    </div>
+                `;
+                confirmDeleteBtn.disabled = true;
+                duplicatesModal.show();
+
+                // Fetch duplicates data
+                fetch('admin_9f4b1a.php?action=find_duplicates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        duplicatesContent.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                Error: ${data.error}
+                            </div>
+                        `;
+                        confirmDeleteBtn.disabled = true;
+                        return;
+                    }
+
+                    if (data.duplicates.length === 0) {
+                        duplicatesContent.innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle me-2"></i>
+                                No exact duplicate submissions found!
+                            </div>
+                        `;
+                        confirmDeleteBtn.disabled = true;
+                        return;
+                    }
+
+                    // Show duplicates
+                    let html = `
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Found <strong>${data.total_duplicates}</strong> exact duplicate submissions across <strong>${data.duplicates.length}</strong> groups.
+                            Deleting will keep the oldest submission in each group.
+                        </div>
+                        <div class="mb-3">
+                            <strong>Duplicate Groups:</strong>
+                        </div>
+                    `;
+
+                    data.duplicates.forEach((group, index) => {
+                        html += `
+                            <div class="card mb-3 border-warning">
+                                <div class="card-header bg-warning bg-opacity-10">
+                                    <strong>Group ${index + 1}</strong> - ${group.count} duplicates
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Name</th>
+                                                    <th>Price</th>
+                                                    <th>Created</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                        `;
+
+                        group.submissions.forEach(sub => {
+                            const isKeeper = sub.id === group.keep_id;
+                            html += `
+                                <tr class="${isKeeper ? 'table-success' : ''}">
+                                    <td><code>${sub.id}</code></td>
+                                    <td>${sub.name || 'N/A'}</td>
+                                    <td>$${sub.price || 'N/A'}</td>
+                                    <td>${new Date(sub.created_at).toLocaleDateString()}</td>
+                                    <td>
+                                        ${isKeeper ?
+                                            '<span class="badge bg-success">Keep (Oldest)</span>' :
+                                            '<span class="badge bg-danger">Delete</span>'
+                                        }
+                                    </td>
+                                </tr>
+                            `;
+                        });
+
+                        html += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    duplicatesContent.innerHTML = html;
+                    confirmDeleteBtn.disabled = false;
+                })
+                .catch(error => {
+                    console.error('Find duplicates error:', error);
+                    duplicatesContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Failed to scan for duplicates. Please try again.
+                        </div>
+                    `;
+                    confirmDeleteBtn.disabled = true;
+                });
+            });
+
+            // Handle delete confirmation
+            confirmDeleteBtn.addEventListener('click', function(){
+                confirmDeleteBtn.disabled = true;
+                confirmDeleteBtn.innerHTML = '<i class="bi bi-hourglass me-1"></i>Deleting...';
+
+                fetch('admin_9f4b1a.php?action=delete_duplicates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Error deleting duplicates: ' + data.error);
+                        confirmDeleteBtn.disabled = false;
+                        confirmDeleteBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Delete Duplicates';
+                        return;
+                    }
+
+                    alert(`Successfully deleted ${data.deleted_count} duplicate submissions!`);
+                    duplicatesModal.hide();
+                    location.reload(); // Refresh to show updated list
+                })
+                .catch(error => {
+                    console.error('Delete duplicates error:', error);
+                    alert('Failed to delete duplicates. Please try again.');
+                    confirmDeleteBtn.disabled = false;
+                    confirmDeleteBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Delete Duplicates';
+                });
+            });
+        })();
+    </script>
+
+    <!-- Duplicates Modal -->
+    <div class="modal fade" id="duplicatesModal" tabindex="-1" aria-labelledby="duplicatesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="duplicatesModalLabel">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                        Exact Duplicate Submissions Found
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="duplicatesContent">
+                        <div class="text-center py-4">
+                            <div class="loading-spinner mx-auto mb-3"></div>
+                            <div>Scanning for exact duplicates...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteDuplicates" disabled>
+                        <i class="bi bi-trash me-1"></i>Delete Duplicates
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
