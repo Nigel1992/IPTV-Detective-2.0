@@ -735,7 +735,8 @@ require_once __DIR__ . '/inc/maintenance.php';
         const debugParam = (action === 'get_series') ? '&debug_snippet=1' : '';
         const proxyUrl = 'inc/proxy.php?url=' + encodeURIComponent(url) + (countOnlyActions.has(action) ? '&count_only=1' : '&full=1') + debugParam + '&timeout=60&max_mb=50';
         try {
-          const r = await fetchWithRetries(proxyUrl, { signal: (new AbortController()).signal }, 3);
+          // Increase retries to make transient provider/API issues less likely to cause a failure
+          const r = await fetchWithRetries(proxyUrl, { signal: (new AbortController()).signal }, 6);
           if (!r.ok) {
             console.warn('API fetch failed for', action, r.status);
             return { ok: false, status: r.status };
@@ -1045,6 +1046,14 @@ require_once __DIR__ . '/inc/maintenance.php';
         throw e;
       }
 
+      // If counts are still invalid after retries, do not submit to server. Ask user to report via Discord.
+      if (anyZero()) {
+        const invite = 'https://discord.com/invite/zxUq3afdn8';
+        if (rCompareEl) rCompareEl.innerHTML = `<div class="match-card danger"><div class="match-header"><div class="match-title">Submission failed</div></div><div class="mt-2 small text-muted">We could not fetch reliable counts after multiple attempts (some counts are zero or unavailable). To avoid storing incomplete data we did not submit your provider. Please <a href="${invite}" target="_blank" rel="noopener">join our Discord</a> to report this issue and get help.</div></div>`;
+        if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check &amp; Compare'; }
+        return;
+      }
+
       // Populate UI with counts
       const setCountUI = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = (val === null ? 'N/A' : val); };
       setCountUI('r_live_cats', apiCounts.live_categories && apiCounts.live_categories.count !== null ? apiCounts.live_categories.count : 'N/A');
@@ -1091,7 +1100,7 @@ require_once __DIR__ . '/inc/maintenance.php';
       // Submit provider to server, retry if server returns invalid counts (0 or '-')
       let data = null;
       let lastRes = null;
-      const maxRetries = 6;
+      const maxRetries = 6; // increase retry attempts for transient server issues
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         const res = await fetch('submit_provider.php', { method: 'POST', body: fd });
         lastRes = res;
@@ -1107,30 +1116,6 @@ require_once __DIR__ . '/inc/maintenance.php';
           throw new Error('Invalid response from server: ' + snippet);
         }
 
-        // If server returned an HTTP error, handle CAPTCHA specially and treat other errors as retryable
-        if (!res.ok) {
-          const serverErr = (data && data.error) ? String(data.error) : ('Server error ' + res.status);
-          if (/captcha/i.test(serverErr)) {
-            // Captcha problems: ask user to retry captcha and do NOT count this as a "counts" attempt
-            if (btn) { btn.disabled = false; }
-            try { resetTurnstile(); } catch (e) {}
-            alert('Server rejected the CAPTCHA. Please complete the CAPTCHA again and resubmit. If this keeps happening, try reloading the page or join our Discord for help: https://discord.com/invite/zxUq3afdn8');
-            console.info('CAPTCHA failure (server):', serverErr);
-            return;
-          } else {
-            // Other server errors are treated as transient; retry up to maxRetries
-            if (attempt < maxRetries) {
-              console.warn(`submit_provider: attempt ${attempt} server error: ${serverErr}, retrying...`);
-              await new Promise(r => setTimeout(r, 700 * attempt));
-              continue;
-            } else {
-              if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-search"></i> Check & Compare'; }
-              alert('Submission failed after ' + maxRetries + ' attempts (server error). Please join our Discord to report this issue and include the provider name and time: https://discord.com/invite/zxUq3afdn8');
-              return;
-            }
-          }
-        }
-
         // Normalize channel/group values and check for invalid sentinel values
         const ch = (data && (data.channels !== undefined)) ? data.channels : null;
         const gr = (data && (data.groups !== undefined)) ? data.groups : null;
@@ -1143,38 +1128,17 @@ require_once __DIR__ . '/inc/maintenance.php';
           await new Promise(r => setTimeout(r, 700 * attempt));
           continue;
         } else {
-          // final attempt failed — abort submission and ask user to report on Discord
+          // final attempt failed — notify user and abort submission to avoid storing invalid data
+          const invite = 'https://discord.com/invite/zxUq3afdn8';
+          alert('Submission failed after multiple attempts. To avoid storing incomplete data we did NOT submit your provider. Please join our Discord to report this issue: ' + invite);
           if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-search"></i> Check & Compare'; }
-          alert('Submission failed: server returned invalid counts (0 or -) after ' + maxRetries + ' attempts. Please join our Discord to report this issue and include the provider name and time: https://discord.com/invite/zxUq3afdn8');
           return;
         }
       }
 
       if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-search"></i> Check & Compare'; }
-      if (!lastRes || !lastRes.ok) {
-        const errMsg = (data && data.error) ? data.error : 'Server error';
-        // If server reports a CAPTCHA failure, ask user to retry the captcha and do NOT prompt Discord
-        if (/captcha/i.test(errMsg)) {
-          if (btn) { btn.disabled = false; }
-          try { resetTurnstile(); } catch (e) {}
-          alert('Server rejected the CAPTCHA. Please complete the CAPTCHA again and resubmit. If this keeps happening, try reloading the page or join our Discord for help: https://discord.com/invite/zxUq3afdn8');
-          console.info('CAPTCHA failure (server):', errMsg);
-          return;
-        }
-        alert('Error: ' + errMsg);
-        return;
-      }
-      if (data.error) {
-        const errMsg = data.error || '';
-        if (/captcha/i.test(errMsg)) {
-          try { resetTurnstile(); } catch (e) {}
-          alert('Server rejected the CAPTCHA. Please complete the CAPTCHA again and resubmit. If this keeps happening, try reloading the page or join our Discord for help: https://discord.com/invite/zxUq3afdn8');
-          console.info('CAPTCHA failure (server):', errMsg);
-          return;
-        }
-        alert('Error: ' + errMsg);
-        return;
-      }
+      if (!lastRes || !lastRes.ok) { alert('Error: ' + (data && data.error ? data.error : 'Server error')); return; }
+      if (data.error) { alert('Error: ' + data.error); return; }
       const setIf = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
       setIf('r_name', name);
       // Link display removed from results per user request (no link shown here)
