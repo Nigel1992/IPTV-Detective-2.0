@@ -938,7 +938,8 @@ require_once __DIR__ . '/inc/maintenance.php';
         // use outer importantKeys/anyZero defined above
         const maxAttempts = 6;
         let attempt = 1;
-        const rCompareEl = document.getElementById('r_compare');
+        // rCompareEl referenced in multiple places — declare once in outer scope to avoid TDZ errors
+        let rCompareEl = document.getElementById('r_compare');
         if (anyZero()) {
           if (rCompareEl) rCompareEl.innerHTML = `<div class="match-card warn"><div class="match-header"><div class="match-title">Retrying data fetch</div></div><div class="mt-2 small text-muted">Some counts returned 0; will retry up to ${maxAttempts} times...</div></div>`;
           // Keep progress UI visible while retrying
@@ -1010,7 +1011,7 @@ require_once __DIR__ . '/inc/maintenance.php';
         const msg = (e && e.message) ? e.message : 'API fetches failed';
         // display inline error in results area and as an alert
         try {
-          const rCompareEl = document.getElementById('r_compare'); if (rCompareEl) rCompareEl.innerHTML = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-exclamation-octagon-fill"></i><div class="match-title">Fetch cancelled</div></div></div><div class="mt-2 small">${escapeHtml(msg)} — please check host/port/credentials and try again.</div></div>`;
+          rCompareEl = document.getElementById('r_compare'); if (rCompareEl) rCompareEl.innerHTML = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-exclamation-octagon-fill"></i><div class="match-title">Fetch cancelled</div></div></div><div class="mt-2 small">${escapeHtml(msg)} — please check host/port/credentials and try again.</div></div>`;
         } catch (ex) {}
         alert('Fetch cancelled: ' + msg + '\nPlease check your host, port, username and password, then try again.');
         // hide progress UI
