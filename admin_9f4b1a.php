@@ -185,15 +185,32 @@ $user = $_SESSION['admin_user'];
 $total_providers = $pdo->query('SELECT COUNT(*) FROM providers')->fetchColumn();
 $recent_submissions = $pdo->query('SELECT COUNT(*) FROM providers WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)')->fetchColumn();
 
-// Exact duplicates (providers involved in MD5 duplicate groups) — aligns with public stats
-try {
-    $stmt_dup = $pdo->query("SELECT SUM(cnt) AS total_dup FROM (SELECT COUNT(*) AS cnt FROM providers WHERE md5 IS NOT NULL AND md5 != '' GROUP BY md5 HAVING COUNT(*) >= 2) t");
-    $exact_duplicates = intval($stmt_dup->fetchColumn());
-} catch (Throwable $e) {
-    $exact_duplicates = 0;
-}
-
+// Try to reuse the same match-count logic as the public API (`get_counts.php`) to keep counts consistent
 $matched_providers = 0;
+try {
+    $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $local_host = '127.0.0.1';
+    $host_header = 'Host: ' . ($cfg['host'] ?? 'localhost');
+    $ch = curl_init($proto . '://' . $local_host . '/get_counts.php');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 2);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [$host_header]);
+    if (session_id()) {
+        curl_setopt($ch, CURLOPT_COOKIE, session_name() . '=' . session_id());
+    }
+    $json = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($json && $http_code >= 200 && $http_code < 300) {
+        $data = json_decode($json, true);
+        if (isset($data['providers_matches'])) {
+            $matched_providers = intval($data['providers_matches']);
+        }
+    }
+} catch (Throwable $_e) {
+    // fallback to 0 if anything goes wrong
+    $matched_providers = 0;
+}
 // Handle maintenance toggle from admin (create/remove MAINTENANCE flag file)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['maintenance_action'])) {
     if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
@@ -405,32 +422,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // Ignore errors during delete operation to prevent 500 errors
         $matched_providers = 0;
     }
-
-    // Prefer using the public site's `get_counts.php` endpoint to retrieve the canonical public matches count.
-    try {
-        $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $local_host = '127.0.0.1';
-        $host_header = 'Host: ' . ($cfg['host'] ?? 'localhost');
-        $ch = curl_init($proto . '://' . $local_host . '/get_counts.php');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 2);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [$host_header]);
-        if (session_id()) {
-            curl_setopt($ch, CURLOPT_COOKIE, session_name() . '=' . session_id());
-        }
-        $json = curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        if ($json && $http_code >= 200 && $http_code < 300) {
-            $data = json_decode($json, true);
-            if (isset($data['providers_matches'])) {
-                $matched_providers = intval($data['providers_matches']);
-            }
-        }
-    } catch (Throwable $e) {
-        // fall back to previously computed matched_providers if something goes wrong
-    }
-
     $unmatched_providers = max(0, $total_providers - $matched_providers);
 }
 
@@ -1300,7 +1291,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                     <div class="col-lg-3 col-md-6 mb-3">
                         <div class="stats-card h-100">
                             <div class="stats-number text-success"><?php echo number_format($matched_providers); ?></div>
-                            <div class="small text-muted">Exact duplicate providers: <strong><?php echo number_format($exact_duplicates); ?></strong></div>
                             <div class="stats-label">Matched Providers</div>
                             <i class="bi bi-check-circle position-absolute top-50 end-0 translate-middle-y me-3 opacity-25" style="font-size:2rem;"></i>
                         </div>
