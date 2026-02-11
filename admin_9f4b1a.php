@@ -511,6 +511,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
+// Handle bulk operations
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action']) && isset($_POST['selected_ids'])) {
+    $selectedIds = $_POST['selected_ids'];
+    if (!is_array($selectedIds)) {
+        $selectedIds = [$selectedIds];
+    }
+    $selectedIds = array_map('intval', array_filter($selectedIds));
+    
+    if (empty($selectedIds)) {
+        $action_err = 'No providers selected for bulk operation.';
+    } else {
+        $placeholders = str_repeat('?,', count($selectedIds) - 1) . '?';
+        $action = $_POST['bulk_action'];
+        
+        try {
+            switch ($action) {
+                case 'verify':
+                    $sql = "UPDATE providers SET is_confirmed_source = 1 WHERE id IN ($placeholders)";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute($selectedIds);
+                    $action_msg = count($selectedIds) . ' provider(s) marked as verified.';
+                    break;
+                    
+                case 'unverify':
+                    $sql = "UPDATE providers SET is_confirmed_source = 0 WHERE id IN ($placeholders)";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute($selectedIds);
+                    $action_msg = count($selectedIds) . ' provider(s) marked as unverified.';
+                    break;
+                    
+                case 'baseline':
+                    $sql = "UPDATE providers SET is_baseline = 1 WHERE id IN ($placeholders)";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute($selectedIds);
+                    $action_msg = count($selectedIds) . ' provider(s) marked as baseline.';
+                    break;
+                    
+                case 'unbaseline':
+                    $sql = "UPDATE providers SET is_baseline = 0 WHERE id IN ($placeholders)";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute($selectedIds);
+                    $action_msg = count($selectedIds) . ' provider(s) removed from baseline.';
+                    break;
+                    
+                case 'delete':
+                    if (!isset($_POST['confirm_delete']) || $_POST['confirm_delete'] !== 'yes') {
+                        $action_err = 'Delete operation requires confirmation.';
+                        break;
+                    }
+                    $pdo->beginTransaction();
+                    // Delete related data first
+                    try {
+                        $stmt2 = $pdo->prepare("DELETE c FROM channels c JOIN snapshots s ON c.snapshot_id = s.id WHERE s.provider_id IN ($placeholders)");
+                        $stmt2->execute($selectedIds);
+                        $stmt3 = $pdo->prepare("DELETE FROM snapshots WHERE provider_id IN ($placeholders)");
+                        $stmt3->execute($selectedIds);
+                    } catch (Exception $e) {}
+                    // Delete providers
+                    $stmt = $pdo->prepare("DELETE FROM providers WHERE id IN ($placeholders)");
+                    $stmt->execute($selectedIds);
+                    $pdo->commit();
+                    $action_msg = count($selectedIds) . ' provider(s) deleted successfully.';
+                    break;
+                    
+                case 'export':
+                    // This will be handled by JavaScript to download CSV
+                    break;
+                    
+                default:
+                    $action_err = 'Unknown bulk action.';
+            }
+            
+            // Update counts after operations
+            if (in_array($action, ['delete'])) {
+                $total_providers = $pdo->query('SELECT COUNT(*) FROM providers')->fetchColumn();
+                $recent_submissions = $pdo->query('SELECT COUNT(*) FROM providers WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)')->fetchColumn();
+            }
+            
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            $action_err = 'Bulk operation failed: ' . $e->getMessage();
+        }
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1231,6 +1316,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <span class="badge bg-primary" id="providerCount"><?php echo $total_providers; ?> total</span>
                 </div>
             </div>
+
+            <!-- Bulk Operations Bar -->
+            <div class="card-header bg-light border-bottom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center" style="gap:8px;">
+                        <button id="selectAllBtn" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-check2-all me-1"></i>Select All
+                        </button>
+                        <button id="clearSelectionBtn" class="btn btn-outline-secondary btn-sm" disabled>
+                            <i class="bi bi-x me-1"></i>Clear Selection
+                        </button>
+                        <span id="selectionCount" class="text-muted small ms-2">0 selected</span>
+                    </div>
+                    <div class="d-flex align-items-center" style="gap:6px;">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false" disabled>
+                                <i class="bi bi-gear me-1"></i>Bulk Actions
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="bulkActionsDropdown">
+                                <li><a class="dropdown-item" href="#" id="bulkVerify"><i class="bi bi-check-circle me-2"></i>Mark as Verified</a></li>
+                                <li><a class="dropdown-item" href="#" id="bulkUnverify"><i class="bi bi-x-circle me-2"></i>Mark as Unverified</a></li>
+                                <li><a class="dropdown-item" href="#" id="bulkBaseline"><i class="bi bi-star me-2"></i>Mark as Baseline</a></li>
+                                <li><a class="dropdown-item" href="#" id="bulkUnbaseline"><i class="bi bi-star-fill me-2"></i>Remove Baseline</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" id="bulkDelete"><i class="bi bi-trash me-2"></i>Delete Selected</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" id="bulkExport"><i class="bi bi-download me-2"></i>Export Selected</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card-body p-0">
                 <?php if (isset($action_err)): ?>
                     <div class="alert alert-danger mx-3 mt-3"><?php echo htmlspecialchars($action_err); ?></div>
@@ -1315,7 +1433,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             foreach ($rows as $r) {
                                 $simScore = isset($bestSim[$r['id']]) ? round($bestSim[$r['id']]['score'],1) : 0;
                                                                 $rowId = 'prov-' . htmlspecialchars($r['id']);
-                                                                    echo '<tr id="' . $rowId . '" data-name="' . htmlspecialchars(strtolower($r['name'] ?? '')) . '" data-status="' . (isset($r['is_public']) && $r['is_public'] ? 'public' : 'private') . '" data-price="' . htmlspecialchars($r['price'] ?? '') . '" data-created="' . htmlspecialchars($r['created_at'] ?? '') . '" data-seller-source="' . htmlspecialchars(strtolower($r['seller_source'] ?? '')) . '" data-live-categories="' . htmlspecialchars(strtolower($r['live_categories'] ?? '')) . '" data-live-streams="' . htmlspecialchars($r['live_streams'] ?? '') . '" data-series="' . htmlspecialchars($r['series'] ?? '') . '" data-series-categories="' . htmlspecialchars(strtolower($r['series_categories'] ?? '')) . '" data-vod-categories="' . htmlspecialchars(strtolower($r['vod_categories'] ?? '')) . '" data-similarity="' . $simScore . '">';
+                                                                    echo '<tr id="' . $rowId . '" data-row-id="' . htmlspecialchars($r['id']) . '" data-name="' . htmlspecialchars(strtolower($r['name'] ?? '')) . '" data-status="' . (isset($r['is_public']) && $r['is_public'] ? 'public' : 'private') . '" data-price="' . htmlspecialchars($r['price'] ?? '') . '" data-created="' . htmlspecialchars($r['created_at'] ?? '') . '" data-seller-source="' . htmlspecialchars(strtolower($r['seller_source'] ?? '')) . '" data-live-categories="' . htmlspecialchars(strtolower($r['live_categories'] ?? '')) . '" data-live-streams="' . htmlspecialchars($r['live_streams'] ?? '') . '" data-series="' . htmlspecialchars($r['series'] ?? '') . '" data-series-categories="' . htmlspecialchars(strtolower($r['series_categories'] ?? '')) . '" data-vod-categories="' . htmlspecialchars(strtolower($r['vod_categories'] ?? '')) . '" data-similarity="' . $simScore . '">';
                                                                     echo '<td style="vertical-align:middle;text-align:center"><input type="checkbox" class="prov-compare-checkbox" data-id="' . htmlspecialchars($r['id']) . '" data-name="' . htmlspecialchars($r['name'] ?? '') . '"></td>';
                                                                     echo '<td><code>' . htmlspecialchars($r['id']) . '</code></td>';
                                                                     $tagBadges = '';
@@ -2318,6 +2436,202 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     }
                 });
             }
+        })();
+
+        // Bulk Operations Functionality
+        (function(){
+            const selectAllBtn = document.getElementById('selectAllBtn');
+            const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+            const selectionCount = document.getElementById('selectionCount');
+            const bulkActionsDropdown = document.getElementById('bulkActionsDropdown');
+            const bulkActionItems = document.querySelectorAll('#bulkActionsDropdown + .dropdown-menu .dropdown-item');
+            
+            function updateBulkUI() {
+                const checkedBoxes = document.querySelectorAll('.prov-compare-checkbox:checked');
+                const totalChecked = checkedBoxes.length;
+                
+                // Update selection count
+                selectionCount.textContent = totalChecked + ' selected';
+                
+                // Enable/disable buttons
+                clearSelectionBtn.disabled = totalChecked === 0;
+                bulkActionsDropdown.disabled = totalChecked === 0;
+                
+                // Update select all button text
+                const totalBoxes = document.querySelectorAll('.prov-compare-checkbox').length;
+                if (totalChecked === totalBoxes && totalBoxes > 0) {
+                    selectAllBtn.innerHTML = '<i class="bi bi-x me-1"></i>Deselect All';
+                } else {
+                    selectAllBtn.innerHTML = '<i class="bi bi-check2-all me-1"></i>Select All';
+                }
+            }
+            
+            // Select All / Deselect All
+            selectAllBtn.addEventListener('click', function(){
+                const checkboxes = document.querySelectorAll('.prov-compare-checkbox');
+                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                
+                checkboxes.forEach(cb => {
+                    cb.checked = !allChecked;
+                    // Trigger change event to update comparison logic
+                    cb.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                
+                updateBulkUI();
+            });
+            
+            // Clear Selection
+            clearSelectionBtn.addEventListener('click', function(){
+                document.querySelectorAll('.prov-compare-checkbox:checked').forEach(cb => {
+                    cb.checked = false;
+                    cb.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                updateBulkUI();
+            });
+            
+            // Bulk Actions
+            bulkActionItems.forEach(item => {
+                item.addEventListener('click', function(e){
+                    e.preventDefault();
+                    const action = this.id.replace('bulk', '').toLowerCase();
+                    const checkedBoxes = document.querySelectorAll('.prov-compare-checkbox:checked');
+                    
+                    if (checkedBoxes.length === 0) {
+                        alert('Please select at least one provider.');
+                        return;
+                    }
+                    
+                    const selectedIds = Array.from(checkedBoxes).map(cb => cb.dataset.id);
+                    
+                    // Confirm delete action
+                    if (action === 'delete') {
+                        if (!confirm(`Are you sure you want to delete ${selectedIds.length} provider(s)? This action cannot be undone.`)) {
+                            return;
+                        }
+                    }
+                    
+                    // Handle export separately (client-side)
+                    if (action === 'export') {
+                        exportSelectedProviders(selectedIds);
+                        return;
+                    }
+                    
+                    // Submit bulk action
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.style.display = 'none';
+                    
+                    // Add CSRF token
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrf_token';
+                    csrfInput.value = '<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>';
+                    form.appendChild(csrfInput);
+                    
+                    // Add bulk action
+                    const actionInput = document.createElement('input');
+                    actionInput.type = 'hidden';
+                    actionInput.name = 'bulk_action';
+                    actionInput.value = action;
+                    form.appendChild(actionInput);
+                    
+                    // Add selected IDs
+                    selectedIds.forEach(id => {
+                        const idInput = document.createElement('input');
+                        idInput.type = 'hidden';
+                        idInput.name = 'selected_ids[]';
+                        idInput.value = id;
+                        form.appendChild(idInput);
+                    });
+                    
+                    // Add delete confirmation
+                    if (action === 'delete') {
+                        const confirmInput = document.createElement('input');
+                        confirmInput.type = 'hidden';
+                        confirmInput.name = 'confirm_delete';
+                        confirmInput.value = 'yes';
+                        form.appendChild(confirmInput);
+                    }
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                });
+            });
+            
+            // Export function
+            function exportSelectedProviders(selectedIds) {
+                // Get provider data from table rows
+                const rows = [];
+                selectedIds.forEach(id => {
+                    const row = document.querySelector(`tr[data-row-id="${id}"]`) || document.querySelector(`#prov-${id}`);
+                    if (row) {
+                        const cells = row.querySelectorAll('td');
+                        if (cells.length >= 12) { // Make sure we have enough cells
+                            const providerData = {
+                                id: id,
+                                name: cells[1].textContent.trim(),
+                                seller: cells[2].textContent.replace(/<[^>]*>/g, '').trim(),
+                                price: cells[3].textContent.replace(/[^\d.]/g, ''),
+                                live_categories: cells[4].textContent.trim(),
+                                live_streams: cells[5].textContent.trim(),
+                                series: cells[6].textContent.trim(),
+                                series_categories: cells[7].textContent.trim(),
+                                vod_categories: cells[8].textContent.trim(),
+                                similarity: cells[9].textContent.trim(),
+                                created: cells[10].textContent.trim()
+                            };
+                            rows.push(providerData);
+                        }
+                    }
+                });
+                
+                if (rows.length === 0) {
+                    alert('No provider data found to export.');
+                    return;
+                }
+                
+                // Create CSV
+                const headers = ['ID', 'Name', 'Seller', 'Price', 'Live Categories', 'Live Streams', 'Series', 'Series Categories', 'VOD Categories', 'Similarity', 'Created'];
+                let csv = headers.join(',') + '\n';
+                
+                rows.forEach(row => {
+                    const values = [
+                        row.id,
+                        '"' + row.name.replace(/"/g, '""') + '"',
+                        '"' + row.seller.replace(/"/g, '""') + '"',
+                        row.price,
+                        row.live_categories,
+                        row.live_streams,
+                        row.series,
+                        row.series_categories,
+                        row.vod_categories,
+                        row.similarity,
+                        row.created
+                    ];
+                    csv += values.join(',') + '\n';
+                });
+                
+                // Download CSV
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `providers_export_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            
+            // Update UI on checkbox changes
+            document.addEventListener('change', function(e){
+                if (e.target.classList.contains('prov-compare-checkbox')) {
+                    updateBulkUI();
+                }
+            });
+            
+            // Initial UI update
+            updateBulkUI();
         })();
     </script>
 </body>
