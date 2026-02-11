@@ -1509,7 +1509,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                         <span id="selectionCount" class="text-muted small ms-2">0 selected</span>
                     </div>
                     <div class="d-flex align-items-center" style="gap:6px;">
-                        <button id="findDuplicatesBtn" class="btn btn-outline-warning btn-sm" title="Find and remove exact duplicate submissions">
+                        <button id="findDuplicatesBtn" class="btn btn-warning text-dark btn-sm" title="Find and remove exact duplicate submissions">
                             <i class="bi bi-search me-1"></i>Find Duplicates
                         </button>
                         <div class="dropdown">
