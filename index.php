@@ -1119,8 +1119,10 @@ require_once __DIR__ . '/inc/maintenance.php';
           await new Promise(r => setTimeout(r, 700 * attempt));
           continue;
         } else {
-          // final attempt failed — notify user but continue with returned data
-          alert('Warning: server returned unexpected counts (0 or -). Submission continued with returned values.');
+          // final attempt failed — abort submission and ask user to report on Discord
+          if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-search"></i> Check & Compare'; }
+          alert('Submission failed: server returned invalid counts (0 or -) after ' + maxRetries + ' attempts. Please join our Discord to report this issue and include the provider name and time: https://discord.com/invite/zxUq3afdn8');
+          return;
         }
       }
 
