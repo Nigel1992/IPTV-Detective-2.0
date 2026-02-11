@@ -1368,25 +1368,25 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                             <div class="card-body">
                                 <div class="row g-3">
                                     <div class="col-md-3">
-                                        <button class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center" onclick="switchToTab('providers-tab')">
+                                        <button class="btn btn-primary w-100 d-flex align-items-center justify-content-center" onclick="switchToTab('providers-tab')">
                                             <i class="bi bi-plus-circle me-2"></i>
                                             Add Provider
                                         </button>
                                     </div>
                                     <div class="col-md-3">
-                                        <button class="btn btn-outline-success w-100 d-flex align-items-center justify-content-center" onclick="switchToTab('groups-tab-btn')">
+                                        <button class="btn btn-success w-100 d-flex align-items-center justify-content-center" onclick="switchToTab('groups-tab-btn')">
                                             <i class="bi bi-diagram-3 me-2"></i>
                                             View Groups
                                         </button>
                                     </div>
                                     <div class="col-md-3">
-                                        <a href="./" target="_blank" class="btn btn-outline-info w-100 d-flex align-items-center justify-content-center">
+                                        <a href="./" target="_blank" class="btn btn-info w-100 d-flex align-items-center justify-content-center">
                                             <i class="bi bi-eye me-2"></i>
                                             Public Site
                                         </a>
                                     </div>
                                     <div class="col-md-3">
-                                        <button class="btn btn-outline-warning w-100 d-flex align-items-center justify-content-center" onclick="refreshData()">
+                                        <button class="btn btn-warning text-dark w-100 d-flex align-items-center justify-content-center" onclick="refreshData()">
                                             <i class="bi bi-arrow-clockwise me-2"></i>
                                             Refresh Data
                                         </button>
@@ -1407,7 +1407,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                 <p class="text-muted mb-0">View providers grouped by similarity</p>
             </div>
             <div class="d-flex gap-2">
-                <button id="groups-back" class="btn btn-outline-secondary">
+                <button id="groups-back" class="btn btn-secondary">
                     <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
                 </button>
             </div>
@@ -1431,7 +1431,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                 <button id="add-provider-btn" class="btn btn-primary">
                     <i class="bi bi-plus me-1"></i>Add Provider
                 </button>
-                <button id="providers-back" class="btn btn-outline-secondary">
+                <button id="providers-back" class="btn btn-secondary">
                     <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
                 </button>
             </div>
@@ -1491,7 +1491,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-table me-2"></i>Providers List</span>
                 <div class="d-flex align-items-center" style="gap:8px;">
-                    <button id="compareSelectedBtn" class="btn btn-outline-primary btn-sm" disabled title="Select exactly two providers to compare"><i class="bi bi-bar-chart me-1"></i>Compare selected</button>
+                    <button id="compareSelectedBtn" class="btn btn-primary btn-sm" disabled title="Select exactly two providers to compare"><i class="bi bi-bar-chart me-1"></i>Compare selected</button>
                     <span class="badge bg-primary" id="providerCount"><?php echo $total_providers; ?> total</span>
                 </div>
             </div>
@@ -1500,10 +1500,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
             <div class="card-header bg-light border-bottom">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center" style="gap:8px;">
-                        <button id="selectAllBtn" class="btn btn-outline-secondary btn-sm">
+                        <button id="selectAllBtn" class="btn btn-secondary btn-sm">
                             <i class="bi bi-check2-all me-1"></i>Select All
                         </button>
-                        <button id="clearSelectionBtn" class="btn btn-outline-secondary btn-sm" disabled>
+                        <button id="clearSelectionBtn" class="btn btn-secondary btn-sm" disabled>
                             <i class="bi bi-x me-1"></i>Clear Selection
                         </button>
                         <span id="selectionCount" class="text-muted small ms-2">0 selected</span>
@@ -1513,7 +1513,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                             <i class="bi bi-search me-1"></i>Find Duplicates
                         </button>
                         <div class="dropdown">
-                            <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false" disabled>
+                            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" id="bulkActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false" disabled>
                                 <i class="bi bi-gear me-1"></i>Bulk Actions
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="bulkActionsDropdown">
