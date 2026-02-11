@@ -2814,11 +2814,32 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
         // Find Duplicates Functionality
         (function(){
             const findDuplicatesBtn = document.getElementById('findDuplicatesBtn');
-            const duplicatesModal = new bootstrap.Modal(document.getElementById('duplicatesModal'));
             const duplicatesContent = document.getElementById('duplicatesContent');
             const confirmDeleteBtn = document.getElementById('confirmDeleteDuplicates');
 
             findDuplicatesBtn.addEventListener('click', function(){
+                console.log('Find duplicates button clicked');
+                
+                // Check if modal element exists
+                const modalElement = document.getElementById('duplicatesModal');
+                console.log('Modal element:', modalElement);
+                
+                if (!modalElement) {
+                    alert('Modal element not found. Please refresh the page.');
+                    return;
+                }
+                
+                // Check if Bootstrap is available
+                if (typeof bootstrap === 'undefined') {
+                    alert('Bootstrap is not loaded. Please refresh the page.');
+                    return;
+                }
+                
+                try {
+                    // Initialize modal on click to ensure DOM is ready
+                    const duplicatesModal = new bootstrap.Modal(modalElement);
+                    console.log('Modal initialized successfully');
+                
                 // Show loading state
                 duplicatesContent.innerHTML = `
                     <div class="text-center py-4">
@@ -2958,6 +2979,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                     }
 
                     alert(`Successfully deleted ${data.deleted_count} duplicate submissions!`);
+                    const duplicatesModal = new bootstrap.Modal(document.getElementById('duplicatesModal'));
                     duplicatesModal.hide();
                     location.reload(); // Refresh to show updated list
                 })
