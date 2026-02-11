@@ -1852,5 +1852,6 @@ require_once __DIR__ . '/inc/maintenance.php';
   </div>
 </div>
 
+<?php require_once __DIR__ . '/inc/discord_fab.php'; ?>
 </body>
 </html>

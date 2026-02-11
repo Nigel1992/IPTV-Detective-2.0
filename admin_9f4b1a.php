@@ -172,8 +172,9 @@ if (!isset($_SESSION['admin_user'])) {
                 </div>
             </div>
         </div>
+    <?php require_once __DIR__ . '/inc/discord_fab.php'; ?>
     </body>
-    </html>
+</html>
     <?php
     exit;
 }

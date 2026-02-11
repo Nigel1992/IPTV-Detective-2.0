@@ -191,5 +191,6 @@ if (!$has) {
         <?php endif; ?>
     <?php endif; ?>
 </div>
+<?php require_once __DIR__ . '/inc/discord_fab.php'; ?>
 </body>
 </html>

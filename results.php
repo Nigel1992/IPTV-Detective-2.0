@@ -96,5 +96,6 @@ foreach ($others as $other) {
         <div class="alert alert-secondary">No relevant matches found.</div>
       <?php endif; ?>
     </div>
+  <?php require_once __DIR__ . '/inc/discord_fab.php'; ?>
   </body>
 </html>

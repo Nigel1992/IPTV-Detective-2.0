@@ -232,5 +232,6 @@ document.getElementById('btnSubmit').addEventListener('click', async ()=>{
 // initial info log
 log('Configured to use server proxy: inc/proxy.php (timeout 60s)');
 </script>
+<?php require_once __DIR__ . '/inc/discord_fab.php'; ?>
 </body>
 </html>
