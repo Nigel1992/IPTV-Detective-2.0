@@ -54,6 +54,8 @@ $series_counts = [];
 $series_categories_counts = [];
 $vod_categories_counts = [];
 $max_sim = array_fill(0, $n, 0.0);
+// track best-match index for each row
+$best_idx = array_fill(0, $n, -1);
 // Store actual field values for exact matching
 $live_categories_values = [];
 $live_streams_values = [];
@@ -95,9 +97,9 @@ for ($i = 0; $i < $n; $i++) {
             $adj[$i][] = $j;
             $adj[$j][] = $i;
         }
-        // update max sim for both
-        if ($similarity > $max_sim[$i]) $max_sim[$i] = $similarity;
-        if ($similarity > $max_sim[$j]) $max_sim[$j] = $similarity;
+        // update max sim and best index for both
+        if ($similarity > $max_sim[$i]) { $max_sim[$i] = $similarity; $best_idx[$i] = $j; }
+        if ($similarity > $max_sim[$j]) { $max_sim[$j] = $similarity; $best_idx[$j] = $i; }
     }
 }
 // enrich each row with best match shared counts (exact-hash matches only)
@@ -125,6 +127,20 @@ foreach ($rows as $idx => &$r) {
     // set similarity score
     if ($max_sim[$idx] > 0) {
         $r['similarity_score'] = round($max_sim[$idx], 1);
+        // include best match info if available
+        if (isset($best_idx[$idx]) && $best_idx[$idx] >= 0 && isset($rows[$best_idx[$idx]])) {
+            $r['best_match_id'] = $rows[$best_idx[$idx]]['id'];
+            $r['best_match_name'] = $rows[$best_idx[$idx]]['name'];
+            $r['best_match_score'] = round($max_sim[$idx], 1);
+        } else {
+            $r['best_match_id'] = null;
+            $r['best_match_name'] = null;
+            $r['best_match_score'] = null;
+        }
+    } else {
+        $r['best_match_id'] = null;
+        $r['best_match_name'] = null;
+        $r['best_match_score'] = null;
     }
 }
 unset($r);

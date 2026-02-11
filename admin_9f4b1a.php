@@ -1170,6 +1170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 <th><i class="bi bi-film me-1"></i>Series</th>
                                 <th><i class="bi bi-folder me-1"></i>Series Cats</th>
                                 <th><i class="bi bi-collection-play me-1"></i>VOD Cats</th>
+                                <th><i class="bi bi-percent me-1"></i>Similarity</th>
                                 <th><i class="bi bi-calendar me-1"></i>Created</th>
                                 <th><i class="bi bi-gear me-1"></i>Actions</th>
                             </tr>
@@ -1184,8 +1185,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             $selectCols = array_values(array_unique($selectCols));
                             $selectCols = array_filter($selectCols, function($c) use ($available){ return in_array($c, $available, true); });
                             $sql = 'SELECT ' . implode(',', $selectCols) . ' FROM providers ORDER BY created_at DESC';
-                            $stmt = $pdo->query($sql);
-                            while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                            $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+                            // Pre-compute best similarity for each provider using the same logic as get_comparisons.php
+                            $bestSim = [];
+                            $nRows = count($rows);
+                            $metricCols = ['live_streams'=>0.30,'live_categories'=>0.20,'series'=>0.20,'series_categories'=>0.15,'vod_categories'=>0.05];
+                            // determine which structured metrics are available in this install
+                            $availableMetrics = [];
+                            foreach ($metricCols as $col => $w) {
+                                if (in_array($col, $selectCols, true)) $availableMetrics[$col] = $w;
+                            }
+                            $useLegacy = empty($availableMetrics);
+                            for ($i = 0; $i < $nRows; $i++) {
+                                for ($j = $i+1; $j < $nRows; $j++) {
+                                    $a = $rows[$i]; $b = $rows[$j];
+                                    $similarity = 0.0;
+                                    if ($useLegacy) {
+                                        $countA = intval($a['channels'] ?? 0);
+                                        $countB = intval($b['channels'] ?? 0);
+                                        $gA = intval($a['groups'] ?? 0);
+                                        $gB = intval($b['groups'] ?? 0);
+                                        $chan_sim = ($countA || $countB) ? (1.0 - abs($countA - $countB) / max(1, max($countA, $countB))) * 100.0 : 0.0;
+                                        $group_sim = ($gA || $gB) ? (1.0 - abs($gA - $gB) / max(1, max($gA, $gB))) * 100.0 : 0.0;
+                                        $similarity = ($chan_sim * 0.45) + ($group_sim * 0.45);
+                                    } else {
+                                        $weightSum = array_sum($availableMetrics);
+                                        $metricScore = 0.0;
+                                        foreach ($availableMetrics as $col => $baseW) {
+                                            $valA = isset($a[$col]) ? intval($a[$col]) : 0;
+                                            $valB = isset($b[$col]) ? intval($b[$col]) : 0;
+                                            $sim = ($valA || $valB) ? (1.0 - abs($valA - $valB) / max(1, max($valA, $valB))) * 100.0 : 0.0;
+                                            $normW = ($weightSum > 0) ? ($baseW / $weightSum) : 0;
+                                            $metricScore += $sim * $normW;
+                                        }
+                                        $similarity = $metricScore;
+                                    }
+                                    // update best for a
+                                    if (!isset($bestSim[$a['id']]) || $similarity > $bestSim[$a['id']]['score']) {
+                                        $bestSim[$a['id']] = ['score'=>$similarity, 'name'=>$b['name'], 'id'=>$b['id']];
+                                    }
+                                    // update best for b
+                                    if (!isset($bestSim[$b['id']]) || $similarity > $bestSim[$b['id']]['score']) {
+                                        $bestSim[$b['id']] = ['score'=>$similarity, 'name'=>$a['name'], 'id'=>$a['id']];
+                                    }
+                                }
+                            }
+                            foreach ($rows as $r) {
                                                                 $rowId = 'prov-' . htmlspecialchars($r['id']);
                                                                     echo '<tr id="' . $rowId . '" data-name="' . htmlspecialchars(strtolower($r['name'] ?? '')) . '" data-status="' . (isset($r['is_public']) && $r['is_public'] ? 'public' : 'private') . '">';
                                                                     echo '<td><code>' . htmlspecialchars($r['id']) . '</code></td>';
@@ -1217,6 +1262,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                   echo '<td>' . (isset($r['series']) && $r['series'] ? '<small class="text-warning">' . htmlspecialchars(substr($r['series'], 0, 20)) . (strlen($r['series']) > 20 ? '...' : '') . '</small>' : '<span class="text-muted">-</span>') . '</td>';
                                   echo '<td>' . (isset($r['series_categories']) && $r['series_categories'] ? '<small class="text-primary">' . htmlspecialchars(substr($r['series_categories'], 0, 20)) . (strlen($r['series_categories']) > 20 ? '...' : '') . '</small>' : '<span class="text-muted">-</span>') . '</td>';
                                   echo '<td>' . (isset($r['vod_categories']) && $r['vod_categories'] ? '<small class="text-secondary">' . htmlspecialchars(substr($r['vod_categories'], 0, 20)) . (strlen($r['vod_categories']) > 20 ? '...' : '') . '</small>' : '<span class="text-muted">-</span>') . '</td>';
+                                  // Similarity cell
+                                  $simScore = isset($bestSim[$r['id']]) ? round($bestSim[$r['id']]['score'],1) : 0;
+                                  $simLabel = ($simScore > 0) ? ($simScore . '%') : '-';
+                                  $simTitle = ($simScore > 0 && !empty($bestSim[$r['id']]['name'])) ? 'Most similar: ' . htmlspecialchars($bestSim[$r['id']]['name']) . ' (' . $simScore . '%)' : 'No close matches';
+                                  // Put tooltip on the whole table cell for easier hovering and enable Bootstrap tooltip
+                                  echo '<td title="' . $simTitle . '" data-bs-toggle="tooltip" aria-label="' . $simTitle . '">';
+                                  echo '<div class="small mb-1">' . $simLabel . '</div>';
+                                  echo '<div class="progress" style="height:8px"><div class="progress-bar ' . ($simScore>=80?'bg-success':($simScore>=50?'bg-warning':'bg-secondary')) . '" role="progressbar" style="width:' . intval(min(100,$simScore)) . '%"></div></div>';
+                                  echo '</td>';
                                   echo '<td><small class="text-muted">' . htmlspecialchars($r['created_at'] ?? '') . '</small></td>';
                                                                     echo '<td>';
                                                                     echo '<div class="btn-group btn-group-sm" role="group" style="gap:6px;">';
@@ -1791,6 +1845,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             if (sortBy) sortBy.addEventListener('change', applyFilters);
             // Update recent activity labels on load
             if (typeof updateRecentActivityTimes === 'function') updateRecentActivityTimes();
+
+            // Initialize Bootstrap tooltips for elements with data-bs-toggle="tooltip"
+            try {
+                const ttList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                ttList.forEach(function (el) { if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) new bootstrap.Tooltip(el); });
+            } catch (e) { console.warn('Tooltip init failed', e); }
         });
 
         // Update recent activity times to user's local timezone using data-ts (epoch ms)

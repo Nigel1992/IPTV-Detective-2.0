@@ -7,6 +7,13 @@ This changelog is written for everyone, not just developers. It explains what ch
 ## 2026-02-10 — v2.1.2
 - Added a warning next to the captcha on the main form, telling users to refresh the page if the captcha fails or expires to avoid issues.
 
+## 2026-02-11 — v2.1.3
+- Improved provider submission reliability: automatic retries when a submission returns empty or placeholder results.
+- Added a homepage Discord button — clickable, accessible, and styled to be subtle and non-intrusive.
+- UI polish and small layout tweaks for better mobile/desktop experience.
+- Deployment and security fixes: cleaned server JSON output and improved deployment reliability.
+- Minor bug fixes and clearer help text.
+
 ## 2026-02-08 — v2.1.1
 - Added a security check (CAPTCHA) to the homepage and admin login to help block bots.
 - Changed the layout so the CAPTCHA fits better on the homepage.

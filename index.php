@@ -568,6 +568,9 @@ require_once __DIR__ . '/inc/maintenance.php';
           const created = s.created_at || '';
           const sim = s.similarity_score ? (parseFloat(s.similarity_score).toFixed(2) + '%') : '-';
           const simVal = s.similarity_score ? Math.min(100, Math.round(parseFloat(s.similarity_score))) : 0;
+          const bestName = s.best_match_name || '';
+          const bestScore = (typeof s.best_match_score !== 'undefined' && s.best_match_score !== null) ? (parseFloat(s.best_match_score).toFixed(1) + '%') : '';
+          const simTitle = bestName ? `Most similar: ${escapeHtml(bestName)} (${bestScore})` : 'No close matches found';
           const status = s.matched ? `<span class='badge bg-success'><i class='bi bi-check-circle'></i> Match</span>` : `<span class='badge bg-secondary text-dark'><i class='bi bi-lock'></i> No match</span>`;
           html += `<tr>
             <td><small>${created}</small></td>
@@ -577,7 +580,7 @@ require_once __DIR__ . '/inc/maintenance.php';
             <td>${s.channels}</td>
             <td>${s.groups}</td>
             <td>
-              <div class="small mb-1">${sim}</div>
+              <div class="small mb-1" title="${simTitle}">${sim}</div>
               <div class="progress" style="height:8px"> 
                 <div class="progress-bar ${simVal>=80?'bg-success':(simVal>=50?'bg-warning':'bg-secondary')}" role="progressbar" style="width:${simVal}%"></div>
               </div>
@@ -1729,8 +1732,8 @@ require_once __DIR__ . '/inc/maintenance.php';
 
         <div class="col-md-4 text-md-end">
           <h6 class="mb-3 text-uppercase fw-bold" style="color: #00d4ff;"><i class="bi bi-code-slash me-2"></i>Version</h6>
-          <div class="mb-1 fs-5">v <strong style="color: #00d4ff;">2.1.2</strong></div>
-          <div class="small text-muted">build <span id="buildDate">2026-02-10</span></div>
+          <div class="mb-1 fs-5">v <strong style="color: #00d4ff;">2.1.3</strong></div>
+          <div class="small text-muted">build <span id="buildDate">2026-02-11</span></div>
           <div class="mt-3"><small class="text-muted">© 2024–2026 IPTV Detective</small></div>
         </div>
       </div>
@@ -1762,6 +1765,16 @@ require_once __DIR__ . '/inc/maintenance.php';
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        <div class="mb-3">
+          <strong>Version 2.1.3 — 2026-02-11</strong>
+          <ul>
+            <li>Improved provider submission reliability: the site now automatically retries when a submission returns an empty or placeholder result.</li>
+            <li>Added a site-wide Discord button on the homepage — clickable, accessible, and redesigned to be subtle and non-intrusive.</li>
+            <li>Visual polish: small UI tweaks to make the site easier to use on phones and desktops.</li>
+            <li>Deploy and security fixes: cleaned up server JSON output to satisfy scans and improved deployment reliability.</li>
+            <li>Minor bug fixes and text clarifications across the site.</li>
+          </ul>
+        </div>
         <div class="mb-3">
           <strong>Version 2.1.2 — 2026-02-10</strong>
           <ul>
