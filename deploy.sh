@@ -90,9 +90,10 @@ semgrep scan --config="p/secrets" --config="p/security-audit" --error "$STAGING_
 
 # --- 6. PHP LINT CHECK ---
 echo "[*] Validating PHP syntax..."
-for f in $(find "$STAGING_DIR" -name "*.php"); do
+# Use NUL-delimited find to safely handle filenames with spaces
+while IFS= read -r -d '' f; do
     php -l "$f" > /dev/null || { echo "[!] SYNTAX ERROR IN $f. Aborting."; exit 1; }
-done
+done < <(find "$STAGING_DIR" -name "*.php" -print0)
 
 # --- 7. DEPLOYMENT ---
 echo "[*] Deploying via lftp (Pass 1)..."
