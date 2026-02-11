@@ -2840,127 +2840,125 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                     const duplicatesModal = new bootstrap.Modal(modalElement);
                     console.log('Modal initialized successfully');
                 
-                // Show loading state
-                duplicatesContent.innerHTML = `
-                    <div class="text-center py-4">
-                        <div class="loading-spinner mx-auto mb-3"></div>
-                        <div>Scanning for exact duplicates...</div>
-                    </div>
-                `;
-                confirmDeleteBtn.disabled = true;
-                duplicatesModal.show();
-
-                // Fetch duplicates data
-                fetch('admin_9f4b1a.php?action=find_duplicates', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        duplicatesContent.innerHTML = `
-                            <div class="alert alert-danger">
-                                <i class="bi bi-exclamation-triangle me-2"></i>
-                                Error: ${data.error}
-                            </div>
-                        `;
-                        confirmDeleteBtn.disabled = true;
-                        return;
-                    }
-
-                    if (data.duplicates.length === 0) {
-                        duplicatesContent.innerHTML = `
-                            <div class="alert alert-success">
-                                <i class="bi bi-check-circle me-2"></i>
-                                No exact duplicate submissions found!
-                            </div>
-                        `;
-                        confirmDeleteBtn.disabled = true;
-                        return;
-                    }
-
-                    // Show duplicates
-                    let html = `
-                        <div class="alert alert-warning">
-                            <i class="bi bi-exclamation-triangle me-2"></i>
-                            Found <strong>${data.total_duplicates}</strong> exact duplicate submissions across <strong>${data.duplicates.length}</strong> groups.
-                            Deleting will keep the oldest submission in each group.
-                        </div>
-                        <div class="mb-3">
-                            <strong>Duplicate Groups:</strong>
-                        </div>
-                    `;
-
-                    data.duplicates.forEach((group, index) => {
-                        html += `
-                            <div class="card mb-3 border-warning">
-                                <div class="card-header bg-warning bg-opacity-10">
-                                    <strong>Group ${index + 1}</strong> - ${group.count} duplicates
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm mb-0">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th>ID</th>
-                                                    <th>Name</th>
-                                                    <th>Price</th>
-                                                    <th>Created</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                        `;
-
-                        group.submissions.forEach(sub => {
-                            const isKeeper = sub.id === group.keep_id;
-                            html += `
-                                <tr class="${isKeeper ? 'table-success' : ''}">
-                                    <td><code>${sub.id}</code></td>
-                                    <td>${sub.name || 'N/A'}</td>
-                                    <td>$${sub.price || 'N/A'}</td>
-                                    <td>${new Date(sub.created_at).toLocaleDateString()}</td>
-                                    <td>
-                                        ${isKeeper ?
-                                            '<span class="badge bg-success">Keep (Oldest)</span>' :
-                                            '<span class="badge bg-danger">Delete</span>'
-                                        }
-                                    </td>
-                                </tr>
-                            `;
-                        });
-
-                        html += `
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-
-                    duplicatesContent.innerHTML = html;
-                    confirmDeleteBtn.disabled = false;
-                })
-                .catch(error => {
-                    console.error('Find duplicates error:', error);
+                    // Show loading state
                     duplicatesContent.innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="bi bi-exclamation-triangle me-2"></i>
-                            Failed to scan for duplicates. Please try again.
+                        <div class="text-center py-4">
+                            <div class="loading-spinner mx-auto mb-3"></div>
+                            <div>Scanning for exact duplicates...</div>
                         </div>
                     `;
                     confirmDeleteBtn.disabled = true;
-                });
-            });
+                    duplicatesModal.show();
 
-            // Handle delete confirmation
-            confirmDeleteBtn.addEventListener('click', function(){
-                confirmDeleteBtn.disabled = true;
-                confirmDeleteBtn.innerHTML = '<i class="bi bi-hourglass me-1"></i>Deleting...';
+                    // Fetch duplicates data
+                    fetch('admin_9f4b1a.php?action=find_duplicates', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            duplicatesContent.innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    Error: ${data.error}
+                                </div>
+                            `;
+                            confirmDeleteBtn.disabled = true;
+                            return;
+                        }
+
+                        if (data.duplicates.length === 0) {
+                            duplicatesContent.innerHTML = `
+                                <div class="alert alert-success">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    No exact duplicate submissions found!
+                                </div>
+                            `;
+                            confirmDeleteBtn.disabled = true;
+                            return;
+                        }
+
+                        // Show duplicates
+                        let html = `
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                Found <strong>${data.total_duplicates}</strong> exact duplicate submissions across <strong>${data.duplicates.length}</strong> groups.
+                                Deleting will keep the oldest submission in each group.
+                            </div>
+                            <div class="mb-3">
+                                <strong>Duplicate Groups:</strong>
+                            </div>
+                        `;
+
+                        data.duplicates.forEach((group, index) => {
+                            html += `
+                                <div class="card mb-3 border-warning">
+                                    <div class="card-header bg-warning bg-opacity-10">
+                                        <strong>Group ${index + 1}</strong> - ${group.count} duplicates
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>ID</th>
+                                                        <th>Name</th>
+                                                        <th>Price</th>
+                                                        <th>Created</th>
+                                                        <th>Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                            `;
+
+                            group.submissions.forEach(sub => {
+                                const isKeeper = sub.id === group.keep_id;
+                                html += `
+                                    <tr class="${isKeeper ? 'table-success' : ''}">
+                                        <td><code>${sub.id}</code></td>
+                                        <td>${sub.name || 'N/A'}</td>
+                                        <td>$${sub.price || 'N/A'}</td>
+                                        <td>${new Date(sub.created_at).toLocaleDateString()}</td>
+                                        <td>
+                                            ${isKeeper ?
+                                                '<span class="badge bg-success">Keep (Oldest)</span>' :
+                                                '<span class="badge bg-danger">Delete</span>'
+                                            }
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+
+                            html += `
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        duplicatesContent.innerHTML = html;
+                        confirmDeleteBtn.disabled = false;
+                    })
+                    .catch(error => {
+                        console.error('Find duplicates error:', error);
+                        duplicatesContent.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                Failed to scan for duplicates. Please try again.
+                            </div>
+                        `;
+                        confirmDeleteBtn.disabled = true;
+                    });
+                } catch (error) {
+                    console.error('Modal initialization error:', error);
+                    alert('Failed to initialize modal. Please refresh the page.');
+                }
 
                 fetch('admin_9f4b1a.php?action=delete_duplicates', {
                     method: 'POST',
