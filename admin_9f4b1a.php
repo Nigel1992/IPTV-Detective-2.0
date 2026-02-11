@@ -2312,8 +2312,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action']) && iss
                     const name = t.dataset.name || id;
                     if (t.checked) {
                         selected.set(id, {id, name});
-                        // limit to 2: uncheck oldest if user checks a third
-                        if (selected.size > 2) {
+                        // Only limit to 2 for comparison if not in bulk mode
+                        const bulkActionsDropdown = document.getElementById('bulkActionsDropdown');
+                        const isBulkMode = bulkActionsDropdown && !bulkActionsDropdown.disabled;
+                        if (!isBulkMode && selected.size > 2) {
                             const firstKey = selected.keys().next().value;
                             if (firstKey) {
                                 selected.delete(firstKey);
