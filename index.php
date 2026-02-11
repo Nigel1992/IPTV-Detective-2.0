@@ -1127,8 +1127,30 @@ require_once __DIR__ . '/inc/maintenance.php';
       }
 
       if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-search"></i> Check & Compare'; }
-      if (!lastRes || !lastRes.ok) { alert('Error: ' + (data && data.error ? data.error : 'Server error')); return; }
-      if (data.error) { alert('Error: ' + data.error); return; }
+      if (!lastRes || !lastRes.ok) {
+        const errMsg = (data && data.error) ? data.error : 'Server error';
+        // If server reports a CAPTCHA failure, abort and ask user to report on Discord
+        if (/captcha/i.test(errMsg)) {
+          if (btn) { btn.disabled = false; }
+          const diag = `Provider: ${name}\nTime: ${new Date().toISOString()}\nServer: ${errMsg}`;
+          alert('Submission blocked: CAPTCHA verification failed on the server after multiple attempts.\nPlease join our Discord to report this issue and discuss: https://discord.com/invite/zxUq3afdn8\n\nDetails:\n' + diag);
+          console.info('CAPTCHA failure details:', diag);
+          return;
+        }
+        alert('Error: ' + errMsg);
+        return;
+      }
+      if (data.error) {
+        const errMsg = data.error || '';
+        if (/captcha/i.test(errMsg)) {
+          const diag = `Provider: ${name}\nTime: ${new Date().toISOString()}\nServer: ${errMsg}`;
+          alert('Submission blocked: CAPTCHA verification failed on the server after multiple attempts.\nPlease join our Discord to report this issue and discuss: https://discord.com/invite/zxUq3afdn8\n\nDetails:\n' + diag);
+          console.info('CAPTCHA failure details:', diag);
+          return;
+        }
+        alert('Error: ' + errMsg);
+        return;
+      }
       const setIf = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
       setIf('r_name', name);
       // Link display removed from results per user request (no link shown here)
