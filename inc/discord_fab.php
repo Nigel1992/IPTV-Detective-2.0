@@ -3,6 +3,16 @@ if (defined('DISCORD_FAB_INCLUDED')) return; define('DISCORD_FAB_INCLUDED', 1);
 // If buffer-based injection is active, do not echo here to avoid duplicates
 if (defined('DISCORD_FAB_BUFFER_STARTED')) return;
 
+// Do not show the Discord FAB to logged-in admins or on admin pages
+if (php_sapi_name() !== 'cli') {
+  if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+  }
+  if (!empty($_SESSION['admin_user'])) {
+    return;
+  }
+}
+
 // Show only on homepage / index pages. Allow directory index (path ending with '/')
 $req_path = rawurldecode(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
 $script = basename($_SERVER['SCRIPT_NAME'] ?? '');

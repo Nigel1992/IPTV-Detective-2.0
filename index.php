@@ -584,6 +584,8 @@ require_once __DIR__ . '/inc/maintenance.php';
       e.preventDefault();
       const form = this;
       let btn = null;
+      // Always define rCompareEl at the top so it is never undefined
+      let rCompareEl = document.getElementById('r_compare');
       try {
         // Trim required inputs to prevent whitespace-only submissions
       ['name','seller_info','xt_host','xt_user','xt_pass','price','xt_port'].forEach(function(n){ if (form[n]) form[n].value = form[n].value.trim(); });
@@ -939,7 +941,7 @@ require_once __DIR__ . '/inc/maintenance.php';
         const maxAttempts = 6;
         let attempt = 1;
         // rCompareEl referenced in multiple places — declare once in outer scope to avoid TDZ errors
-        let rCompareEl = document.getElementById('r_compare');
+        // ...existing code...
         if (anyZero()) {
           if (rCompareEl) rCompareEl.innerHTML = `<div class="match-card warn"><div class="match-header"><div class="match-title">Retrying data fetch</div></div><div class="mt-2 small text-muted">Some counts returned 0; will retry up to ${maxAttempts} times...</div></div>`;
           // Keep progress UI visible while retrying
@@ -1022,12 +1024,12 @@ require_once __DIR__ . '/inc/maintenance.php';
       }
 
       // If counts are still invalid after retries, do not submit to server. Ask user to report via Discord.
-      if (anyZero()) {
-        const invite = 'https://discord.com/invite/zxUq3afdn8';
-        if (rCompareEl) rCompareEl.innerHTML = `<div class="match-card danger"><div class="match-header"><div class="match-title">Submission failed</div></div><div class="mt-2 small text-muted">We could not fetch reliable counts after multiple attempts (some counts are zero or unavailable). To avoid storing incomplete data we did not submit your provider. Please <a href="${invite}" target="_blank" rel="noopener">join our Discord</a> to report this issue and get help.</div></div>`;
-        if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check &amp; Compare'; }
-        return;
-      }
+        if (anyZero()) {
+          const invite = 'https://discord.com/invite/zxUq3afdn8';
+          if (rCompareEl) rCompareEl.innerHTML = `<div class="match-card danger"><div class="match-header"><div class="match-title">Submission failed</div></div><div class="mt-2 small text-muted">We could not fetch reliable counts after multiple attempts (some counts are zero or unavailable). To avoid storing incomplete data we did not submit your provider. Please <a href="${invite}" target="_blank" rel="noopener">join our Discord</a> to report this issue and get help.</div></div>`;
+          if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check &amp; Compare'; }
+          return;
+        }
 
       // Populate UI with counts
       const setCountUI = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = (val === null ? 'N/A' : val); };
@@ -1247,7 +1249,7 @@ require_once __DIR__ . '/inc/maintenance.php';
           compareHtml = `<div class="match-card error"><div class="match-header"><div class="d-flex align-items-center gap-2"><i class="bi bi-lock-fill"></i><div class="match-title">No match found</div></div></div><div class="mt-2 small text-muted">Likely private or not enough data</div></div>`;
         }
       }
-      const rCompareElement = document.getElementById('r_compare'); if (rCompareElement) rCompareElement.innerHTML = compareHtml;
+      rCompareEl = document.getElementById('r_compare'); if (rCompareEl) rCompareEl.innerHTML = compareHtml;
       const resultsEl = document.getElementById('results');
       if (resultsEl) {
         resultsEl.style.display = '';

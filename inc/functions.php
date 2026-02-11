@@ -118,8 +118,18 @@ if (stripos($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html') !== false) {
     if (!defined('DISCORD_FAB_BUFFER_STARTED')) {
         define('DISCORD_FAB_BUFFER_STARTED', 1);
         ob_start(function($buf) {
-            $invite = 'https://discord.gg/zxUq3afdn8';
-            $fab = <<<HTML
+            // Skip injection for admin pages or logged-in admins
+            try {
+                if (php_sapi_name() !== 'cli') {
+                    if (session_status() === PHP_SESSION_NONE) {
+                        @session_start();
+                    }
+                    $script = basename($_SERVER['SCRIPT_NAME'] ?? '');
+                    if (!empty($_SESSION['admin_user']) || stripos($script, 'admin') !== false) {
+                        // do not inject FAB on admin pages
+                    } else {
+                        $invite = 'https://discord.gg/zxUq3afdn8';
+                        $fab = <<<HTML
 
 <!-- Discord Floating Button (injected) -->
 <style>
@@ -150,11 +160,16 @@ document.addEventListener('keydown', function(e){ if(e.key==="Escape"){ var el=d
 <!-- End Discord FAB -->
 HTML;
 
-            // Inject before closing </body> if present and output appears to be HTML
-            if (stripos($buf, '</body>') !== false) {
-                $buf = str_ireplace('</body>', $fab . "</body>", $buf);
-            } else {
-                $buf .= $fab;
+                        // Inject before closing </body> if present and output appears to be HTML
+                        if (stripos($buf, '</body>') !== false) {
+                            $buf = str_ireplace('</body>', $fab . "</body>", $buf);
+                        } else {
+                            $buf .= $fab;
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                // fail silently
             }
             return $buf;
         });

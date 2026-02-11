@@ -404,16 +404,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $editId = intval($_POST['id']);
     // Ensure tagging columns exist
     try {
-        $pdo->exec("ALTER TABLE providers ADD COLUMN IF NOT EXISTS is_baseline TINYINT(1) DEFAULT 0, ADD COLUMN IF NOT EXISTS is_confirmed_source TINYINT(1) DEFAULT 0");
+        $pdo->exec("ALTER TABLE providers ADD COLUMN IF NOT EXISTS is_baseline TINYINT(1) DEFAULT 0, ADD COLUMN IF NOT EXISTS is_confirmed_source TINYINT(1) DEFAULT 0, ADD COLUMN IF NOT EXISTS notes TEXT");
     } catch (Exception $e) {
         // ignore - ALTER may not support IF NOT EXISTS on all MySQL/MariaDB versions
         try {
-            $stmtCols = $pdo->prepare("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='providers' AND COLUMN_NAME IN ('is_baseline','is_confirmed_source')");
+            $stmtCols = $pdo->prepare("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='providers' AND COLUMN_NAME IN ('is_baseline','is_confirmed_source','notes')");
             $stmtCols->execute();
             $cols = $stmtCols->fetchAll(PDO::FETCH_COLUMN);
             $need = [];
             if (!in_array('is_baseline', $cols, true)) $need[] = "ADD COLUMN is_baseline TINYINT(1) DEFAULT 0";
             if (!in_array('is_confirmed_source', $cols, true)) $need[] = "ADD COLUMN is_confirmed_source TINYINT(1) DEFAULT 0";
+            if (!in_array('notes', $cols, true)) $need[] = "ADD COLUMN notes TEXT";
             if (!empty($need)) $pdo->exec('ALTER TABLE providers ' . implode(', ', $need));
         } catch (Exception $e2) {
             // ignore
@@ -431,7 +432,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         'series_categories' => $_POST['series_categories'] ?? '',
         'vod_categories' => $_POST['vod_categories'] ?? '',
         'is_baseline' => isset($_POST['is_baseline']) ? 1 : 0,
-        'is_confirmed_source' => isset($_POST['is_confirmed_source']) ? 1 : 0
+        'is_confirmed_source' => isset($_POST['is_confirmed_source']) ? 1 : 0,
+        'notes' => $_POST['notes'] ?? ''
     ];
     $set = [];
     $params = [];
@@ -447,6 +449,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $action_msg = 'Provider ' . $editId . ' updated.';
     } catch (Exception $e) {
         $action_err = 'Edit failed: ' . $e->getMessage();
+    }
+}
+
+// Handle add action
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
+    // Ensure tagging columns exist
+    try {
+        $pdo->exec("ALTER TABLE providers ADD COLUMN IF NOT EXISTS is_baseline TINYINT(1) DEFAULT 0, ADD COLUMN IF NOT EXISTS is_confirmed_source TINYINT(1) DEFAULT 0, ADD COLUMN IF NOT EXISTS notes TEXT");
+    } catch (Exception $e) {
+        // ignore - ALTER may not support IF NOT EXISTS on all MySQL/MariaDB versions
+        try {
+            $stmtCols = $pdo->prepare("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='providers' AND COLUMN_NAME IN ('is_baseline','is_confirmed_source','notes')");
+            $stmtCols->execute();
+            $cols = $stmtCols->fetchAll(PDO::FETCH_COLUMN);
+            $need = [];
+            if (!in_array('is_baseline', $cols, true)) $need[] = "ADD COLUMN is_baseline TINYINT(1) DEFAULT 0";
+            if (!in_array('is_confirmed_source', $cols, true)) $need[] = "ADD COLUMN is_confirmed_source TINYINT(1) DEFAULT 0";
+            if (!in_array('notes', $cols, true)) $need[] = "ADD COLUMN notes TEXT";
+            if (!empty($need)) $pdo->exec('ALTER TABLE providers ' . implode(', ', $need));
+        } catch (Exception $e2) {
+            // ignore
+        }
+    }
+    $fields = [
+        'name' => trim($_POST['name'] ?? ''),
+        'link' => trim($_POST['link'] ?? ''),
+        'price' => !empty($_POST['price']) ? $_POST['price'] : null,
+        'seller_source' => $_POST['seller_source'] ?? '',
+        'seller_info' => trim($_POST['seller_info'] ?? ''),
+        'live_categories' => !empty($_POST['live_categories']) ? $_POST['live_categories'] : null,
+        'live_streams' => !empty($_POST['live_streams']) ? $_POST['live_streams'] : null,
+        'series' => !empty($_POST['series']) ? $_POST['series'] : null,
+        'series_categories' => !empty($_POST['series_categories']) ? $_POST['series_categories'] : null,
+        'vod_categories' => !empty($_POST['vod_categories']) ? $_POST['vod_categories'] : null,
+        'is_baseline' => isset($_POST['is_baseline']) ? 1 : 0,
+        'is_confirmed_source' => isset($_POST['is_confirmed_source']) ? 1 : 0,
+        'notes' => trim($_POST['notes'] ?? ''),
+        'is_public' => 1, // New providers added by admin are public by default
+        'created_at' => date('Y-m-d H:i:s')
+    ];
+    
+    if (empty($fields['name'])) {
+        $action_err = 'Provider name is required.';
+    } else {
+        $columns = implode(',', array_keys($fields));
+        $placeholders = str_repeat('?,', count($fields) - 1) . '?';
+        $sql = "INSERT INTO providers ($columns) VALUES ($placeholders)";
+        try {
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(array_values($fields));
+            $newId = $pdo->lastInsertId();
+            $action_msg = 'Provider "' . htmlspecialchars($fields['name']) . '" added successfully with ID ' . $newId . '.';
+            
+            // Update counts
+            $total_providers = $pdo->query('SELECT COUNT(*) FROM providers')->fetchColumn();
+            $recent_submissions = $pdo->query('SELECT COUNT(*) FROM providers WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)')->fetchColumn();
+        } catch (Exception $e) {
+            $action_err = 'Add failed: ' . $e->getMessage();
+        }
     }
 }
 
@@ -1103,6 +1164,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <p class="text-muted mb-0">View, edit, and manage all IPTV providers</p>
             </div>
             <div class="d-flex gap-2">
+                <button id="add-provider-btn" class="btn btn-primary">
+                    <i class="bi bi-plus me-1"></i>Add Provider
+                </button>
                 <button id="providers-back" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
                 </button>
@@ -1134,6 +1198,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <option value="name DESC">Name Z-A</option>
                             <option value="price ASC">Price Low-High</option>
                             <option value="price DESC">Price High-Low</option>
+                            <option value="seller_source ASC">Seller A-Z</option>
+                            <option value="seller_source DESC">Seller Z-A</option>
+                            <option value="live_categories ASC">Live Cats Low-High</option>
+                            <option value="live_categories DESC">Live Cats High-Low</option>
+                            <option value="live_streams ASC">Live Streams Low-High</option>
+                            <option value="live_streams DESC">Live Streams High-Low</option>
+                            <option value="series ASC">Series Low-High</option>
+                            <option value="series DESC">Series High-Low</option>
+                            <option value="series_categories ASC">Series Cats Low-High</option>
+                            <option value="series_categories DESC">Series Cats High-Low</option>
+                            <option value="vod_categories ASC">VOD Cats Low-High</option>
+                            <option value="vod_categories DESC">VOD Cats High-Low</option>
+                            <option value="similarity ASC">Similarity Low-High</option>
+                            <option value="similarity DESC">Similarity High-Low</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -1148,7 +1226,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-table me-2"></i>Providers List</span>
-                <span class="badge bg-primary" id="providerCount"><?php echo $total_providers; ?> total</span>
+                <div class="d-flex align-items-center" style="gap:8px;">
+                    <button id="compareSelectedBtn" class="btn btn-outline-primary btn-sm" disabled title="Select exactly two providers to compare"><i class="bi bi-bar-chart me-1"></i>Compare selected</button>
+                    <span class="badge bg-primary" id="providerCount"><?php echo $total_providers; ?> total</span>
+                </div>
             </div>
             <div class="card-body p-0">
                 <?php if (isset($action_err)): ?>
@@ -1161,6 +1242,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <table class="table table-hover mb-0" id="providersTable">
                         <thead class="table-dark">
                             <tr>
+                                <th style="width:48px;text-align:center"><i class="bi bi-check2-all"></i></th>
                                 <th><i class="bi bi-hash me-1"></i>ID</th>
                                 <th><i class="bi bi-tag me-1"></i>Name</th>
                                 <th><i class="bi bi-people me-1"></i>Seller</th>
@@ -1181,7 +1263,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             $cfg = include __DIR__ . '/inc/config.php';
                             $stmtCols->execute([$cfg['dbname']]);
                             $available = $stmtCols->fetchAll(PDO::FETCH_COLUMN);
-                            $selectCols = ['id','name','link','price','channels','groups','seller_source','seller_info','live_categories','live_streams','series','series_categories','vod_categories','created_at','is_public','is_baseline','is_confirmed_source'];
+                            $selectCols = ['id','name','link','price','channels','groups','seller_source','seller_info','live_categories','live_streams','series','series_categories','vod_categories','created_at','is_public','is_baseline','is_confirmed_source','notes'];
                             $selectCols = array_values(array_unique($selectCols));
                             $selectCols = array_filter($selectCols, function($c) use ($available){ return in_array($c, $available, true); });
                             $sql = 'SELECT ' . implode(',', $selectCols) . ' FROM providers ORDER BY created_at DESC';
@@ -1231,12 +1313,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 }
                             }
                             foreach ($rows as $r) {
+                                $simScore = isset($bestSim[$r['id']]) ? round($bestSim[$r['id']]['score'],1) : 0;
                                                                 $rowId = 'prov-' . htmlspecialchars($r['id']);
-                                                                    echo '<tr id="' . $rowId . '" data-name="' . htmlspecialchars(strtolower($r['name'] ?? '')) . '" data-status="' . (isset($r['is_public']) && $r['is_public'] ? 'public' : 'private') . '">';
+                                                                    echo '<tr id="' . $rowId . '" data-name="' . htmlspecialchars(strtolower($r['name'] ?? '')) . '" data-status="' . (isset($r['is_public']) && $r['is_public'] ? 'public' : 'private') . '" data-price="' . htmlspecialchars($r['price'] ?? '') . '" data-created="' . htmlspecialchars($r['created_at'] ?? '') . '" data-seller-source="' . htmlspecialchars(strtolower($r['seller_source'] ?? '')) . '" data-live-categories="' . htmlspecialchars(strtolower($r['live_categories'] ?? '')) . '" data-live-streams="' . htmlspecialchars($r['live_streams'] ?? '') . '" data-series="' . htmlspecialchars($r['series'] ?? '') . '" data-series-categories="' . htmlspecialchars(strtolower($r['series_categories'] ?? '')) . '" data-vod-categories="' . htmlspecialchars(strtolower($r['vod_categories'] ?? '')) . '" data-similarity="' . $simScore . '">';
+                                                                    echo '<td style="vertical-align:middle;text-align:center"><input type="checkbox" class="prov-compare-checkbox" data-id="' . htmlspecialchars($r['id']) . '" data-name="' . htmlspecialchars($r['name'] ?? '') . '"></td>';
                                                                     echo '<td><code>' . htmlspecialchars($r['id']) . '</code></td>';
                                                                     $tagBadges = '';
                                                                             if (!empty($r['is_baseline'])) $tagBadges .= ' <span class="badge bg-info">Baseline</span>';
-                                                                            if (!empty($r['is_confirmed_source'])) $tagBadges .= ' <span class="badge bg-primary">Confirmed</span>';
+                                                                            if (!empty($r['is_confirmed_source'])) $tagBadges .= ' <span class="badge bg-success">Verified</span>';
+                                                                            else $tagBadges .= ' <span class="badge bg-warning">Unverified</span>';
                                                                             echo '<td><strong>' . htmlspecialchars($r['name'] ?? '') . '</strong>' . $tagBadges . '</td>';
                                   // Seller column
                                   $sellerLabel = '-';
@@ -1289,6 +1374,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                                                     $data_attrs .= ' data-seller-info="' . htmlspecialchars($r['seller_info'] ?? '') . '"';
                                                                     $data_attrs .= ' data-is-baseline="' . intval($r['is_baseline'] ?? 0) . '"';
                                                                     $data_attrs .= ' data-is-confirmed-source="' . intval($r['is_confirmed_source'] ?? 0) . '"';
+                                                                    $data_attrs .= ' data-notes="' . htmlspecialchars($r['notes'] ?? '') . '"';
                                                                     echo '<button class="btn btn-outline-info btn-edit-provider d-flex align-items-center justify-content-center" style="width:38px;height:38px;padding:0;" onclick="openEditModalFromButton(this)"' . $data_attrs . ' title="Edit"><i class="bi bi-pencil"></i></button>';
                                                                     echo '<form method="post" style="display:inline" onsubmit="return confirm(\'Delete this provider?\');">';
                                                                     echo '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'] ?? '') . '">';
@@ -1427,7 +1513,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 <div class="col-md-6">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" value="1" id="editIsConfirmedSource" name="is_confirmed_source">
-                                        <label class="form-check-label" for="editIsConfirmedSource">Tag as <strong>Confirmed Source</strong></label>
+                                        <label class="form-check-label" for="editIsConfirmedSource">Tag as <strong>Verified Source</strong></label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="mb-3">
+                                        <label for="editNotes" class="form-label"><i class="bi bi-sticky me-1"></i>Admin Notes</label>
+                                        <textarea class="form-control" name="notes" id="editNotes" rows="3" placeholder="Add any internal notes about this provider..."></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -1445,7 +1539,153 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 </div>
             </div>
         </div>
+
+        <!-- Add Provider Modal -->
+        <div class="modal fade" id="addProviderModal" tabindex="-1" aria-labelledby="addProviderModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <form method="post" id="addProviderForm">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="addProviderModalLabel">
+                                <i class="bi bi-plus me-2"></i>Add New Provider
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" name="action" value="add">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="addProviderName" class="form-label"><i class="bi bi-tag me-1"></i>Provider Name *</label>
+                                        <input type="text" class="form-control" name="name" id="addProviderName" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="addProviderLink" class="form-label"><i class="bi bi-link me-1"></i>Website/Link</label>
+                                        <input type="url" class="form-control" name="link" id="addProviderLink" placeholder="https://...">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="addSellerSource" class="form-label"><i class="bi bi-person me-1"></i>Seller Source</label>
+                                        <select class="form-select" name="seller_source" id="addSellerSource">
+                                            <option value="">Select source...</option>
+                                            <option value="telegram_seller">Telegram Seller</option>
+                                            <option value="discord_seller">Discord Seller</option>
+                                            <option value="reddit_seller">Reddit Seller</option>
+                                            <option value="forum_seller">Forum Seller</option>
+                                            <option value="website">Website</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="addSellerInfo" class="form-label"><i class="bi bi-info-circle me-1"></i>Seller Info</label>
+                                        <input type="text" class="form-control" name="seller_info" id="addSellerInfo" placeholder="username, profile URL, order id">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="addProviderPrice" class="form-label"><i class="bi bi-cash me-1"></i>Price</label>
+                                        <input type="number" class="form-control" name="price" id="addProviderPrice" step="0.01" min="0" placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="addLiveCategories" class="form-label"><i class="bi bi-play-circle me-1"></i>Live Categories</label>
+                                        <input type="number" class="form-control" name="live_categories" id="addLiveCategories" min="0" placeholder="Number of live categories">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="addLiveStreams" class="form-label"><i class="bi bi-play me-1"></i>Live Streams</label>
+                                        <input type="number" class="form-control" name="live_streams" id="addLiveStreams" min="0" placeholder="Number of live streams">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="addSeries" class="form-label"><i class="bi bi-film me-1"></i>Series</label>
+                                        <input type="number" class="form-control" name="series" id="addSeries" min="0" placeholder="Number of series">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="addSeriesCategories" class="form-label"><i class="bi bi-folder me-1"></i>Series Categories</label>
+                                        <input type="number" class="form-control" name="series_categories" id="addSeriesCategories" min="0" placeholder="Number of series categories">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="addVodCategories" class="form-label"><i class="bi bi-collection-play me-1"></i>VOD Categories</label>
+                                        <input type="number" class="form-control" name="vod_categories" id="addVodCategories" min="0" placeholder="Number of VOD categories">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="1" id="addIsBaseline" name="is_baseline">
+                                        <label class="form-check-label" for="addIsBaseline">Tag as <strong>Baseline</strong></label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="1" id="addIsConfirmedSource" name="is_confirmed_source">
+                                        <label class="form-check-label" for="addIsConfirmedSource">Tag as <strong>Verified Source</strong></label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="mb-3">
+                                        <label for="addNotes" class="form-label"><i class="bi bi-sticky me-1"></i>Admin Notes</label>
+                                        <textarea class="form-control" name="notes" id="addNotes" rows="3" placeholder="Add any internal notes about this provider..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                <i class="bi bi-x me-1"></i>Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus me-1"></i>Add Provider
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
     </div>
+        <!-- Compare Modal -->
+        <div class="modal fade" id="compareModal" tabindex="-1" aria-labelledby="compareModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="compareModalLabel"><i class="bi bi-bar-chart me-2"></i>Provider Comparison</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="compareModalBody">
+                        <div class="text-center py-4"><div class="loading-spinner mx-auto mb-3"></div><div>Preparing comparison&hellip;</div></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     <script>
         // Initialize CSRF token
         if (!window.csrfToken) {
@@ -1511,15 +1751,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 const field = parts[0] || 'created_at';
                 const dir = (parts[1] || 'DESC').toUpperCase();
 
-                const getPrice = (r) => {
-                    const txt = (r.cells[3] && r.cells[3].textContent) ? r.cells[3].textContent : '';
-                    const m = txt.match(/[-\d.,]+/);
-                    return m ? (parseFloat(m[0].replace(/,/g, '')) || 0) : 0;
+                const getPrice = (p) => {
+                    try {
+                        const v = (p.row && p.row.dataset && p.row.dataset.price) ? p.row.dataset.price : '';
+                        const n = parseFloat(String(v).replace(/,/g, ''));
+                        return isNaN(n) ? 0 : n;
+                    } catch(e){ return 0; }
                 };
-                const getDate = (r) => {
-                    const txt = (r.cells[9] && r.cells[9].textContent) ? r.cells[9].textContent.trim() : '';
-                    const t = Date.parse(txt);
-                    return isNaN(t) ? 0 : t;
+                const getDate = (p) => {
+                    try {
+                        const v = (p.row && p.row.dataset && p.row.dataset.created) ? p.row.dataset.created : '';
+                        const t = Date.parse(v);
+                        return isNaN(t) ? 0 : t;
+                    } catch(e){ return 0; }
                 };
 
                 pairs.sort((a, b) => {
@@ -1529,12 +1773,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         return dir === 'ASC' ? A.localeCompare(B) : B.localeCompare(A);
                     }
                     if (field === 'price') {
-                        const A = getPrice(a.row);
-                        const B = getPrice(b.row);
+                            const A = getPrice({row: a.row});
+                            const B = getPrice({row: b.row});
+                            return dir === 'ASC' ? (A - B) : (B - A);
+                        }
+                    if (field === 'seller_source') {
+                        const A = a.row.dataset.sellerSource || '';
+                        const B = b.row.dataset.sellerSource || '';
+                        return dir === 'ASC' ? A.localeCompare(B) : B.localeCompare(A);
+                    }
+                    if (field === 'live_categories') {
+                        const A = parseInt(a.row.dataset.liveCategories) || 0;
+                        const B = parseInt(b.row.dataset.liveCategories) || 0;
                         return dir === 'ASC' ? (A - B) : (B - A);
                     }
-                    const A = getDate(a.row);
-                    const B = getDate(b.row);
+                    if (field === 'live_streams') {
+                        const A = parseInt(a.row.dataset.liveStreams) || 0;
+                        const B = parseInt(b.row.dataset.liveStreams) || 0;
+                        return dir === 'ASC' ? (A - B) : (B - A);
+                    }
+                    if (field === 'series') {
+                        const A = parseInt(a.row.dataset.series) || 0;
+                        const B = parseInt(b.row.dataset.series) || 0;
+                        return dir === 'ASC' ? (A - B) : (B - A);
+                    }
+                    if (field === 'series_categories') {
+                        const A = parseInt(a.row.dataset.seriesCategories) || 0;
+                        const B = parseInt(b.row.dataset.seriesCategories) || 0;
+                        return dir === 'ASC' ? (A - B) : (B - A);
+                    }
+                    if (field === 'vod_categories') {
+                        const A = parseInt(a.row.dataset.vodCategories) || 0;
+                        const B = parseInt(b.row.dataset.vodCategories) || 0;
+                        return dir === 'ASC' ? (A - B) : (B - A);
+                    }
+                    if (field === 'similarity') {
+                        const A = parseFloat(a.row.dataset.similarity) || 0;
+                        const B = parseFloat(b.row.dataset.similarity) || 0;
+                        return dir === 'ASC' ? (A - B) : (B - A);
+                    }
+                        const A = getDate({row: a.row});
+                        const B = getDate({row: b.row});
                     return dir === 'ASC' ? (A - B) : (B - A);
                 });
             }
@@ -1586,7 +1865,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
 
         // Modal edit logic
-        function openEditModal(id, name, link, price, live_categories, live_streams, series, series_categories, vod_categories, seller_source, seller_info, is_baseline, is_confirmed_source) {
+        function openEditModal(id, name, link, price, live_categories, live_streams, series, series_categories, vod_categories, seller_source, seller_info, is_baseline, is_confirmed_source, notes) {
             // Ensure elements exist before attempting to set values
             const setVal = (sel, val) => {
                 const el = document.getElementById(sel);
@@ -1650,6 +1929,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             setVal('editVodCategories', vod_categories);
             setVal('editIsBaseline', is_baseline);
             setVal('editIsConfirmedSource', is_confirmed_source);
+            setVal('editNotes', notes);
 
             const modalEl = document.getElementById('editProviderModal');
             if (modalEl) {
@@ -1675,7 +1955,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             const seller_info = d.sellerInfo || d['seller-info'] || '';
             const is_baseline = (d.isBaseline || d['is-baseline'] || '0');
             const is_confirmed_source = (d.isConfirmedSource || d['is-confirmed-source'] || '0');
-            openEditModal(id, name, link, price, live_categories, live_streams, series, series_categories, vod_categories, seller_source, seller_info, is_baseline, is_confirmed_source);
+            const notes = d.notes || '';
+            openEditModal(id, name, link, price, live_categories, live_streams, series, series_categories, vod_categories, seller_source, seller_info, is_baseline, is_confirmed_source, notes);
         }
 
         // Chart initialization
@@ -1843,6 +2124,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             const sortBy = document.getElementById('sortBy');
             if (statusFilter) statusFilter.addEventListener('change', applyFilters);
             if (sortBy) sortBy.addEventListener('change', applyFilters);
+
+            // Add provider button
+            const addProviderBtn = document.getElementById('add-provider-btn');
+            if (addProviderBtn) {
+                addProviderBtn.addEventListener('click', function() {
+                    const modalEl = document.getElementById('addProviderModal');
+                    if (modalEl) {
+                        const modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+                    }
+                });
+            }
+
             // Update recent activity labels on load
             if (typeof updateRecentActivityTimes === 'function') updateRecentActivityTimes();
 
@@ -1873,6 +2167,110 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             });
         }
 
+    </script>
+    <script>
+        // Compare selection handling
+        (function(){
+            const selected = new Map();
+            const btn = document.getElementById('compareSelectedBtn');
+            function updateButton() {
+                const n = selected.size;
+                if (!btn) return;
+                if (n === 2) {
+                    const names = Array.from(selected.values()).map(s => s.name || s.id);
+                    btn.disabled = false;
+                    btn.textContent = 'Compare: ' + names.join(' vs ');
+                } else {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="bi bi-bar-chart me-1"></i>Compare selected';
+                }
+            }
+
+            document.addEventListener('change', function(e){
+                const t = e.target;
+                if (!t || !t.classList) return;
+                if (t.classList.contains('prov-compare-checkbox')) {
+                    const id = t.dataset.id;
+                    const name = t.dataset.name || id;
+                    if (t.checked) {
+                        selected.set(id, {id, name});
+                        // limit to 2: uncheck oldest if user checks a third
+                        if (selected.size > 2) {
+                            const firstKey = selected.keys().next().value;
+                            if (firstKey) {
+                                selected.delete(firstKey);
+                                const firstCb = document.querySelector('.prov-compare-checkbox[data-id="' + firstKey + '"]');
+                                if (firstCb) firstCb.checked = false;
+                            }
+                        }
+                    } else {
+                        selected.delete(id);
+                    }
+                    updateButton();
+                }
+            });
+
+            if (btn) {
+                btn.addEventListener('click', function(){
+                    if (selected.size !== 2) return;
+                    const ids = Array.from(selected.keys());
+                    const a = encodeURIComponent(ids[0]);
+                    const b = encodeURIComponent(ids[1]);
+                    const modal = new bootstrap.Modal(document.getElementById('compareModal'));
+                    const body = document.getElementById('compareModalBody');
+                    if (body) body.innerHTML = '<div class="text-center py-4"><div class="loading-spinner mx-auto mb-3"></div><div>Loading comparison&hellip;</div></div>';
+                    modal.show();
+                    fetch('get_pair_comparison.php?id_a=' + a + '&id_b=' + b)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (!data || data.error) {
+                                body.innerHTML = '<div class="alert alert-danger">Comparison failed.</div>';
+                                return;
+                            }
+                            renderComparison(body, data);
+                        })
+                        .catch(err => {
+                            console.error('Compare failed', err);
+                            if (body) body.innerHTML = '<div class="alert alert-danger">Comparison failed.</div>';
+                        });
+                });
+            }
+
+            function renderComparison(container, data) {
+                try {
+                    const a = data.a || {};
+                    const b = data.b || {};
+                    const metrics = data.metrics || [];
+                    const overall = (typeof data.overall === 'number') ? data.overall : null;
+                    let html = '';
+                    html += '<div class="mb-3 d-flex justify-content-between align-items-center">';
+                    html += '<div><strong>' + escapeHtml(a.name || a.id) + '</strong> <small class="text-muted">ID ' + escapeHtml(String(a.id)) + '</small></div>';
+                    html += '<div class="text-center"><span class="badge bg-secondary">VS</span></div>';
+                    html += '<div class="text-end"><strong>' + escapeHtml(b.name || b.id) + '</strong> <small class="text-muted">ID ' + escapeHtml(String(b.id)) + '</small></div>';
+                    html += '</div>';
+                    if (overall !== null) {
+                        html += '<div class="mb-3"><h4>Overall similarity: <span class="text-primary">' + Number(overall).toFixed(2) + '%</span></h4></div>';
+                    }
+                    html += '<div class="table-responsive"><table class="table table-sm table-striped"><thead><tr><th>Metric</th><th class="text-end">' + escapeHtml(a.name || 'A') + '</th><th class="text-end">' + escapeHtml(b.name || 'B') + '</th><th class="text-end">Similarity</th></tr></thead><tbody>';
+                    metrics.forEach(m => {
+                        html += '<tr>';
+                        html += '<td>' + escapeHtml(m.field) + '</td>';
+                        html += '<td class="text-end"><code>' + escapeHtml(String(m.a_val ?? '-')) + '</code></td>';
+                        html += '<td class="text-end"><code>' + escapeHtml(String(m.b_val ?? '-')) + '</code></td>';
+                        html += '<td class="text-end"><strong>' + (typeof m.percentage === 'number' ? (m.percentage.toFixed(2) + '%') : '-') + '</strong></td>';
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table></div>';
+                    container.innerHTML = html;
+                } catch (e) {
+                    container.innerHTML = '<div class="alert alert-danger">Failed to render comparison.</div>';
+                }
+            }
+
+            function escapeHtml(s){
+                return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            }
+        })();
     </script>
     <script>
         // Ensure Save Changes is clickable when modal opens (defensive fix)
@@ -1906,6 +2304,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     }
                 } catch(e){}
             });
+        })();
+
+        // Add provider modal event handlers
+        (function(){
+            const modalEl = document.getElementById('addProviderModal');
+            if (modalEl) {
+                modalEl.addEventListener('hidden.bs.modal', function(){
+                    // Reset form when modal is closed
+                    const form = document.getElementById('addProviderForm');
+                    if (form) {
+                        form.reset();
+                    }
+                });
+            }
         })();
     </script>
 </body>
