@@ -2,8 +2,8 @@
 if (defined('DISCORD_FAB_INCLUDED')) return; define('DISCORD_FAB_INCLUDED', 1);
 // If buffer-based injection is active, do not echo here to avoid duplicates
 if (defined('DISCORD_FAB_BUFFER_STARTED')) return;
-$invite = 'https://discord.gg/zxUq3afdn8';
-echo <<<'HTML'
+$invite = 'https://discord.com/invite/zxUq3afdn8';
+echo <<<HTML
 
 <!-- Discord Floating Button (inline include) -->
 <style>
@@ -17,10 +17,10 @@ echo <<<'HTML'
 </style>
 <div class="discord-fab" aria-hidden="false">
   <div class="pulse" aria-hidden="true"></div>
-  <a href="{$invite}" target="_blank" rel="noopener noreferrer" title="Join our Discord to discuss and report issues">
-    <button aria-label="Join Discord" type="button">
+  <a href="{$invite}" class="discord-link" target="_blank" rel="noopener noreferrer" title="Join our Discord to discuss and report issues">
+    <span role="button" aria-label="Join Discord" class="discord-btn">
       <svg width="22" height="22" viewBox="0 0 245 240" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="#ffffff" d="M104.4 104.4c0 6.5-5.3 11.8-11.8 11.8s-11.8-5.3-11.8-11.8 5.3-11.8 11.8-11.8 11.8 5.3 11.8 11.8zm63 0c0 6.5-5.3 11.8-11.8 11.8s-11.8-5.3-11.8-11.8 5.3-11.8 11.8-11.8 11.8 5.3 11.8 11.8z"/><path fill="#ffffff" d="M189.5 20H55.5C43.4 20 33.8 29.6 33.8 41.7v119.3c0 12.1 9.6 21.7 21.7 21.7h114.3l-5.4-18.7 13.1 11.9 12.3 11.4 21.9 19.9V41.7C211.2 29.6 201.6 20 189.5 20z"/></svg>
-    </button>
+    </span>
   </a>
   <div class="label">Join our Discord — report issues & chat</div>
 </div>
