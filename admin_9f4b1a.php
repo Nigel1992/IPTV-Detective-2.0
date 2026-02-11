@@ -2866,6 +2866,49 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                     confirmDeleteBtn.disabled = true;
                     duplicatesModal.show();
 
+                    // Attach delete handler once (attach when modal opens so element exists)
+                    try {
+                        if (!confirmDeleteBtn.dataset.deleteListenerAttached) {
+                            confirmDeleteBtn.addEventListener('click', function() {
+                                console.log('Delete duplicates button clicked');
+                                // Show loading state
+                                confirmDeleteBtn.disabled = true;
+                                confirmDeleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Deleting...';
+
+                                fetch('admin_9f4b1a.php?action=delete_duplicates', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/x-www-form-urlencoded',
+                                    },
+                                    body: 'csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>'
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.error) {
+                                        alert('Error deleting duplicates: ' + data.error);
+                                        confirmDeleteBtn.disabled = false;
+                                        confirmDeleteBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Delete Duplicates';
+                                        return;
+                                    }
+
+                                    alert(`Successfully deleted ${data.deleted_count} duplicate submissions!`);
+                                    const duplicatesModal = new bootstrap.Modal(document.getElementById('duplicatesModal'));
+                                    duplicatesModal.hide();
+                                    location.reload(); // Refresh to show updated list
+                                })
+                                .catch(error => {
+                                    console.error('Delete duplicates error:', error);
+                                    alert('Failed to delete duplicates. Please try again.');
+                                    confirmDeleteBtn.disabled = false;
+                                    confirmDeleteBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Delete Duplicates';
+                                });
+                            });
+                            confirmDeleteBtn.dataset.deleteListenerAttached = '1';
+                        }
+                    } catch (e) {
+                        console.error('Could not attach delete listener:', e);
+                    }
+
                     // Fetch duplicates data
                     fetch('admin_9f4b1a.php?action=find_duplicates', {
                         method: 'POST',
@@ -2977,38 +3020,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                 }
             });
 
-            // Add event listener for delete button
-            document.getElementById('confirmDeleteDuplicates')?.addEventListener('click', function() {
-                const confirmDeleteBtn = document.getElementById('confirmDeleteDuplicates');
-                if (!confirmDeleteBtn) return;
-
-                // Show loading state
-                confirmDeleteBtn.disabled = true;
-                confirmDeleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Deleting...';
-
-                fetch('admin_9f4b1a.php?action=delete_duplicates', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        alert('Error deleting duplicates: ' + data.error);
-                        confirmDeleteBtn.disabled = false;
-                        confirmDeleteBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Delete Duplicates';
-                        return;
-                    }
-
-                    alert(`Successfully deleted ${data.deleted_count} duplicate submissions!`);
-                    const duplicatesModal = new bootstrap.Modal(document.getElementById('duplicatesModal'));
-                    duplicatesModal.hide();
-                    location.reload(); // Refresh to show updated list
-                })
-                .catch(error => {
-                    console.error('Delete duplicates error:', error);
+            // Delete handler is attached when modal opens to ensure the element exists and avoid duplicate attachments.
                     alert('Failed to delete duplicates. Please try again.');
                     confirmDeleteBtn.disabled = false;
                     confirmDeleteBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Delete Duplicates';
