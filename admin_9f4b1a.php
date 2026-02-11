@@ -405,6 +405,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // Ignore errors during delete operation to prevent 500 errors
         $matched_providers = 0;
     }
+
+    // Use same exact-match calculation as the public site to determine matched providers (aligns dashboard with homepage)
+    try {
+        $stmtCols = $pdo->prepare("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=? AND TABLE_NAME='providers'");
+        $cfg = include __DIR__ . '/inc/config.php';
+        $stmtCols->execute([$cfg['dbname']]);
+        $available = $stmtCols->fetchAll(PDO::FETCH_COLUMN);
+
+        $cols = ['id','live_categories','live_streams','series','series_categories','vod_categories'];
+        $cols = array_filter($cols, function($c) use ($available){ return in_array($c, $available, true); });
+        $sql = 'SELECT ' . implode(',', array_unique($cols)) . ' FROM providers WHERE is_public = 1';
+        $stmt4 = $pdo->prepare($sql);
+        $stmt4->execute();
+        $providers_public = $stmt4->fetchAll(PDO::FETCH_ASSOC);
+
+        $n = count($providers_public);
+        $adj = array_fill(0, $n, []);
+        $live_categories_values = [];
+        $live_streams_values = [];
+        $series_values_raw = [];
+        $series_categories_values_raw = [];
+        $vod_categories_values_raw = [];
+        $series_counts = [];
+        $series_categories_counts = [];
+        $vod_counts = [];
+        for ($i = 0; $i < $n; $i++) {
+            $p = $providers_public[$i];
+            $live_categories_values[$i] = $p['live_categories'] ?? '';
+            $live_streams_values[$i] = $p['live_streams'] ?? '';
+            $series_values_raw[$i] = $p['series'] ?? '';
+            $series_categories_values_raw[$i] = $p['series_categories'] ?? '';
+            $vod_categories_values_raw[$i] = $p['vod_categories'] ?? '';
+            if (function_exists('count_field_items')) {
+                $series_counts[$i] = count_field_items($series_values_raw[$i]);
+                $series_categories_counts[$i] = count_field_items($series_categories_values_raw[$i]);
+                $vod_counts[$i] = count_field_items($vod_categories_values_raw[$i]);
+            } else {
+                $series_counts[$i] = is_numeric($p['series'] ?? '') ? intval($p['series']) : 0;
+                $series_categories_counts[$i] = is_numeric($p['series_categories'] ?? '') ? intval($p['series_categories']) : 0;
+                $vod_counts[$i] = is_numeric($p['vod_categories'] ?? '') ? intval($p['vod_categories']) : 0;
+            }
+        }
+
+        $matched_public = [];
+        for ($i = 0; $i < $n; $i++) {
+            for ($j = $i+1; $j < $n; $j++) {
+                $field_matches = [];
+                $field_matches[] = ($live_categories_values[$i] === $live_categories_values[$j] && !empty($live_categories_values[$i]));
+                $field_matches[] = ($live_streams_values[$i] === $live_streams_values[$j] && !empty($live_streams_values[$i]));
+                $series_match = false;
+                if (!empty($series_values_raw[$i]) && $series_values_raw[$i] === $series_values_raw[$j]) $series_match = true;
+                else if ($series_counts[$i] === $series_counts[$j]) $series_match = true;
+                $field_matches[] = $series_match;
+                $sc_match = false;
+                if (!empty($series_categories_values_raw[$i]) && $series_categories_values_raw[$i] === $series_categories_values_raw[$j]) $sc_match = true;
+                else if ($series_categories_counts[$i] === $series_categories_counts[$j]) $sc_match = true;
+                $field_matches[] = $sc_match;
+                $vod_match = false;
+                if (!empty($vod_categories_values_raw[$i]) && $vod_categories_values_raw[$i] === $vod_categories_values_raw[$j]) $vod_match = true;
+                else if ($vod_counts[$i] === $vod_counts[$j]) $vod_match = true;
+                $field_matches[] = $vod_match;
+
+                $available_fields = 0;
+                $matching_fields = 0;
+                foreach ($field_matches as $m) {
+                    if ($m !== false) {
+                        $available_fields++;
+                        if ($m) $matching_fields++;
+                    }
+                }
+
+                if ($available_fields > 0 && $matching_fields == $available_fields) {
+                    $matched_public[$providers_public[$i]['id']] = true;
+                    $matched_public[$providers_public[$j]['id']] = true;
+                }
+            }
+        }
+
+        $matches = count($matched_public);
+        // Use the public matches number for the admin dashboard to keep numbers consistent
+        $matched_providers = $matches;
+    } catch (Throwable $e) {
+        // fall back to previously computed matched_providers if something goes wrong
+    }
+
     $unmatched_providers = max(0, $total_providers - $matched_providers);
 }
 
