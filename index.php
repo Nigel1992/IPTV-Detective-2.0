@@ -143,6 +143,11 @@ require_once __DIR__ . '/inc/maintenance.php';
     .match-header{display:flex;justify-content:space-between;align-items:center}
 
   </style>
+
+  <!-- Tutorial System -->
+  <link href="static/css/tutorial.css" rel="stylesheet">
+  <script src="static/js/tutorial.js"></script>
+  <script src="static/tutorials/provider-check.js"></script>
 </head>
 <body class="bg-dark text-light">
   <div id="adminStatus" class="position-absolute top-0 end-0 p-3" style="z-index:1050;display:none;"></div>
@@ -151,7 +156,8 @@ require_once __DIR__ . '/inc/maintenance.php';
       <h1 class="display-5 fw-bold mb-1"><span class="logo"><i class="bi bi-broadcast"></i> IPTV Detective</span></h1>
       <div class="lead">Find the cheapest provider offering the exact same IPTV package — detect resells and compare prices.</div>
       <div class="mt-3">
-        <button class="btn btn-outline-light btn-lg" id="howItWorksBtn" title="How this site works" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="bi bi-info-circle"></i> How it works</button>
+        <button class="btn btn-outline-info me-2" id="tutorialBtn" title="Interactive tutorial for new users"><i class="bi bi-question-circle"></i> Tutorial</button>
+        <button class="btn btn-outline-light" id="howItWorksBtn" title="How this site works" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="bi bi-info-circle"></i> How it works</button>
       </div>
     </div>
     <div id="verifyAlert" class="alert alert-warning" style="display:none">
@@ -1646,6 +1652,16 @@ require_once __DIR__ . '/inc/maintenance.php';
         keyboard: true
       });
       loadSubmissionsCount();
+
+      // Tutorial button handler
+      const tutorialBtn = document.getElementById('tutorialBtn');
+      if (tutorialBtn) {
+        tutorialBtn.addEventListener('click', function() {
+          if (window.tutorial) {
+            window.tutorial.startTutorial('provider-check');
+          }
+        });
+      }
     });
   </script>
 
@@ -1853,6 +1869,11 @@ require_once __DIR__ . '/inc/maintenance.php';
     </div>
   </div>
 </div>
+
+<!-- Tutorial Restart Button (appears after tutorial completion) -->
+<button id="tutorialRestartBtn" class="btn btn-outline-info tutorial-restart-btn" style="display:none;" title="Restart the interactive tutorial" onclick="tutorial.restartTutorial()">
+  <i class="bi bi-question-circle"></i>
+</button>
 
 <?php require_once __DIR__ . '/inc/discord_fab.php'; ?>
 </body>

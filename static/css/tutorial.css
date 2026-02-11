@@ -1,0 +1,307 @@
+/* IPTV Detective Tutorial System Styles */
+
+/* Tutorial Highlighting */
+.tutorial-highlight {
+    position: relative;
+    z-index: 9999;
+    box-shadow: 0 0 0 3px #00c2ff, 0 0 0 6px rgba(0, 194, 255, 0.2);
+    border-radius: 6px;
+    animation: tutorial-pulse 2s infinite ease-in-out;
+    transition: all 0.3s ease;
+}
+
+@keyframes tutorial-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 3px #00c2ff, 0 0 0 6px rgba(0, 194, 255, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 0 4px #00c2ff, 0 0 0 10px rgba(0, 194, 255, 0.1);
+    }
+}
+
+/* Tutorial Prompt */
+.tutorial-prompt {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(6, 16, 35, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.tutorial-prompt.show {
+    opacity: 1;
+}
+
+.tutorial-prompt-content {
+    background: rgba(15, 23, 36, 0.95);
+    border: 1px solid rgba(124, 246, 255, 0.3);
+    border-radius: 16px;
+    padding: 2.5rem;
+    max-width: 420px;
+    text-align: center;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    transform: translateY(-10px);
+    transition: transform 0.3s ease;
+}
+
+.tutorial-prompt.show .tutorial-prompt-content {
+    transform: translateY(0);
+}
+
+.tutorial-prompt h4 {
+    color: #7cf6ff;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.tutorial-prompt p {
+    color: #e6eef8;
+    margin-bottom: 0;
+    line-height: 1.6;
+}
+
+.tutorial-prompt-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+/* Tutorial Tooltip */
+.tutorial-tooltip {
+    background: rgba(15, 23, 36, 0.95);
+    border: 1px solid rgba(124, 246, 255, 0.3);
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+}
+
+.tutorial-tooltip.show {
+    transform: translateY(0) !important;
+    opacity: 1 !important;
+}
+
+.tutorial-tooltip-content {
+    padding: 1.5rem;
+}
+
+.tutorial-step-counter {
+    font-size: 0.875rem;
+    color: #00c2ff;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.tutorial-tooltip h5 {
+    color: #7cf6ff;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.tutorial-tooltip p {
+    margin-bottom: 1.25rem;
+    line-height: 1.6;
+    color: #e6eef8;
+}
+
+.tutorial-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Tutorial Arrow */
+.tutorial-tooltip::before {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: 8px solid transparent;
+    z-index: 1;
+}
+
+.tutorial-tooltip[data-position="top"]::before {
+    bottom: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-top-color: rgba(124, 246, 255, 0.3);
+}
+
+.tutorial-tooltip[data-position="bottom"]::before {
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-bottom-color: rgba(124, 246, 255, 0.3);
+}
+
+.tutorial-tooltip[data-position="left"]::before {
+    right: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-left-color: rgba(124, 246, 255, 0.3);
+}
+
+.tutorial-tooltip[data-position="right"]::before {
+    left: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-right-color: rgba(124, 246, 255, 0.3);
+}
+
+/* Tutorial Completion Message */
+.tutorial-completion {
+    animation: slideInRight 0.5s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Tutorial Button Styles */
+.tutorial-restart-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.tutorial-restart-btn:hover {
+    opacity: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .tutorial-tooltip {
+        max-width: 280px;
+        margin: 1rem;
+    }
+
+    .tutorial-tooltip-content {
+        padding: 1.25rem;
+    }
+
+    .tutorial-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .tutorial-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .tutorial-prompt-content {
+        padding: 2rem 1.5rem;
+        margin: 1rem;
+        max-width: 350px;
+    }
+
+    .tutorial-prompt-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .tutorial-prompt-buttons .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .tutorial-tooltip {
+        max-width: 260px;
+    }
+
+    .tutorial-tooltip-content {
+        padding: 1rem;
+    }
+
+    .tutorial-step-counter {
+        font-size: 0.8rem;
+    }
+
+    .tutorial-tooltip h5 {
+        font-size: 1rem;
+    }
+
+    .tutorial-tooltip p {
+        font-size: 0.9rem;
+    }
+}
+
+/* Dark theme integration */
+@media (prefers-color-scheme: dark) {
+    .tutorial-tooltip,
+    .tutorial-prompt-content {
+        background: rgba(15, 23, 36, 0.98);
+    }
+}
+
+/* Animation classes */
+.tutorial-fade-in {
+    animation: tutorialFadeIn 0.3s ease-out;
+}
+
+@keyframes tutorialFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Focus management */
+.tutorial-tooltip button:focus,
+.tutorial-prompt button:focus {
+    outline: 2px solid #00c2ff;
+    outline-offset: 2px;
+}
+
+/* Loading state */
+.tutorial-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.tutorial-loading::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(124, 246, 255, 0.3);
+    border-top: 2px solid #00c2ff;
+    border-radius: 50%;
+    animation: tutorial-spin 1s linear infinite;
+    margin-right: 0.5rem;
+}
+
+@keyframes tutorial-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
