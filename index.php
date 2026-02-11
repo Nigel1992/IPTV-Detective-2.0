@@ -29,30 +29,12 @@ require_once __DIR__ . '/inc/maintenance.php';
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" href="favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Cloudflare Turnstile -->
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <!-- Cloudflare Turnstile removed from public UI per admin request; only used on admin login -->
   <script>
-    // Initialize Turnstile widget into #cfWidget and provide helpers
-    window._turnstileWid = null;
-    function initTurnstile(){
-      try{
-        if (window.turnstile && !window._turnstileWid) {
-          var el = document.getElementById('cfWidget');
-          if (el) {
-            window._turnstileWid = turnstile.render(el, {sitekey: '<?php echo htmlspecialchars($siteKey); ?>'});
-          }
-        }
-      } catch(e){}
-    }
-    function getTurnstileResponse(){
-      try{
-        if (window.turnstile && window._turnstileWid) return turnstile.getResponse(window._turnstileWid);
-        var inp = document.querySelector('input[name="cf-turnstile-response"]');
-        return inp ? inp.value : '';
-      } catch(e){ return ''; }
-    }
-    function resetTurnstile(){ try{ if (window.turnstile && window._turnstileWid) turnstile.reset(window._turnstileWid); } catch(e){} }
-    document.addEventListener('DOMContentLoaded', function(){ setTimeout(initTurnstile, 300); });
+    // No-op: Captcha handled by admin panel only.
+    function getTurnstileResponse(){ return ''; }
+    function resetTurnstile(){}
+    function initTurnstile(){}
   </script>
   <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.2/dist/darkly/bootstrap.min.css" rel="stylesheet" integrity="sha384-qkU2zAXgyuetMWO55YBTK4SZzn3b91PYt/YIaQDoJWr0wpkJdglBZxwVjfN5KyR1" crossorigin="anonymous">
   <!-- Tech fonts -->
@@ -268,15 +250,12 @@ require_once __DIR__ . '/inc/maintenance.php';
               <div class="small text-muted">Tip: reload page if site verification prompts appear.</div>
             </div>
             <div class="text-end">
-                <div class="mb-2 d-inline-block" style="transform:translateY(-10px);">
-                <div id="cfWidget" style="display:inline-block;"></div>
-              </div>
-              <div class="d-flex flex-column align-items-end">
+                <div class="d-flex flex-column align-items-end">
                 <button class="btn btn-primary btn-lg" type="submit"><i class="bi bi-search"></i> Check &amp; Compare</button>
                 <div class="mt-2 text-end">
-                  <div class="p-2 rounded shadow-sm" style="border:2px solid #d9534f; background:rgba(217,83,79,0.06); max-width:360px;">
-                    <div class="fw-bold text-danger" style="font-size:0.95rem;"><i class="bi bi-exclamation-triangle-fill me-1"></i> Refresh page after each submission</div>
-                    <div class="small text-muted mt-1" style="font-size:0.78rem;">Reload to get a new captcha before the next submission.</div>
+                  <div class="p-2 rounded shadow-sm" style="border:2px solid rgba(255,255,255,0.04); background:rgba(255,255,255,0.02); max-width:360px;">
+                    <div class="fw-bold text-muted" style="font-size:0.95rem;"><i class="bi bi-info-circle me-1"></i> Tip: refresh the page if you see verification prompts.</div>
+                    <div class="small text-muted mt-1" style="font-size:0.78rem;">If submission fails due to network errors, try again or contact us on Discord.</div>
                   </div>
                 </div>
               </div>
@@ -640,16 +619,8 @@ require_once __DIR__ . '/inc/maintenance.php';
         window.location.reload(true);
         return;
       }
-      // Captcha check
-      const turnstileResponse = getTurnstileResponse();
-      if (!turnstileResponse) {
-        alert('Please complete the captcha.');
-        if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; }
-        // attempt to re-init widget
-        try{ initTurnstile(); } catch(e){}
-        return;
-      }
-      // (Server-side verification removed) continue if token present
+      // Captcha removed from public submission per admin request.
+      // Continue without requiring a captcha token.
       // Additional client-side validation
       // Ensure required fields contain non-whitespace values
       if (!name || name.trim().length === 0) { alert('Please enter the provider name.'); form.classList.add('was-validated'); if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-search"></i> Check & Compare'; } return; }
@@ -1094,8 +1065,6 @@ require_once __DIR__ . '/inc/maintenance.php';
       // include seller/source fields
       fd.append('seller_source', sellerSource || '');
       fd.append('seller_info', sellerInfo || '');
-      // Add captcha token
-      fd.append('cf-turnstile-response', turnstileResponse);
 
       // Submit provider to server, retry if server returns invalid counts (0 or '-')
       let data = null;
