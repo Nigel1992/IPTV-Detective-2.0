@@ -694,15 +694,16 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
         
         // Start transaction
         $pdo->beginTransaction();
-        
-        // Get all providers with key fields
-        $stmt = $pdo->query("
-            SELECT id, name, link, price, channels, groups, live_streams, live_categories, 
-                   series, series_categories, vod_categories, seller_source, seller_info, 
-                   created_at
-            FROM providers 
-            ORDER BY created_at ASC
-        ");
+
+        // Determine available columns and select only those that exist (avoid SQL errors on older schemas)
+        $desired = ['id','name','link','price','channels','groups','live_streams','live_categories','series','series_categories','vod_categories','seller_source','seller_info','created_at'];
+        $desc = $pdo->query("DESCRIBE providers")->fetchAll(PDO::FETCH_ASSOC);
+        $existingCols = array_column($desc, 'Field');
+        $selectCols = array_values(array_intersect($desired, $existingCols));
+        if (empty($selectCols)) { $selectCols = ['id']; }
+        $select = implode(',', $selectCols);
+        $orderBy = in_array('created_at', $existingCols) ? 'created_at ASC' : 'id ASC';
+        $stmt = $pdo->query("SELECT $select FROM providers ORDER BY $orderBy");
         $providers = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Group by exact match criteria
@@ -735,9 +736,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
         $deletedCount = 0;
         foreach ($groups as $hash => $groupProviders) {
             if (count($groupProviders) > 1) {
-                // Sort by created_at and keep oldest
+                // Sort by created_at and keep oldest (fallback to id if created_at is not available)
                 usort($groupProviders, function($a, $b) {
-                    return strtotime($a['created_at']) - strtotime($b['created_at']);
+                    if (isset($a['created_at']) && isset($b['created_at'])) {
+                        return strtotime($a['created_at']) - strtotime($b['created_at']);
+                    }
+                    // Fallback to numeric ID comparison
+                    return intval($a['id']) - intval($b['id']);
                 });
                 
                 // Delete all except the first (oldest)
