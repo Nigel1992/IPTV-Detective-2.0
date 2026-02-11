@@ -1091,7 +1091,7 @@ require_once __DIR__ . '/inc/maintenance.php';
       // Submit provider to server, retry if server returns invalid counts (0 or '-')
       let data = null;
       let lastRes = null;
-      const maxRetries = 3;
+      const maxRetries = 6;
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         const res = await fetch('submit_provider.php', { method: 'POST', body: fd });
         lastRes = res;
@@ -1129,12 +1129,12 @@ require_once __DIR__ . '/inc/maintenance.php';
       if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-search"></i> Check & Compare'; }
       if (!lastRes || !lastRes.ok) {
         const errMsg = (data && data.error) ? data.error : 'Server error';
-        // If server reports a CAPTCHA failure, abort and ask user to report on Discord
+        // If server reports a CAPTCHA failure, ask user to retry the captcha and do NOT prompt Discord
         if (/captcha/i.test(errMsg)) {
           if (btn) { btn.disabled = false; }
-          const diag = `Provider: ${name}\nTime: ${new Date().toISOString()}\nServer: ${errMsg}`;
-          alert('Submission blocked: CAPTCHA verification failed on the server after multiple attempts.\nPlease join our Discord to report this issue and discuss: https://discord.com/invite/zxUq3afdn8\n\nDetails:\n' + diag);
-          console.info('CAPTCHA failure details:', diag);
+          try { resetTurnstile(); } catch (e) {}
+          alert('Server rejected the CAPTCHA. Please complete the CAPTCHA again and resubmit. If this keeps happening, try reloading the page or join our Discord for help: https://discord.com/invite/zxUq3afdn8');
+          console.info('CAPTCHA failure (server):', errMsg);
           return;
         }
         alert('Error: ' + errMsg);
@@ -1143,9 +1143,9 @@ require_once __DIR__ . '/inc/maintenance.php';
       if (data.error) {
         const errMsg = data.error || '';
         if (/captcha/i.test(errMsg)) {
-          const diag = `Provider: ${name}\nTime: ${new Date().toISOString()}\nServer: ${errMsg}`;
-          alert('Submission blocked: CAPTCHA verification failed on the server after multiple attempts.\nPlease join our Discord to report this issue and discuss: https://discord.com/invite/zxUq3afdn8\n\nDetails:\n' + diag);
-          console.info('CAPTCHA failure details:', diag);
+          try { resetTurnstile(); } catch (e) {}
+          alert('Server rejected the CAPTCHA. Please complete the CAPTCHA again and resubmit. If this keeps happening, try reloading the page or join our Discord for help: https://discord.com/invite/zxUq3afdn8');
+          console.info('CAPTCHA failure (server):', errMsg);
           return;
         }
         alert('Error: ' + errMsg);
