@@ -1923,9 +1923,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                                     </div>
                                 </div>
                                 <div class="col-md-6">
+                                    <!-- Website/Link input removed from Add Provider modal per request -->
                                     <div class="mb-3">
-                                        <label for="addProviderLink" class="form-label"><i class="bi bi-link me-1"></i>Website/Link</label>
-                                        <input type="url" class="form-control" name="link" id="addProviderLink" placeholder="https://...">
+                                        <!-- intentionally left blank to preserve layout -->
                                     </div>
                                 </div>
                             </div>
