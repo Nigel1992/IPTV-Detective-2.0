@@ -17,5 +17,6 @@ logs/
 .env
 *.sh
 temp.txt
+temp_iptv_test.php
 local test/
 .vercel
