@@ -20,7 +20,23 @@ try {
         $matches = 0;
     }
 
-    echo json_encode(['success'=>true,'providers_public'=>$public,'providers_total'=>$total,'providers_recent_7'=>$recent7,'providers_matches'=>$matches]);
+    // Optional: provide "matched under <threshold>" when requested by the badge (keeps backward compatibility)
+    $providers_matched_under = null;
+    if (isset($_GET['threshold'])) {
+        $thr = floatval($_GET['threshold']);
+        $scopeParam = (isset($_GET['scope']) && $_GET['scope'] === 'total') ? 'total' : 'public';
+        $sql = 'SELECT COUNT(*) FROM providers WHERE matched = 1 AND match_price IS NOT NULL AND match_price < ?' . ($scopeParam === 'public' ? ' AND is_public = 1' : '');
+        $stmt5 = $pdo->prepare($sql);
+        $stmt5->execute([$thr]);
+        $providers_matched_under = intval($stmt5->fetchColumn());
+    }
+
+    $out = ['success'=>true,'providers_public'=>$public,'providers_total'=>$total,'providers_recent_7'=>$recent7,'providers_matches'=>$matches];
+    if ($providers_matched_under !== null) {
+        $out['providers_matched_under'] = $providers_matched_under;
+    }
+
+    echo json_encode($out);
 } catch (Throwable $e) {
     // @file_put_contents(__DIR__ . '/get_counts_error.log', date('c') . " DB error: " . $e->getMessage() . "\n", FILE_APPEND);
     http_response_code(500);

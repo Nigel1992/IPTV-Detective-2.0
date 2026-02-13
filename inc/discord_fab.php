@@ -106,9 +106,20 @@ echo <<<HTML
   .discord-img{width:22px;height:22px}
   .discord-icon img,.discord-icon svg{width:22px;height:22px}
 }
+
+/* Close / toast styles */
+.discord-close{
+  position:absolute;top:-10px;right:-10px;z-index:100001;display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:rgba(88,101,242,0.95);border-radius:999px;border:1.5px solid rgba(255,255,255,0.13);color:#fff;font-size:18px;line-height:1;padding:0;cursor:pointer;box-shadow:0 4px 14px rgba(30,34,90,0.12);transition:transform .12s ease,box-shadow .12s ease,background .12s ease;}
+.discord-close:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(30,34,90,0.18);background:rgba(88,101,242,1)}
+
+.discord-toast{position:fixed;right:18px;bottom:78px;z-index:100000;background:rgba(12,18,28,0.96);color:#e6eef8;border:1px solid rgba(255,255,255,0.06);padding:10px 12px;border-radius:8px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,0.6)}
+.discord-toast .btn{margin-left:8px}
+.discord-toast small{display:block;opacity:0.8;margin-top:6px;font-size:12px}
+@media (max-width:480px){.discord-close{top:-8px;right:-8px;width:28px;height:28px;font-size:16px}}
 </style>
 <div class="discord-fab" aria-hidden="false">
   <div class="pulse" aria-hidden="true"></div>
+  <button type="button" class="discord-close" aria-label="Close" title="Close">&times;</button>
   <a href="{$invite}" class="discord-link" target="_blank" rel="noopener noreferrer" title="Join our Discord to discuss and report issues">
     <span class="discord-icon" aria-hidden="true">
       <img src="{$img}" alt="Discord" class="discord-img" style="width:22px;height:22px;display:block" />
@@ -119,7 +130,54 @@ echo <<<HTML
 <script>
 </script>
 <script>
-document.addEventListener('keydown', function(e){ if(e.key==="Escape"){ var el=document.querySelector('.discord-fab'); if(el) el.style.display='none'; }});
+// Escape key hides the FAB for the session
+document.addEventListener('keydown', function(e){ if(e.key==="Escape"){ var el=document.querySelector('.discord-fab'); if(el) { el.style.display='none'; showDismissToast(); } }});
+
+// Check localStorage for persistent hide
+(function(){
+  try {
+    if (localStorage && localStorage.getItem('discord_fab_hidden') === '1') {
+      var el = document.querySelector('.discord-fab'); if (el) el.style.display = 'none';
+    }
+  } catch(e){}
+})();
+
+// Close button behavior + toast with 'Undo' and 'Don't show again'
+(function(){
+  function showDismissToast(){
+    if (document.getElementById('discordFabToast')) return;
+    var t = document.createElement('div');
+    t.id = 'discordFabToast';
+    t.className = 'discord-toast';
+    t.innerHTML = '<strong>Discord hidden</strong>' +
+      '<button class="btn btn-sm btn-outline-light" id="discordFabUndo">Undo</button>' +
+      '<button class="btn btn-sm btn-primary" id="discordFabHide">Don\'t show again</button>' +
+      '<small>You can re-enable it by clearing site data or clicking Undo.</small>';
+    document.body.appendChild(t);
+
+    document.getElementById('discordFabUndo').addEventListener('click', function(){
+      var el = document.querySelector('.discord-fab'); if (el) el.style.display = '';
+      var t = document.getElementById('discordFabToast'); if (t) t.remove();
+    });
+    document.getElementById('discordFabHide').addEventListener('click', function(){
+      try { localStorage.setItem('discord_fab_hidden','1'); } catch(e){}
+      var t = document.getElementById('discordFabToast'); if (t) t.remove();
+    });
+
+    // Auto-remove toast after 8s
+    setTimeout(function(){ var t = document.getElementById('discordFabToast'); if (t) t.remove(); }, 8000);
+  }
+
+  var closeBtn = document.querySelector('.discord-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      var el = document.querySelector('.discord-fab'); if (el) el.style.display='none';
+      showDismissToast();
+    });
+  }
+})();
+
 // If the image is missing or fails, replace it with the SVG fallback so the icon is always visible
 (function(){
   var img = document.querySelector('.discord-img');

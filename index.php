@@ -152,6 +152,14 @@ require_once __DIR__ . '/inc/maintenance.php';
     <div class="text-center mb-4 hero">
       <h1 class="display-5 fw-bold mb-1"><span class="logo"><i class="bi bi-broadcast"></i> IPTV Detective</span></h1>
       <div class="lead">Find the cheapest provider offering the exact same IPTV package — detect resells and compare prices.</div>
+      <div class="mt-3 d-flex justify-content-center align-items-center gap-3">
+        <a href="#check" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Scan your service</a>
+        <a href="#check" role="button" aria-label="Scan your service" title="Scan your own provider"
+           onclick="document.getElementById('check-tab').click(); return false;"
+           style="cursor:pointer; display:inline-block;">
+          <img src="stats-badge.php" alt="Live stats — click to scan" style="height:72px;border-radius:8px;border:1px solid rgba(255,255,255,0.04); display:block;">
+        </a>
+      </div>
       <div class="mt-3">
         <button class="btn btn-outline-light" id="howItWorksBtn" title="How this site works" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="bi bi-info-circle"></i> How it works</button>
       </div>
@@ -711,8 +719,8 @@ require_once __DIR__ . '/inc/maintenance.php';
         const url = makeApiUrl(action);
         // Request count-only from proxy for metric endpoints where possible (more reliable/faster)
         const countOnlyActions = new Set(['get_live_categories','get_live_streams','get_series','get_series_categories','get_vod_categories']);
-        // Placeholder proxy endpoint for public repo
-        const baseProxy = 'https://example.com/api/proxy?url=';
+        // Real Vercel proxy endpoint
+        const baseProxy = 'https://cors-proxy-one-delta.vercel.app/api/proxy?url=';
         const proxyUrl = baseProxy + encodeURIComponent(url);
         try {
           // Increase retries to make transient provider/API issues less likely to cause a failure

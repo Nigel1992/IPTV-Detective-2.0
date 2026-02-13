@@ -18,3 +18,4 @@ logs/
 *.sh
 temp.txt
 local test/
+.vercel

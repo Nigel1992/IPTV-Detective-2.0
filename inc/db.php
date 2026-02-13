@@ -62,4 +62,3 @@ function get_db() {
     throw new RuntimeException($msg);
 
 }
-?>
