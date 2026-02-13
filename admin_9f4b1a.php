@@ -132,6 +132,10 @@ if (!isset($_SESSION['admin_user'])) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Admin Login - IPTV Detective</title>
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+        <link rel="icon" type="image/png" href="/favicon.png">
+        <link rel="shortcut icon" href="/favicon.ico">
+        <meta name="theme-color" content="#061023">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
         <!-- Cloudflare Turnstile widget -->
         <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
@@ -188,83 +192,14 @@ $recent_submissions = $pdo->query('SELECT COUNT(*) FROM providers WHERE created_
 // Compute matched provider count using the same logic as `get_counts.php` so admin shows consistent numbers.
 $matched_providers = 0;
 try {
-    // fields we use for matching on the public site - assume they exist since get_counts.php works
-    $cols = ['id','live_categories','live_streams','series','series_categories','vod_categories'];
-    $sql = 'SELECT ' . implode(',', $cols) . ' FROM providers WHERE is_public = 1';
-    $stmt4 = $pdo->prepare($sql);
-    $stmt4->execute();
-    $providers = $stmt4->fetchAll(PDO::FETCH_ASSOC);
-
-    $n = count($providers);
-    $live_categories_values = [];
-    $live_streams_values = [];
-    $series_values_raw = [];
-    $series_categories_values_raw = [];
-    $vod_categories_values_raw = [];
-    $series_counts = [];
-    $series_categories_counts = [];
-    $vod_counts = [];
-
-    for ($i = 0; $i < $n; $i++) {
-        $p = $providers[$i];
-        $live_categories_values[$i] = $p['live_categories'] ?? '';
-        $live_streams_values[$i] = $p['live_streams'] ?? '';
-        $series_values_raw[$i] = $p['series'] ?? '';
-        $series_categories_values_raw[$i] = $p['series_categories'] ?? '';
-        $vod_categories_values_raw[$i] = $p['vod_categories'] ?? '';
-        if (function_exists('count_field_items')) {
-            $series_counts[$i] = count_field_items($series_values_raw[$i]);
-            $series_categories_counts[$i] = count_field_items($series_categories_values_raw[$i]);
-            $vod_counts[$i] = count_field_items($vod_categories_values_raw[$i]);
-        } else {
-            $series_counts[$i] = is_numeric($p['series'] ?? '') ? intval($p['series']) : 0;
-            $series_categories_counts[$i] = is_numeric($p['series_categories'] ?? '') ? intval($p['series_categories']) : 0;
-            $vod_counts[$i] = is_numeric($p['vod_categories'] ?? '') ? intval($p['vod_categories']) : 0;
-        }
+    $url = 'https://astrolume.infinityfreeapp.com/IPTV%20Detective/get_counts.php?_=' . time();
+    $json = file_get_contents($url);
+    $data = json_decode($json, true);
+    if (is_array($data) && isset($data['providers_matches'])) {
+        $matched_providers = intval($data['providers_matches']);
+    } else {
+        $matched_providers = 0;
     }
-
-    // exact matching across available fields
-    $matched_providers_map = [];
-    for ($i = 0; $i < $n; $i++) {
-        for ($j = $i+1; $j < $n; $j++) {
-            $field_matches = [];
-            $field_matches[] = ($live_categories_values[$i] === $live_categories_values[$j] && !empty($live_categories_values[$i]));
-            $field_matches[] = ($live_streams_values[$i] === $live_streams_values[$j] && !empty($live_streams_values[$i]));
-
-            $series_match = false;
-            if (!empty($series_values_raw[$i]) && $series_values_raw[$i] === $series_values_raw[$j]) $series_match = true;
-            else if ($series_counts[$i] === $series_counts[$j]) $series_match = true;
-            $field_matches[] = $series_match;
-
-            $sc_match = false;
-            if (!empty($series_categories_values_raw[$i]) && $series_categories_values_raw[$i] === $series_categories_values_raw[$j]) $sc_match = true;
-            else if ($series_categories_counts[$i] === $series_categories_counts[$j]) $sc_match = true;
-            $field_matches[] = $sc_match;
-
-            $vod_match = false;
-            if (!empty($vod_categories_values_raw[$i]) && $vod_categories_values_raw[$i] === $vod_categories_values_raw[$j]) $vod_match = true;
-            else if ($vod_counts[$i] === $vod_counts[$j]) $vod_match = true;
-            $field_matches[] = $vod_match;
-
-            $available_fields = 0;
-            $matching_fields = 0;
-            foreach ($field_matches as $matches) {
-                if ($matches !== false) {
-                    $available_fields++;
-                    if ($matches) $matching_fields++;
-                }
-            }
-
-            if ($available_fields > 0 && $matching_fields == $available_fields) {
-                // Mark providers as matched; providers array rows may not include id if id wasn't selected, so fallback
-                $idA = $providers[$i]['id'] ?? null;
-                $idB = $providers[$j]['id'] ?? null;
-                if ($idA) $matched_providers_map[$idA] = true;
-                if ($idB) $matched_providers_map[$idB] = true;
-            }
-        }
-    }
-    $matched_providers = count($matched_providers_map);
 } catch (Throwable $e) {
     $matched_providers = 0;
 }
@@ -865,6 +800,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - IPTV Detective</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <meta name="theme-color" content="#061023">
     <!-- Dark Bootswatch theme for a professional dark UI -->
     <link href="https://cdn.jsdelivr.net/npm/bootswatch@5/dist/darkly/bootstrap.min.css" rel="stylesheet" integrity="sha384-t2UKecXY6tDoQIsEiNhYTaTFWmoHgQT7MV80h9huTejPYLkdgaOHv8ssDrS3Cdcw" crossorigin="anonymous">
     <!-- Nice system font stack -->
@@ -963,6 +902,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                 font-weight: 700;
             }
         }
+
+        /* Sortable column header styles */
+        #providersTable th.sortable { cursor: pointer; user-select: none; position: relative; }
+        #providersTable th.sortable:focus { outline: 2px solid rgba(255,255,255,0.06); outline-offset: 2px; }
+        #providersTable th.sortable::after { content: ''; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size:0.7rem; opacity:0.5; transition:opacity .12s ease, transform .12s ease; }
+        #providersTable th.sortable.sorted-asc::after { content: '▲'; opacity:1; }
+        #providersTable th.sortable.sorted-desc::after { content: '▼'; opacity:1; }
+        #providersTable th.sortable:hover { color: #fff; }
         .table td, .table th{
             vertical-align:middle;
             padding:0.75rem;
@@ -1347,7 +1294,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                     </div>
                     <div class="col-lg-3 col-md-6 mb-3">
                         <div class="stats-card h-100">
-                            <div class="stats-number text-success"><?php echo number_format($matched_providers); ?></div>
+                            <div id="matchedProvidersCount" class="stats-number text-success"><?php echo number_format($matched_providers); ?></div>
                             <div class="stats-label">Matched Providers</div>
                             <i class="bi bi-check-circle position-absolute top-50 end-0 translate-middle-y me-3 opacity-25" style="font-size:2rem;"></i>
                         </div>
@@ -1657,17 +1604,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                         <thead class="table-dark">
                             <tr>
                                 <th style="width:48px;text-align:center"><i class="bi bi-check2-all"></i></th>
-                                <th><i class="bi bi-hash me-1"></i>ID</th>
-                                <th><i class="bi bi-tag me-1"></i>Name</th>
-                                <th><i class="bi bi-people me-1"></i>Seller</th>
-                                <th><i class="bi bi-cash me-1"></i>Price</th>
-                                <th><i class="bi bi-play-circle me-1"></i>Live Cats</th>
-                                <th><i class="bi bi-play me-1"></i>Live Streams</th>
-                                <th><i class="bi bi-film me-1"></i>Series</th>
-                                <th><i class="bi bi-folder me-1"></i>Series Cats</th>
-                                <th><i class="bi bi-collection-play me-1"></i>VOD Cats</th>
-                                <th><i class="bi bi-percent me-1"></i>Similarity</th>
-                                <th><i class="bi bi-calendar me-1"></i>Created</th>
+                                <th class="sortable" data-sort="id" aria-sort="none"><i class="bi bi-hash me-1"></i>ID</th>
+                                <th class="sortable" data-sort="name" aria-sort="none"><i class="bi bi-tag me-1"></i>Name</th>
+                                <th class="sortable" data-sort="seller_source" aria-sort="none"><i class="bi bi-people me-1"></i>Seller</th>
+                                <th class="sortable" data-sort="price" aria-sort="none"><i class="bi bi-cash me-1"></i>Price</th>
+                                <th class="sortable" data-sort="live_categories" aria-sort="none"><i class="bi bi-play-circle me-1"></i>Live Cats</th>
+                                <th class="sortable" data-sort="live_streams" aria-sort="none"><i class="bi bi-play me-1"></i>Live Streams</th>
+                                <th class="sortable" data-sort="series" aria-sort="none"><i class="bi bi-film me-1"></i>Series</th>
+                                <th class="sortable" data-sort="series_categories" aria-sort="none"><i class="bi bi-folder me-1"></i>Series Cats</th>
+                                <th class="sortable" data-sort="vod_categories" aria-sort="none"><i class="bi bi-collection-play me-1"></i>VOD Cats</th>
+                                <th class="sortable" data-sort="similarity" aria-sort="none"><i class="bi bi-percent me-1"></i>Similarity</th>
+                                <th class="sortable" data-sort="created_at" aria-sort="none"><i class="bi bi-calendar me-1"></i>Created</th>
                                 <th><i class="bi bi-gear me-1"></i>Actions</th>
                             </tr>
                         </thead>
@@ -2186,6 +2133,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                         const B = b.row.dataset.name || (b.row.cells[1] && b.row.cells[1].textContent.toLowerCase()) || '';
                         return dir === 'ASC' ? A.localeCompare(B) : B.localeCompare(A);
                     }
+                    if (field === 'id') {
+                        const A = parseInt(a.row.dataset.rowId || a.row.getAttribute('data-row-id') || 0, 10) || 0;
+                        const B = parseInt(b.row.dataset.rowId || b.row.getAttribute('data-row-id') || 0, 10) || 0;
+                        return dir === 'ASC' ? (A - B) : (B - A);
+                    }
                     if (field === 'price') {
                             const A = getPrice({row: a.row});
                             const B = getPrice({row: b.row});
@@ -2538,6 +2490,36 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
             const sortBy = document.getElementById('sortBy');
             if (statusFilter) statusFilter.addEventListener('change', applyFilters);
             if (sortBy) sortBy.addEventListener('change', applyFilters);
+
+            // Make table header cells clickable to toggle sorting (click header to sort ASC/DESC)
+            (function(){
+                const headers = document.querySelectorAll('#providersTable thead th.sortable');
+                const sortSelect = document.getElementById('sortBy');
+                function clearHeaderSortClasses(){ headers.forEach(h=>{ h.classList.remove('sorted-asc','sorted-desc'); h.setAttribute('aria-sort','none'); h.tabIndex = 0; }); }
+                if (sortSelect && headers.length) {
+                    const parts = (sortSelect.value || '').split(/\s+/);
+                    const initField = parts[0];
+                    const initDir = (parts[1] || 'DESC').toUpperCase();
+                    const initTh = Array.from(headers).find(h => (h.dataset.sort || '') === (initField || ''));
+                    if (initTh) { initTh.classList.add(initDir === 'ASC' ? 'sorted-asc' : 'sorted-desc'); initTh.setAttribute('aria-sort', initDir === 'ASC' ? 'ascending' : 'descending'); }
+                }
+                headers.forEach(th => {
+                    th.addEventListener('click', function(){
+                        const field = th.dataset.sort;
+                        if (!field || !sortSelect) return;
+                        const curParts = (sortSelect.value || '').split(/\s+/);
+                        const curField = curParts[0];
+                        const curDir = (curParts[1] || 'DESC').toUpperCase();
+                        const newDir = (curField === field && curDir === 'ASC') ? 'DESC' : 'ASC';
+                        sortSelect.value = field + ' ' + newDir;
+                        clearHeaderSortClasses();
+                        th.classList.add(newDir === 'ASC' ? 'sorted-asc' : 'sorted-desc');
+                        th.setAttribute('aria-sort', newDir === 'ASC' ? 'ascending' : 'descending');
+                        applyFilters();
+                    });
+                    th.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); th.click(); } });
+                });
+            })();
 
             // Add provider button
             const addProviderBtn = document.getElementById('add-provider-btn');
@@ -3171,5 +3153,30 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
             </div>
         </div>
     </div>
+
+    <script>
+    (function(){
+        async function loadAdminCounts(){
+            const el = document.getElementById('matchedProvidersCount');
+            if (!el) return;
+            const url = 'https://astrolume.infinityfreeapp.com/IPTV%20Detective/get_counts.php?_=' + Date.now();
+            try {
+                const r = await fetch(url, { cache: 'no-store' });
+                if (!r.ok) { console.warn('get_counts fetch failed', r.status); return; }
+                const j = await r.json();
+                if (j && j.providers_matches !== undefined) {
+                    el.textContent = Number(j.providers_matches).toLocaleString();
+                }
+            } catch (e) {
+                console.warn('loadAdminCounts error:', e);
+            }
+        }
+        // Run on load and then every 60s to keep in sync
+        document.addEventListener('DOMContentLoaded', function(){
+            loadAdminCounts();
+            setInterval(loadAdminCounts, 60000);
+        });
+    })();
+    </script>
 </body>
 </html>
