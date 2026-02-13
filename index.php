@@ -26,8 +26,10 @@ require_once __DIR__ . '/inc/maintenance.php';
 <head>
   <meta charset="utf-8">
   <title>IPTV Detective v2.1.3</title>
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <meta name="theme-color" content="#061023">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Cloudflare Turnstile removed from public UI per admin request; only used on admin login -->
   <script>
@@ -709,8 +711,9 @@ require_once __DIR__ . '/inc/maintenance.php';
         const url = makeApiUrl(action);
         // Request count-only from proxy for metric endpoints where possible (more reliable/faster)
         const countOnlyActions = new Set(['get_live_categories','get_live_streams','get_series','get_series_categories','get_vod_categories']);
-        const debugParam = (action === 'get_series') ? '&debug_snippet=1' : '';
-        const proxyUrl = 'inc/proxy.php?url=' + encodeURIComponent(url) + (countOnlyActions.has(action) ? '&count_only=1' : '&full=1') + debugParam + '&timeout=60&max_mb=50';
+        // Placeholder proxy endpoint for public repo
+        const baseProxy = 'https://example.com/api/proxy?url=';
+        const proxyUrl = baseProxy + encodeURIComponent(url);
         try {
           // Increase retries to make transient provider/API issues less likely to cause a failure
           const r = await fetchWithRetries(proxyUrl, { signal: (new AbortController()).signal }, 6);
