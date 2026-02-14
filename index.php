@@ -153,12 +153,6 @@ require_once __DIR__ . '/inc/maintenance.php';
       <h1 class="display-5 fw-bold mb-1"><span class="logo"><i class="bi bi-broadcast"></i> IPTV Detective</span></h1>
       <div class="lead">Find the cheapest provider offering the exact same IPTV package — detect resells and compare prices.</div>
       <div class="mt-3 d-flex justify-content-center align-items-center gap-3">
-        <a href="#check" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Scan your service</a>
-        <a href="#check" role="button" aria-label="Scan your service" title="Scan your own provider"
-           onclick="document.getElementById('check-tab').click(); return false;"
-           style="cursor:pointer; display:inline-block;">
-          <img src="stats-badge.php" alt="Live stats — click to scan" style="height:72px;border-radius:8px;border:1px solid rgba(255,255,255,0.04); display:block;">
-        </a>
       </div>
       <div class="mt-3">
         <button class="btn btn-outline-light" id="howItWorksBtn" title="How this site works" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="bi bi-info-circle"></i> How it works</button>
@@ -283,6 +277,7 @@ require_once __DIR__ . '/inc/maintenance.php';
                     <div class="info-row"><div class="info-label">Provider</div><div class="info-value" id="r_name">&nbsp;</div></div>
                     <div class="info-row"><div class="info-label">Price / year</div><div class="info-value" id="r_price">&nbsp;</div></div>
                     <div class="info-row"><div class="info-label">Seller</div><div class="info-value" id="r_seller">&nbsp;</div></div>
+                    <div class="info-row"><div class="info-label">Account status</div><div class="info-value" id="r_account_status">&nbsp;</div></div>
                     <div class="mt-2 small text-muted">Results are approximate and depend on available public submissions.</div>
                   </div>
                 </div>
@@ -690,6 +685,74 @@ require_once __DIR__ . '/inc/maintenance.php';
         const rCompare = document.getElementById('r_compare'); if (rCompare) rCompare.innerHTML = '<div class="small text-muted">Fetching comparison...</div>';
       } catch (ex) {}
 
+      // Real Vercel proxy endpoint
+      const baseProxy = 'https://cors-proxy-one-delta.vercel.app/api/proxy?url=';
+
+      // Check account login first (halts further processing on failure)
+      async function checkAccountLogin() {
+        const statusEl = document.getElementById('r_account_status');
+        try {
+          const loginUrl = `${scheme}${hostPort}/player_api.php?username=${encodeURIComponent(xtUser)}&password=${encodeURIComponent(xtPass)}`;
+          const proxyUrl = baseProxy + encodeURIComponent(loginUrl);
+          const res = await fetchWithRetries(proxyUrl, { signal: (new AbortController()).signal }, 2);
+          if (res.status === 403) {
+            if (statusEl) statusEl.innerHTML = '<span class="badge bg-warning text-dark">Cloudflare/403 — request blocked. Please join our Discord for assistance.</span>';
+            return { ok: false, cloudflare: true };
+          }
+          if (!res.ok) {
+            if (statusEl) statusEl.innerHTML = '<span class="badge bg-danger">Invalid credentials or service unreachable</span>';
+            return { ok: false };
+          }
+          const txt = await res.text();
+          let data;
+          try {
+            data = JSON.parse(txt);
+          } catch (e) {
+            // Not JSON, perhaps HTML error page
+            if (statusEl) statusEl.innerHTML = '<span class="badge bg-danger">Invalid response from server</span>';
+            return { ok: false };
+          }
+          if (!data || !data.user_info) {
+            if (statusEl) statusEl.innerHTML = '<span class="badge bg-danger">Invalid credentials</span>';
+            return { ok: false };
+          }
+          const userInfo = data.user_info;
+          if (userInfo.auth !== 1 || userInfo.status !== 'Active') {
+            if (statusEl) statusEl.innerHTML = '<span class="badge bg-danger">Account inactive</span>';
+            return { ok: false };
+          }
+          const expDate = parseInt(userInfo.exp_date);
+          const now = Math.floor(Date.now() / 1000);
+          if (expDate <= now) {
+            if (statusEl) statusEl.innerHTML = '<span class="badge bg-danger">Account expired</span>';
+            return { ok: false };
+          }
+          if (statusEl) statusEl.innerHTML = '<span class="badge bg-success">Account valid</span>';
+          return { ok: true };
+        } catch (e) {
+          console.error('Account check error:', e);
+          if (statusEl) statusEl.innerHTML = '<span class="badge bg-danger">Network error checking account</span>';
+          return { ok: false, error: e };
+        }
+      }
+
+      // Verify account login before fetching detailed metrics
+      try {
+        const loginResult = await checkAccountLogin();
+        if (loginResult && loginResult.cloudflare) {
+          alert('Cloudflare/403 error: The request was blocked. This may be due to anti-bot protection on the provider\'s server. Please join our Discord server for assistance in resolving this issue.');
+          if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-search"></i> Check & Compare'; }
+          return;
+        }
+        if (!loginResult || !loginResult.ok) {
+          if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-search"></i> Check & Compare'; }
+          return;
+        }
+      } catch (e) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-search"></i> Check & Compare'; }
+        return;
+      }
+
       let apiCounts = {
         live_categories: null,
         live_streams: null,
@@ -719,8 +782,6 @@ require_once __DIR__ . '/inc/maintenance.php';
         const url = makeApiUrl(action);
         // Request count-only from proxy for metric endpoints where possible (more reliable/faster)
         const countOnlyActions = new Set(['get_live_categories','get_live_streams','get_series','get_series_categories','get_vod_categories']);
-        // Real Vercel proxy endpoint
-        const baseProxy = 'https://cors-proxy-one-delta.vercel.app/api/proxy?url=';
         const proxyUrl = baseProxy + encodeURIComponent(url);
         try {
           // Increase retries to make transient provider/API issues less likely to cause a failure
