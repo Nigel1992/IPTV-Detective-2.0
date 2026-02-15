@@ -1793,8 +1793,8 @@ require_once __DIR__ . '/inc/maintenance.php';
 
         <div class="col-md-4 text-md-end">
           <h6 class="mb-3 text-uppercase fw-bold" style="color: #00d4ff;"><i class="bi bi-code-slash me-2"></i>Version</h6>
-          <div class="mb-1 fs-5">v <strong style="color: #00d4ff;">2.1.3</strong></div>
-          <div class="small text-muted">build <span id="buildDate">2026-02-11</span></div>
+          <div class="mb-1 fs-5">v <strong style="color: #00d4ff;">2.1.4</strong></div>
+          <div class="small text-muted">build <span id="buildDate">2026-02-15</span></div>
           <div class="mt-3"><small class="text-muted">© 2024–2026 IPTV Detective</small></div>
         </div>
       </div>
@@ -1826,6 +1826,15 @@ require_once __DIR__ . '/inc/maintenance.php';
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        <div class="mb-3">
+          <strong>Version 2.1.4 — 2026-02-15</strong>
+          <ul>
+            <li>Removed the "Scan your service" button and live stats badge from the homepage hero section.</li>
+            <li>Added account validation before the "Check & Compare" process: now checks if credentials are valid, account is active, and not expired using the Xtream API.</li>
+            <li>Added Cloudflare/403 detection: if the request is blocked by Cloudflare, shows a detailed error message and directs users to Discord for assistance.</li>
+            <li>Improved error handling and user feedback for account issues.</li>
+          </ul>
+        </div>
         <div class="mb-3">
           <strong>Version 2.1.3 — 2026-02-11</strong>
           <ul>

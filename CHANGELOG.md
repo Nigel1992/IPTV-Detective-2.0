@@ -4,6 +4,12 @@
 This changelog is written for everyone, not just developers. It explains what changed in simple terms.
 
 
+## 2026-02-15 — v2.1.4
+- Removed the "Scan your service" button and live stats badge from the homepage hero section.
+- Added account validation before the "Check & Compare" process: now checks if credentials are valid, account is active, and not expired using the Xtream API.
+- Added Cloudflare/403 detection: if the request is blocked by Cloudflare, shows a detailed error message and directs users to Discord for assistance.
+- Improved error handling and user feedback for account issues.
+
 ## 2026-02-11 — v2.1.3
 - Improved provider submission reliability: automatic retries when a submission returns empty or placeholder results.
 - Added a homepage Discord button — clickable, accessible, and styled to be subtle and non-intrusive.
