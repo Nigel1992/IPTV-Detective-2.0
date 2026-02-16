@@ -1708,13 +1708,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                                   echo '<td>' . (isset($r['series']) && $r['series'] ? '<small class="text-warning">' . htmlspecialchars(substr($r['series'], 0, 20)) . (strlen($r['series']) > 20 ? '...' : '') . '</small>' : '<span class="text-muted">-</span>') . '</td>';
                                   echo '<td>' . (isset($r['series_categories']) && $r['series_categories'] ? '<small class="text-primary">' . htmlspecialchars(substr($r['series_categories'], 0, 20)) . (strlen($r['series_categories']) > 20 ? '...' : '') . '</small>' : '<span class="text-muted">-</span>') . '</td>';
                                   echo '<td>' . (isset($r['vod_categories']) && $r['vod_categories'] ? '<small class="text-secondary">' . htmlspecialchars(substr($r['vod_categories'], 0, 20)) . (strlen($r['vod_categories']) > 20 ? '...' : '') . '</small>' : '<span class="text-muted">-</span>') . '</td>';
-                                  // Similarity cell
+                                  // Similarity cell (enhanced: show info icon and enable async tooltip/popover)
                                   $simScore = isset($bestSim[$r['id']]) ? round($bestSim[$r['id']]['score'],1) : 0;
                                   $simLabel = ($simScore > 0) ? ($simScore . '%') : '-';
-                                  $simTitle = ($simScore > 0 && !empty($bestSim[$r['id']]['name'])) ? 'Most similar: ' . htmlspecialchars($bestSim[$r['id']]['name']) . ' (' . $simScore . '%)' : 'No close matches';
-                                  // Put tooltip on the whole table cell for easier hovering and enable Bootstrap tooltip
-                                  echo '<td title="' . $simTitle . '" data-bs-toggle="tooltip" aria-label="' . $simTitle . '">';
-                                  echo '<div class="small mb-1">' . $simLabel . '</div>';
+                                  $provId = htmlspecialchars($r['id']);
+                                  echo '<td class="sim-cell" data-prov-id="' . $provId . '">';
+                                  echo '<div class="d-flex align-items-center" style="gap:8px">';
+                                  echo '<div class="small mb-1 sim-score">' . $simLabel . '</div>';
+                                  echo '<button type="button" class="btn btn-sm btn-outline-light sim-info" data-prov-id="' . $provId . '" title="Full group view"><i class="bi bi-info-circle"></i></button>';
+                                  echo '</div>';
                                   echo '<div class="progress" style="height:8px"><div class="progress-bar ' . ($simScore>=80?'bg-success':($simScore>=50?'bg-warning':'bg-secondary')) . '" role="progressbar" style="width:' . intval(min(100,$simScore)) . '%"></div></div>';
                                   echo '</td>';
                                   echo '<td><small class="text-muted">' . htmlspecialchars($r['created_at'] ?? '') . '</small></td>';
@@ -2541,6 +2543,56 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_duplicates' && $_SERVE
                 const ttList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
                 ttList.forEach(function (el) { if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) new bootstrap.Tooltip(el); });
             } catch (e) { console.warn('Tooltip init failed', e); }
+
+            // Similarity tooltip/popover interactions
+            (function(){
+                const simCache = new Map();
+                function escapeHtml(s){ return String(s||'').replace(/[&<>\"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+                function fetchMatchesForProvider(id){
+                    if (!id) return Promise.resolve([]);
+                    if (simCache.has(id)) return Promise.resolve(simCache.get(id));
+                    return fetch('get_matches_for_provider.php?id='+encodeURIComponent(id)).then(r=>r.json()).then(j=>{
+                        const list = (j && Array.isArray(j.matches)) ? j.matches : [];
+                        simCache.set(id, list);
+                        return list;
+                    }).catch(e=>{ console.warn('fetchMatchesForProvider error', e); return []; });
+                }
+
+                // Attach enhanced tooltip to similarity cells
+                document.querySelectorAll('.sim-cell').forEach(cell=>{
+                    if (typeof bootstrap === 'undefined' || !bootstrap.Tooltip) return;
+                    const tt = new bootstrap.Tooltip(cell, {trigger: 'hover', html: true, title: 'Loading matches…', placement: 'top'});
+                    const id = cell.getAttribute('data-prov-id');
+                    cell.addEventListener('mouseenter', function(){
+                        fetchMatchesForProvider(id).then(matches=>{
+                            const baseline = matches.filter(m=>m.is_baseline).sort((a,b)=>b.score - a.score)[0];
+                            const secondary = matches.sort((a,b)=>b.score - a.score).find(m=>true) || null;
+                            const baselineStr = baseline ? ('Baseline Match: ' + baseline.score + '% ('+escapeHtml(baseline.name)+')') : 'Baseline Match: None';
+                            const secondaryStr = (secondary && secondary.id) ? ('Secondary Match: ' + secondary.score + '% ('+escapeHtml(secondary.name)+')') : 'No secondary match';
+                            const html = '<div style="min-width:200px;padding:6px"><div style="font-weight:600">'+baselineStr+'</div><div style="margin-top:6px">'+secondaryStr+'</div></div>';
+                            try { if (tt && tt.setContent) tt.setContent({'.tooltip-inner': html}); } catch(e){}
+                        });
+                    });
+                });
+
+                // Attach popover to info buttons for full group quick view
+                document.querySelectorAll('.sim-info').forEach(btn=>{
+                    if (typeof bootstrap === 'undefined' || !bootstrap.Popover) return;
+                    const id = btn.getAttribute('data-prov-id');
+                    const pop = new bootstrap.Popover(btn, {trigger: 'click', html: true, content: 'Loading...', placement: 'auto'});
+                    btn.addEventListener('shown.bs.popover', function(){
+                        fetchMatchesForProvider(id).then(matches=>{
+                            let html = '<div style="max-height:300px;overflow:auto;padding:6px">';
+                            if (matches.length === 0) html += '<div class="text-muted">No matches found</div>';
+                            matches.forEach(m=>{
+                                html += '<div style="padding:6px;border-bottom:1px solid rgba(255,255,255,0.03)"><strong>'+escapeHtml(m.name)+'</strong> <small class="text-muted">('+(m.score||0)+'%)</small>' + (m.is_baseline? ' <span class="badge bg-info">Baseline</span>':'') + '</div>';
+                            });
+                            html += '</div>';
+                            const popEl = document.querySelector('.popover'); if (popEl){ const inner = popEl.querySelector('.popover-body'); if (inner) inner.innerHTML = html; }
+                        });
+                    });
+                });
+            })();
         });
 
         // Update recent activity times to user's local timezone using data-ts (epoch ms)

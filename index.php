@@ -1788,6 +1788,7 @@ require_once __DIR__ . '/inc/maintenance.php';
           <ul class="list-unstyled small mb-0">
             <li class="mb-1"><a href="#" class="link-light text-decoration-none" data-bs-toggle="modal" data-bs-target="#helpModal" style="transition: color 0.3s;"><i class="bi bi-question-circle-fill me-2"></i>How it works</a></li>
             <li class="mb-1"><a href="#" class="link-light text-decoration-none" data-bs-toggle="modal" data-bs-target="#changelogModal" style="transition: color 0.3s;"><i class="bi bi-journal-text me-2"></i>Changelog</a></li>
+            <li class="mb-1"><a href="disclaimer.php" class="link-light text-decoration-none" style="transition: color 0.3s;"><i class="bi bi-file-earmark-text me-2"></i>Legal / Disclaimer</a></li>
           </ul>
         </div>
 
